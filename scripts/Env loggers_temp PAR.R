@@ -63,37 +63,41 @@ Temp.data<-temps %>%
   select(timestamp, SN20940480_top1.Raw.Temp, SN20940477_top2.Raw.Temp, SN20940481_top3.Raw.Temp,
                     SN20940476_bot1.Raw.Temp, SN20940479_bot2.Raw.Temp, SN20940478_bot3.Raw.Temp)
 
+colnames(Temp.data)<-c("timestamp", "Temp.top1", "Temp.top2", "Temp.top3", 
+                       "Temp.bot1", "Temp.bot2", "Temp.bot3")
+
 # plot it
 par(mfrow=c(1,3))
 
 #chamber 1
-plot(Temp.data$SN20940480_top1.Raw.Temp~Temp.data$timestamp, type="l", ylim=c(15, 25), col ="coral", 
+plot(Temp.data$Temp.top1~Temp.data$timestamp, type="l", ylim=c(15, 25), col ="coral", 
      main="chamber 1", xlab="Date", ylab="Temp")
 par(new=T)
-plot(Temp.data$SN20940477_top2.Raw.Temp~Temp.data$timestamp, type="l", ylim=c(15, 25), col ="dodgerblue", 
+plot(Temp.data$Temp.top2~Temp.data$timestamp, type="l", ylim=c(15, 25), col ="dodgerblue", 
      ylab="", xlab ="")
 
 #chamber 2
-plot(Temp.data$SN20940481_top3.Raw.Temp~Temp.data$timestamp, type="l", ylim=c(15, 25), col ="coral", 
+plot(Temp.data$Temp.top3~Temp.data$timestamp, type="l", ylim=c(15, 25), col ="coral", 
      main="chamber 2", xlab="Date", ylab="Temp")
 par(new=T)
-plot(Temp.data$SN20940476_bot1.Raw.Temp~Temp.data$timestamp, type="l", ylim=c(15, 25), col ="dodgerblue",
+plot(Temp.data$Temp.bot1~Temp.data$timestamp, type="l", ylim=c(15, 25), col ="dodgerblue",
      ylab="", xlab ="")
 
 #chamber 3
-plot(Temp.data$SN20940479_bot2.Raw.Temp~Temp.data$timestamp, type="l", ylim=c(15, 25), col ="coral", 
+plot(Temp.data$Temp.bot2~Temp.data$timestamp, type="l", ylim=c(15, 25), col ="coral", 
      main="chamber 3", xlab="Date", ylab="Temp")
 par(new=T)
-plot(Temp.data$SN20940478_bot3.Raw.Temp~Temp.data$timestamp, type="l", ylim=c(15, 25), col ="dodgerblue",
+plot(Temp.data$Temp.bot3~Temp.data$timestamp, type="l", ylim=c(15, 25), col ="dodgerblue",
      ylab="", xlab ="")
 legend("topright", legend=c("top", "bottom"),
        col=c("coral", "dodgerblue"), cex=0.6, lty =1, box.lty=0, lwd=2)
 
+dev.copy(pdf, "figures/Temps.pdf", height=7, width=8)
+dev.off()
+
 ##############
 # summary of conditions across all columns
 # rename Temp.data columns
-colnames(Temp.data)<-c("timestamp", "Temp.top1", "Temp.top2", "Temp.top3", 
-                                    "Temp.bot1", "Temp.bot2", "Temp.bot3")
 
 sum.stats<-Temp.data %>%
   summarise(across(
