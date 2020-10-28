@@ -14,11 +14,11 @@ library(dplyr)
 # split date and time column
 
 ##### grab files in a list
-files <- list.files(path="data/Hobo loggers/acclimation period", pattern = "csv$", full.names = T)
+files <- list.files(path="data/Hobo loggers/acclimation period/Oct19", pattern = "csv$", full.names = T)
 files
 
 ##### what are the file names, sans extensions
-file.names<-file_path_sans_ext(list.files(path="data/Hobo loggers/acclimation period", pattern = "csv$", full.names = F))
+file.names<-file_path_sans_ext(list.files(path="data/Hobo loggers/acclimation period/Oct19", pattern = "csv$", full.names = F))
 file.names
 
 ############ formatting all data in for loop
@@ -32,7 +32,8 @@ for(i in 1:length(files))
   df$timestamp<-mdy_hms(as.character(df$Date.time)) # corrects date format
   df$timestamp<-strptime(df$timestamp, format="%Y-%m-%d %H:%M:%S")
   df<-df[, c(4,2,3)] # remove old date-time column
-  df<-df[!(df$timestamp < "2020-10-15 14:00:00"),] # start at this time
+  df<-na.omit(df)
+  df<-df[!(df$timestamp < "2020-10-13 14:00:00"),] # start at this time
   df<-df[!(df$timestamp > "2020-10-19 14:00:00"),] # end at this time
   make.names(assign(paste("SN",file.names[i], sep=""), df)) # put pattern at front of names
   # makes each df[i] as dataframe with specific file-name
@@ -56,7 +57,7 @@ colnames(temps)[1]="timestamp" # rename the single column for time
 ### apply data callibration to each column
 # ex: temp$calib.SN10209515<-(temp$SN10209515 * "value") # Temp logger x: SN x
 
-#write.csv(temp, "xxx.csv")
+write.csv(temps, "Oct13.19_temp.light.csv")
 
 #temp data
 Temp.data<-temps %>%
@@ -77,14 +78,14 @@ plot(Temp.data$Temp.top2~Temp.data$timestamp, type="l", ylim=c(15, 25), col ="do
      ylab="", xlab ="")
 
 #chamber 2
-plot(Temp.data$Temp.top3~Temp.data$timestamp, type="l", ylim=c(15, 25), col ="coral", 
+plot(Temp.data$Temp.top2~Temp.data$timestamp, type="l", ylim=c(15, 25), col ="coral", 
      main="chamber 2", xlab="Date", ylab="Temp")
 par(new=T)
-plot(Temp.data$Temp.bot1~Temp.data$timestamp, type="l", ylim=c(15, 25), col ="dodgerblue",
+plot(Temp.data$Temp.bot2~Temp.data$timestamp, type="l", ylim=c(15, 25), col ="dodgerblue",
      ylab="", xlab ="")
 
 #chamber 3
-plot(Temp.data$Temp.bot2~Temp.data$timestamp, type="l", ylim=c(15, 25), col ="coral", 
+plot(Temp.data$Temp.bot3~Temp.data$timestamp, type="l", ylim=c(15, 25), col ="coral", 
      main="chamber 3", xlab="Date", ylab="Temp")
 par(new=T)
 plot(Temp.data$Temp.bot3~Temp.data$timestamp, type="l", ylim=c(15, 25), col ="dodgerblue",
@@ -92,7 +93,7 @@ plot(Temp.data$Temp.bot3~Temp.data$timestamp, type="l", ylim=c(15, 25), col ="do
 legend("topright", legend=c("top", "bottom"),
        col=c("coral", "dodgerblue"), cex=0.6, lty =1, box.lty=0, lwd=2)
 
-dev.copy(pdf, "figures/Temps.pdf", height=7, width=8)
+dev.copy(pdf, "acclimation period/Oct26/Temps_10.19_10.26.pdf", height=7, width=8)
 dev.off()
 
 ##############
