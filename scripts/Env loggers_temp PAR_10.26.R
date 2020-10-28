@@ -57,6 +57,12 @@ colnames(temps)[1]="timestamp" # rename the single column for time
 ### apply data callibration to each column
 # ex: temp$calib.SN10209515<-(temp$SN10209515 * "value") # Temp logger x: SN x
 
+# make all data numeric
+temps$SN20940477_top2.Light.Lumen<-as.numeric(as.character(temps$SN20940477_top2.Light.Lumen))
+temps$SN20940479_bot2.Light.Lumen<-as.numeric(as.character(temps$SN20940479_bot2.Light.Lumen))
+temps$SN20940480_top1.Light.Lumen<-as.numeric(as.character(temps$SN20940480_top1.Light.Lumen))
+temps$SN20940481_top3.Light.Lumen<-as.numeric(as.character(temps$SN20940481_top3.Light.Lumen))
+
 write.csv(temps, "Oct19.26_temp.light.csv")
 
 #temp data
@@ -101,3 +107,38 @@ sum.stats<-Temp.data %>%
   .fns = list(Mean = mean, SD = sd), na.rm = TRUE, 
   .names = "{col}_{fn}"
 ))
+
+
+#############
+#############
+# light data
+light.data<-temps %>%
+  select(timestamp, SN20940480_top1.Light.Lumen, SN20940477_top2.Light.Lumen, SN20940481_top3.Light.Lumen,
+         SN20940479_bot2.Light.Lumen)
+
+colnames(light.data)<-c("timestamp", "light.top1", "light.top2", "light.top3", 
+                       "light.bot2")
+
+
+# plot it
+par(mfrow=c(1,3))
+
+#chamber 1
+plot(light.data$light.top1~light.data$timestamp, type="l", ylim=c(150, 600), col ="coral", 
+     main="chamber 1", xlab="Date", ylab="Lux")
+
+#chamber 2
+plot(light.data$light.top2~light.data$timestamp, type="l", ylim=c(150, 600), col ="coral",
+     ylab="", xlab ="")
+par(new=T)
+plot(light.data$light.bot2~light.data$timestamp, type="l", ylim=c(150, 600), col ="dodgerblue", 
+     main="chamber 2", xlab="Date", ylab="Temp")
+
+#chamber 3
+plot(light.data$light.top3~light.data$timestamp, type="l", ylim=c(150, 600), col ="coral", 
+     main="chamber 3", xlab="Date", ylab="Temp")
+legend("topright", legend=c("top", "bottom"),
+       col=c("coral", "dodgerblue"), cex=0.6, lty =1, box.lty=0, lwd=2)
+
+dev.copy(pdf, "data/Hobo loggers/acclimation period/Oct26/Temps_10.19_10.26.pdf", height=7, width=8)
+dev.off()
