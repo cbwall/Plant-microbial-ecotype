@@ -18,11 +18,11 @@ library(dplyr)
 ######### # October 19
 
 ##### grab files in a list
-files <- list.files(path="hobo loggers/Oct19", pattern = "csv$", full.names = T)
+files <- list.files(path="data/data/data/hobo loggers/Oct19", pattern = "csv$", full.names = T)
 files
 
 ##### what are the file names, sans extensions
-file.names<-file_path_sans_ext(list.files(path="hobo loggers/Oct19", pattern = "csv$", full.names = F))
+file.names<-file_path_sans_ext(list.files(path="data/data/data/hobo loggers/Oct19", pattern = "csv$", full.names = F))
 file.names
 
 ############ formatting all data in for loop
@@ -64,7 +64,7 @@ data.reformat<-data.reformat %>% mutate_if(is.factor,as.character)
 data.reformat<-data.reformat %>% mutate_if(is.character,as.numeric)
 temps.light.data<-cbind(temp.light[1], data.reformat)
 
-write.csv(temps.light.data, "hobo loggers/output/T1_temp.light.csv")
+write.csv(temps.light.data, "data/data/data/hobo loggers/output/T1_temp.light.csv")
 
 
 ######### # ######### # ######### # ######### # ######### # 
@@ -74,11 +74,11 @@ rm(list=ls())
 ls()
 
 ##### grab files in a list
-files <- list.files(path="hobo loggers/Oct26", pattern = "csv$", full.names = T)
+files <- list.files(path="data/data/data/hobo loggers/Oct26", pattern = "csv$", full.names = T)
 files
 
 ##### what are the file names, sans extensions
-file.names<-file_path_sans_ext(list.files(path="hobo loggers/Oct26", pattern = "csv$", full.names = F))
+file.names<-file_path_sans_ext(list.files(path="data/data/data/hobo loggers/Oct26", pattern = "csv$", full.names = F))
 file.names
 
 ############ formatting all data in for loop
@@ -120,7 +120,7 @@ data.reformat<-data.reformat %>% mutate_if(is.factor,as.character)
 data.reformat<-data.reformat %>% mutate_if(is.character,as.numeric)
 temps.light.data<-cbind(temp.light[1], data.reformat)
 
-write.csv(temps.light.data, "hobo loggers/output/T2_temp.light.csv")
+write.csv(temps.light.data, "data/data/data/hobo loggers/output/T2_temp.light.csv")
 
 
 ######### # ######### # ######### # ######### # ######### # ######### # 
@@ -130,11 +130,11 @@ rm(list=ls())
 ls()
 
 ##### grab files in a list
-files <- list.files(path="hobo loggers/Nov12", pattern = "csv$", full.names = T)
+files <- list.files(path="data/data/data/hobo loggers/Nov12", pattern = "csv$", full.names = T)
 files
 
 ##### what are the file names, sans extensions
-file.names<-file_path_sans_ext(list.files(path="hobo loggers/Nov12", pattern = "csv$", full.names = F))
+file.names<-file_path_sans_ext(list.files(path="data/data/data/hobo loggers/Nov12", pattern = "csv$", full.names = F))
 file.names
 
 ############ formatting all data in for loop
@@ -176,7 +176,7 @@ data.reformat<-data.reformat %>% mutate_if(is.factor,as.character)
 data.reformat<-data.reformat %>% mutate_if(is.character,as.numeric)
 temps.light.data<-cbind(temp.light[1], data.reformat)
 
-write.csv(temps.light.data, "hobo loggers/output/T3_temp.light.csv")
+write.csv(temps.light.data, "data/data/hobo loggers/output/T3_temp.light.csv")
 
 
 
@@ -188,11 +188,11 @@ rm(list=ls())
 ls()
 
 ##### grab files in a list
-files <- list.files(path="hobo loggers/Dec07", pattern = "csv$", full.names = T)
+files <- list.files(path="data/data/hobo loggers/Dec07", pattern = "csv$", full.names = T)
 files
 
 ##### what are the file names, sans extensions
-file.names<-file_path_sans_ext(list.files(path="hobo loggers/Dec07", pattern = "csv$", full.names = F))
+file.names<-file_path_sans_ext(list.files(path="data/data/hobo loggers/Dec07", pattern = "csv$", full.names = F))
 file.names
 
 ############ formatting all data in for loop
@@ -234,7 +234,7 @@ data.reformat<-data.reformat %>% mutate_if(is.factor,as.character)
 data.reformat<-data.reformat %>% mutate_if(is.character,as.numeric)
 temps.light.data<-cbind(temp.light[1], data.reformat)
 
-write.csv(temps.light.data, "hobo loggers/output/T4_temp.light.csv")
+write.csv(temps.light.data, "data/data/hobo loggers/output/T4_temp.light.csv")
 
 
 
@@ -245,11 +245,11 @@ rm(list=ls())
 ls()
 
 ##### grab files in a list
-files <- list.files(path="hobo loggers/Dec07", pattern = "csv$", full.names = T)
+files <- list.files(path="data/data/hobo loggers/Dec07", pattern = "csv$", full.names = T)
 files
 
 ##### what are the file names, sans extensions
-file.names<-file_path_sans_ext(list.files(path="hobo loggers/Dec07", pattern = "csv$", full.names = F))
+file.names<-file_path_sans_ext(list.files(path="data/data/hobo loggers/Dec07", pattern = "csv$", full.names = F))
 file.names
 
 ############ formatting all data in for loop
@@ -291,7 +291,7 @@ data.reformat<-data.reformat %>% mutate_if(is.factor,as.character)
 data.reformat<-data.reformat %>% mutate_if(is.character,as.numeric)
 temps.light.data<-cbind(temp.light[1], data.reformat)
 
-write.csv(temps.light.data, "hobo loggers/output/T4_temp.light.csv")
+write.csv(temps.light.data, "data/data/hobo loggers/output/T4_temp.light.csv")
 
 
 
@@ -303,11 +303,11 @@ rm(list=ls())
 ls()
 
 ##### grab files in a list
-files <- list.files(path="hobo loggers/Dec10", pattern = "csv$", full.names = T)
+files <- list.files(path="data/data/hobo loggers/Dec10", pattern = "csv$", full.names = T)
 files
 
 ##### what are the file names, sans extensions
-file.names<-file_path_sans_ext(list.files(path="hobo loggers/Dec10", pattern = "csv$", full.names = F))
+file.names<-file_path_sans_ext(list.files(path="data/data/hobo loggers/Dec10", pattern = "csv$", full.names = F))
 file.names
 
 ############ formatting all data in for loop
@@ -349,7 +349,7 @@ data.reformat<-data.reformat %>% mutate_if(is.factor,as.character)
 data.reformat<-data.reformat %>% mutate_if(is.character,as.numeric)
 temps.light.data<-cbind(temp.light[1], data.reformat)
 
-write.csv(temps.light.data, "hobo loggers/output/T5_temp.light.csv")
+write.csv(temps.light.data, "data/data/hobo loggers/output/T5_temp.light.csv")
 
 
 
@@ -360,11 +360,11 @@ rm(list=ls())
 ls()
 
 ##### grab files in a list
-files <- list.files(path="hobo loggers/Dec28", pattern = "csv$", full.names = T)
+files <- list.files(path="data/data/hobo loggers/Dec28", pattern = "csv$", full.names = T)
 files
 
 ##### what are the file names, sans extensions
-file.names<-file_path_sans_ext(list.files(path="hobo loggers/Dec28", pattern = "csv$", full.names = F))
+file.names<-file_path_sans_ext(list.files(path="data/data/hobo loggers/Dec28", pattern = "csv$", full.names = F))
 file.names
 
 ############ formatting all data in for loop
@@ -406,7 +406,7 @@ data.reformat<-data.reformat %>% mutate_if(is.factor,as.character)
 data.reformat<-data.reformat %>% mutate_if(is.character,as.numeric)
 temps.light.data<-cbind(temp.light[1], data.reformat)
 
-write.csv(temps.light.data, "hobo loggers/output/T6_temp.light.csv")
+write.csv(temps.light.data, "data/data/hobo loggers/output/T6_temp.light.csv")
 
 
 
@@ -418,11 +418,11 @@ rm(list=ls())
 ls()
 
 ##### grab files in a list
-files <- list.files(path="hobo loggers/Jan04.1", pattern = "csv$", full.names = T)
+files <- list.files(path="data/data/hobo loggers/Jan04.1", pattern = "csv$", full.names = T)
 files
 
 ##### what are the file names, sans extensions
-file.names<-file_path_sans_ext(list.files(path="hobo loggers/Jan04.1", pattern = "csv$", full.names = F))
+file.names<-file_path_sans_ext(list.files(path="data/data/hobo loggers/Jan04.1", pattern = "csv$", full.names = F))
 file.names
 
 ############ formatting all data in for loop
@@ -464,7 +464,7 @@ data.reformat<-data.reformat %>% mutate_if(is.factor,as.character)
 data.reformat<-data.reformat %>% mutate_if(is.character,as.numeric)
 temps.light.data<-cbind(temp.light[1], data.reformat)
 
-write.csv(temps.light.data, "hobo loggers/output/T7.1_temp.light.csv")
+write.csv(temps.light.data, "data/data/hobo loggers/output/T7.1_temp.light.csv")
 
 
 
@@ -475,11 +475,11 @@ rm(list=ls())
 ls()
 
 ##### grab files in a list
-files <- list.files(path="hobo loggers/Jan04.2", pattern = "csv$", full.names = T)
+files <- list.files(path="data/data/hobo loggers/Jan04.2", pattern = "csv$", full.names = T)
 files
 
 ##### what are the file names, sans extensions
-file.names<-file_path_sans_ext(list.files(path="hobo loggers/Jan04.2", pattern = "csv$", full.names = F))
+file.names<-file_path_sans_ext(list.files(path="data/data/hobo loggers/Jan04.2", pattern = "csv$", full.names = F))
 file.names
 
 ############ formatting all data in for loop
@@ -521,7 +521,7 @@ data.reformat<-data.reformat %>% mutate_if(is.factor,as.character)
 data.reformat<-data.reformat %>% mutate_if(is.character,as.numeric)
 temps.light.data<-cbind(temp.light[1], data.reformat)
 
-write.csv(temps.light.data, "hobo loggers/output/T7.2_temp.light.csv")
+write.csv(temps.light.data, "data/data/hobo loggers/output/T7.2_temp.light.csv")
 
 
 
@@ -532,11 +532,11 @@ rm(list=ls())
 ls()
 
 ##### grab files in a list
-files <- list.files(path="hobo loggers/Jan14", pattern = "csv$", full.names = T)
+files <- list.files(path="data/data/hobo loggers/Jan14", pattern = "csv$", full.names = T)
 files
 
 ##### what are the file names, sans extensions
-file.names<-file_path_sans_ext(list.files(path="hobo loggers/Jan14", pattern = "csv$", full.names = F))
+file.names<-file_path_sans_ext(list.files(path="data/data/hobo loggers/Jan14", pattern = "csv$", full.names = F))
 file.names
 
 ############ formatting all data in for loop
@@ -578,7 +578,7 @@ data.reformat<-data.reformat %>% mutate_if(is.factor,as.character)
 data.reformat<-data.reformat %>% mutate_if(is.character,as.numeric)
 temps.light.data<-cbind(temp.light[1], data.reformat)
 
-write.csv(temps.light.data, "hobo loggers/output/T8_temp.light.csv")
+write.csv(temps.light.data, "data/data/hobo loggers/output/T8_temp.light.csv")
 
 
 
@@ -589,18 +589,18 @@ write.csv(temps.light.data, "hobo loggers/output/T8_temp.light.csv")
 rm(list=ls())
 ls()
 
-T1<-read.csv("hobo loggers/output/T1_temp.light.csv")
-T2<-read.csv("hobo loggers/output/T2_temp.light.csv")
-T3<-read.csv("hobo loggers/output/T3_temp.light.csv")
-T4<-read.csv("hobo loggers/output/T4_temp.light.csv")
-T5<-read.csv("hobo loggers/output/T5_temp.light.csv")
-T6<-read.csv("hobo loggers/output/T6_temp.light.csv")
-T7.1<-read.csv("hobo loggers/output/T7.1_temp.light.csv")
-T7.2<-read.csv("hobo loggers/output/T7.2_temp.light.csv")
-T8<-read.csv("hobo loggers/output/T8_temp.light.csv")
+T1<-read.csv("data/data/hobo loggers/output/T1_temp.light.csv")
+T2<-read.csv("data/data/hobo loggers/output/T2_temp.light.csv")
+T3<-read.csv("data/data/hobo loggers/output/T3_temp.light.csv")
+T4<-read.csv("data/data/hobo loggers/output/T4_temp.light.csv")
+T5<-read.csv("data/data/hobo loggers/output/T5_temp.light.csv")
+T6<-read.csv("data/data/hobo loggers/output/T6_temp.light.csv")
+T7.1<-read.csv("data/data/hobo loggers/output/T7.1_temp.light.csv")
+T7.2<-read.csv("data/data/hobo loggers/output/T7.2_temp.light.csv")
+T8<-read.csv("data/data/hobo loggers/output/T8_temp.light.csv")
 
 T_bind<-bind_rows(T1, T2, T3, T4, T5, T6, T7.1, T7.2, T8)
-write.csv(T_bind, "hobo loggers/output/data_all.summary.csv")
+write.csv(T_bind, "data/data/hobo loggers/output/data_all.summary.csv")
 
 T_bind<-T_bind %>% select(-X) # remove column
 T_bind<- T_bind %>% 
@@ -656,5 +656,5 @@ lines(Temp.data$bot3.Temp~Temp.data$Date, lwd=.6, lty=1, col="mediumseagreen")
 axis(side=2, at=c(0, 10, 20, 30), cex.lab=0.7, cex.axis=0.7)
 axis.Date(1, at=seq(min(Temp.data$Date), max(Temp.data$Date), by="2 month"), format="%b '%y", cex.lab=0.7, cex.axis=0.7)
 
-dev.copy(pdf, "hobo loggers/output/tempoutput.pdf", height=4, width=8)
+dev.copy(pdf, "data/data/hobo loggers/output/tempoutput.pdf", height=4, width=8)
 dev.off()
