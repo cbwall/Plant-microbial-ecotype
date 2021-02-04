@@ -24,7 +24,7 @@ if(!requireNamespace("BiocManager", quietly = TRUE))
 pacman::p_load('FedData', 'latticeExtra', 'scales', 'viridis', 'ggmap', 'phyloseq', 'raster', 'rgdal', 'RColorBrewer', 'ggplot2', 'vegan', 'ggplot2', 'phyloseq', 'bipartite', 'plotrix', 'viridis', 'lattice', 'fossil', 'plyr', 'devtools', 'ggpubr', 'gridExtra', 'cowplot')
 
 
-data<-as.matrix(read.csv("data/ITS-pipeline_outputs/abundance_table_97.csv", header = TRUE, row.names = 1))
+data<-as.matrix(read.csv("data/inoculum test/abundance_table_97.csv", header = TRUE, row.names = 1))
 
 OTU = otu_table(data, taxa_are_rows = TRUE)
 
