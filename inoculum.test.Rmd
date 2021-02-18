@@ -32,9 +32,12 @@ OTU = otu_table(data, taxa_are_rows = TRUE)
 barplot(OTU, cex.axis=0.6, cex.names=0.6)
 
 #rarifaction curve
-ITS.rar<-rarecurve(OTU, step=100, cex=0.5, label=FALSE, col="blue", main="ITS: inoc.trial",
+# use data matrix, transposes as rows as samples and columns at OTUs
+rarecurve(t(data), step=100, cex=0.5, label=FALSE, col="blue", main="ITS: inoc.trial",
                    xlim=c(0, 100000), ylab="samples")
 abline(v = 26000, col="gray50", lwd=2, lty=2)
+dev.print(pdf, "figures/rarecurve.pdf", width=7, height=4)
+dev.off()
 
 S<-specnumber(OTU) # observed number of species
 (raremax <- max(rowSums(OTU))) # max OTUs
@@ -43,8 +46,6 @@ plot(S, Srare, xlab = "Observed No. of Species", ylab = "Rarefied No. of Species
 abline(0, 1)
 rarecurve(OTU, step = 20, sample = 0.4*raremax, col = "blue", cex = 0.6, label=FALSE)
 
-dev.print(pdf, "figures/rarecurve.pdf", width=7, height=4)
-dev.off()
 
 # richness table
 ITS.rich<-estimate_richness(OTU, measures="Observed")
@@ -55,50 +56,6 @@ spec_rich_hab
 
 dev.copy(pdf, "figures/spec_rich_hab.pdf", height=4, width=6)
 dev.off() 
-
-
-#NMDS
-### Phyloseq ###
-
-t.otu<-t(OTU)
-rows_to_keep<-rownames(t.otu)
-sample<-t.otu[rows_to_keep,]
-all.equal(rownames(t.otu), rownames(sample))
-sampledata<-sample_data(data.frame(Samples=rows_to_keep))
-row.names(sampledata) <- row.names(sample)
-
-ph.OTU = otu_table(t.otu, taxa_are_rows = FALSE)
-physeq = merge_phyloseq(sampledata, ph.OTU)
-
-
-phyobj.hell=transform_sample_counts(physeq, function(x) x^0.5)
-
-###
-ps.rarefied = rarefy_even_depth(physeq, rngseed=1, sample.size=0.9*min(sample_sums(physeq)), replace=T)
-ps.rarefied = rarefy_even_depth(physeq, rngseed=1, sample.size=5000, replace=T)
-# rarified richness table
-ITS.rich<-estimate_richness(ps.rarefied, measures="Observed")
-
-# richness plot
-spec_rich_hab = plot_richness(ps.rarefied, measures="Observed")+
-spec_rich_hab
-
-plot_bar(ps.rarefied, fill="SampleType")
-
-
-# dumby variable
-sample_data(physeq)$SampleType = factor(sample_data(physeq)$Samples, levels = c('ctl.leaves', 'ctl.roots', 'ext.negative', 'inoc.leaves', 'inoc.roots', 'inoc.source', 'pcr.neg', 'pcr.pos'))
-
-ord <- ordinate(phyobj.hell, "NMDS", "bray")
-
-#plot by samples
-p1 = plot_ordination(phyobj.hell, ord, type="samples", color="SampleType",  title="Fungi")
-
-p1+ 
-  stat_ellipse(type = "norm", linetype = 2) +
-  stat_ellipse(type = "t") +
-  theme_bw()
-
 
 ```
 
