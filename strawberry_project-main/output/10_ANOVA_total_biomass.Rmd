@@ -1,0 +1,185 @@
+---
+title: "10_ANOVA_total_biomass"
+author: "Francisca Rodriguez"
+date: "12/3/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+**Post-decontamination**
+```{r}
+#load libraries
+library(tidyverse)
+library(car)
+library(ggpubr)
+library(effects)
+library(readxl)
+library(emmeans)
+
+dat = read_excel("./pips_data/pips_complete.xlsx") |>
+  mutate(
+    Inoculation = as.character(Inoculation),
+    Water = as.character(Water)
+  )
+```
+
+**Outlier analysis: total biomass**
+```{r}
+#additive model
+biomass_mod = aov(WeightGrams ~ Inoculation + Water, data = dat)
+Anova(biomass_mod, type = "2")
+
+# Studentized residuals
+MASS::studres(biomass_mod) |>
+  abs() |>
+  sort()
+
+#remove the outliers, re-run the analysis
+filtered_biomass = dat[-c(182, 36, 198), ]
+```
+
+**ANOVA: total biomass**
+```{r}
+#additive model
+biomass_mod1 = aov(WeightGrams ~ InoculationLabeled + WaterLabeled, data = filtered_biomass)
+Anova(biomass_mod1, type = "2")
+
+#interactive model
+biomass_mod2 = aov(WeightGrams ~ InoculationLabeled * WaterLabeled, data = filtered_biomass)
+Anova(biomass_mod2, type = "3")
+```
+
+**Post-hoc test: total biomass**
+```{r}
+#planned comparison test
+
+#Inoculation
+#apply the emmeans() command to the ANOVA object.
+BiomassPairs1 <- emmeans(biomass_mod1, ~ InoculationLabeled)
+
+#obtain the planned 95% confidence intervals for a pairwise comparison
+BiomassPlanned1 <- contrast(BiomassPairs1, adjust = "none")
+BiomassPlanned1
+
+#Water
+#apply the emmeans() command to the ANOVA object.
+BiomassPairs2 <- emmeans(biomass_mod2, ~ WaterLabeled)
+
+#obtain the planned 95% confidence intervals for a pairwise comparison
+BiomassPlanned2 <- contrast(BiomassPairs2, adjust = "none")
+BiomassPlanned2
+
+```
+
+**Outlier analysis: below-ground biomass**
+```{r}
+bio_root = subset(dat, Type == "Root")
+  
+#interaction model
+root_mass1= aov(WeightGrams ~ Inoculation * Water, data = bio_root)
+Anova(root_mass1, type = "3") # if you have interactions, type-3 sums-of-squares is appropriate
+
+#additive model
+root_mass2 = aov(WeightGrams ~ Inoculation + Water, data = bio_root)
+Anova(root_mass2, type = "2")
+
+#plot to check residuals
+plot(root_mass1)
+plot(root_mass2)
+
+# Studentized residuals
+MASS::studres(root_mass1) |>
+  abs() |>
+  sort()
+
+#remove the outliers, re-run the analysis
+filtered_dat2 = dat[-c(193), ]
+
+```
+
+**Outlier analysis: above-ground biomass**
+```{r}
+#interaction model
+shoot_mass1 = aov(WeightGrams ~ Inoculation * Water, data = shoot_dat)
+Anova(shoot_mass1, type = "3") # if you have interactions, type-3 sums-of-squares is appropriate
+
+#additive model
+shoot_mass2 = aov(WeightGrams ~ Inoculation + Water, data = shoot_dat)
+Anova(shoot_mass2, type = "2")
+
+#plot to check residuals
+plot(shoot_mass1)
+plot(shoot_mass2)
+
+# Studentized residuals
+MASS::studres(shoot_mass1) |>
+  abs() |>
+  sort()
+
+#remove the outliers, re-run the analysis
+filtered_dat3 = dat[-c(182), ]
+```
+
+**ANOVA: below-ground biomass**
+```{r}
+bio_root_dat = subset(filtered_dat2, Type == "Root")
+  
+#interaction model
+root_mass1= aov(WeightGrams ~ Inoculation * Water, data = bio_root_dat)
+Anova(root_mass1, type = "3") # if you have interactions, type-3 sums-of-squares is appropriate
+plot(root_mass1, main = "Root")
+plot(allEffects(root_mass1))
+
+#additive model
+root_mass2 = aov(WeightGrams ~ InoculationLabeled + WaterLabeled, data = bio_root_dat)
+Anova(root_mass2, type = "2")
+plot(root_mass2, main = "Root")
+plot(allEffects(root_mass2))
+```
+
+**Post-hoc test: below-ground biomass**
+```{r}
+#planned comparison test 
+#apply the emmeans() command to the ANOVA object.
+BioRootPairs <- emmeans(root_mass2, ~ InoculationLabeled)
+
+#obtain the planned 95% confidence intervals for a pairwise comparison
+BioRootsPlanned <- contrast(BioRootPairs, adjust = "none")
+BioRootsPlanned
+```
+
+**ANOVA: above-ground biomass**
+```{r}
+bio_shoot_dat = subset(filtered_dat3, Type == "Shoot")
+
+#interaction model
+shoot_mass1 = aov(WeightGrams ~ Inoculation * Water, data = bio_shoot_dat)
+Anova(shoot_mass1, type = "3") # if you have interactions, type-3 sums-of-squares is appropriate
+plot(shoot_mass1, main = "Shoot")
+plot(allEffects(shoot_mass1))
+
+#additive model
+shoot_mass2 = aov(WeightGrams ~ InoculationLabeled + WaterLabeled, data = bio_shoot_dat)
+Anova(shoot_mass2, type = "2")
+plot(shoot_mass2, main = "Shoot")
+plot(allEffects(shoot_mass2))
+```
+
+**Post-hoc test: above-ground biomass**
+```{r}
+#planned comparison test 
+#apply the emmeans() command to the ANOVA object.
+BioShootPairs <- emmeans(shoot_mass2, ~ WaterLabeled)
+
+#obtain the planned 95% confidence intervals for a pairwise comparison
+BioShootsPlanned <- contrast(BioShootPairs, adjust = "none")
+BioShootsPlanned
+
+#Plot grouped boxplot by inoculation and plant part without the outliers
+ggplot(filtered_dat3, aes(x=Inoculation, y=WeightGrams, fill=Water)) + 
+    geom_boxplot() + theme_light() + facet_wrap(~ Type)
+```
+

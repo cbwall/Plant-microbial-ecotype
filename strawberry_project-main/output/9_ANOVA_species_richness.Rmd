@@ -1,0 +1,178 @@
+---
+title: "ANOVA: Species Richness"
+author: "Francisca Rodriguez"
+date: "11/4/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+**Post-decontamination**
+```{r}
+#load libraries
+library(tidyverse)
+library(car)
+library(ggpubr)
+library(effects)
+library(readxl)
+library(emmeans)
+
+dat = read_excel("./pips_data/pips_complete.xlsx") |>
+  mutate(
+    Inoculation = as.character(Inoculation),
+    Water = as.character(Water)
+  )
+
+ggplot(dat, aes(Inoculation, SpeciesRichness, fill = Water)) +
+  facet_wrap(~ Type) +
+  scale_y_log10() +
+  geom_boxplot()
+
+```
+
+**Outlier analysis: roots and shoots**
+```{r}
+# interaction model
+fit1 = aov(log(SpeciesRichness) ~ Type + Inoculation * Water, data = dat)
+Anova(fit1, type = "3") # if you have interactions, type-3 sums-of-squares is appropriate
+
+# additive model
+fit2 = aov(log(SpeciesRichness) ~ Type + Inoculation + Water, data = dat)
+Anova(fit2, type = "2") # if you don't have interactions, type-2 sums-of-squares is appropriate
+
+#plot to check residuals
+plot(fit1)
+plot(fit2)
+
+# Studentized residuals
+MASS::studres(fit1) |>
+  abs() |>
+  sort()
+
+filtered_dat = filtered_dat |>
+  mutate(res = resid(filtered_fit1))
+
+#check the outliers again
+shapiro.test(fit1$residuals)
+
+#remove the outliers, re-run the analysis
+filtered_dat = dat[-c(401, 78, 34, 81, 123), ]
+
+#plot the filtered data to check the spread
+ggplot(filtered_dat, aes(log(SpeciesRichness))) +
+  facet_grid(Water ~ Inoculation) +
+  # scale_x_log10() +
+  geom_histogram()
+
+```
+
+**ANOVA: roots and shoots**
+```{r}
+#interaction model
+filtered_fit1 = aov(log(SpeciesRichness) ~ Type + Inoculation * Water, data = filtered_dat)
+Anova(filtered_fit1, type = "3") # if you have interactions, type-3 sums-of-squares is appropriate
+plot(filtered_fit1)
+
+#additive model 
+filtered_fit2 = aov(log(SpeciesRichness) ~ Type + InoculationLabeled + WaterLabeled, data = filtered_dat)
+Anova(filtered_fit2, type = "2")
+plot(filtered_fit2)
+
+#Re-plot grouped boxplot by inoculation and plant part without the outliers
+ggplot(filtered_dat, aes(x=Inoculation, y=log(SpeciesRichness), fill=Water)) + 
+    geom_boxplot() + theme_light() + facet_wrap(~ Type)
+
+#Compare to old boxplot of unfiltered data
+ggplot(dat, aes(x=Inoculation, y=log(SpeciesRichness), fill=Water)) + 
+    geom_boxplot() + theme_light() + facet_wrap(~ Type)
+```
+
+**Post-hoc test: planned comparisons**
+```{r}
+#Inoculation
+#apply the emmeans() command to the ANOVA object.
+RichnessPairs1 <- emmeans(filtered_fit2, ~ InoculationLabeled)
+RichnessPairs1
+
+#obtain the planned 95% confidence intervals for a pairwise comparison
+RichnessPlanned1 <- contrast(RichnessPairs1, adjust = "none")
+RichnessPlanned1
+
+#Water
+#apply the emmeans() command to the ANOVA object.
+RichnessPairs2 <- emmeans(filtered_fit2, ~ WaterLabeled)
+RichnessPairs2
+
+#obtain the planned 95% confidence intervals for a pairwise comparison
+RichnessPlanned2 <- contrast(RichnessPairs2, adjust = "none")
+RichnessPlanned2
+```
+
+**ANOVA: roots**
+```{r}
+root_dat = subset(filtered_dat, Type == "Root")
+
+#interaction model
+richness_root_fit1 = aov(log(SpeciesRichness) ~ InoculationLabeled * WaterLabeled, data = root_dat)
+Anova(richness_root_fit1, type = "3") # if you have interactions, type-3 sums-of-squares is appropriate
+plot(richness_root_fit1)
+plot(allEffects(richness_root_fit1))
+
+#additive model 
+richness_root_fit2 = aov(log(SpeciesRichness) ~ InoculationLabeled + WaterLabeled, data = root_dat)
+Anova(richness_root_fit2, type = "2")
+plot(richness_root_fit2)
+plot(allEffects(richness_root_fit2))
+```
+
+**Post-hoc test roots: planned comparisons**
+```{r}
+#For roots, inoculation and water were significant
+#apply the emmeans() command to the ANOVA object.
+RichRootsW<- emmeans(richness_shoot_fit2, ~ WaterLabeled)
+RichRootsW
+
+#obtain the planned 95% confidence intervals for a pairwise comparison
+RootsPlannedW <- contrast(RichRootsW, adjust = "none")
+RootsPlannedW
+
+#apply the emmeans() command to the ANOVA object.
+RichRootsI<- emmeans(richness_root_fit2, ~ InoculationLabeled)
+RichRootsI
+
+#obtain the planned 95% confidence intervals for a pairwise comparison
+RootsPlannedI <- contrast(RichRootsI, adjust = "none")
+RootsPlannedI
+```
+
+**ANOVA: shoots**
+```{r}
+shoot_dat = subset(filtered_dat, Type == "Shoot")
+
+#interaction model
+richness_shoot_fit1 = aov(log(SpeciesRichness) ~ InoculationLabeled * WaterLabeled, data = shoot_dat)
+Anova(richness_shoot_fit1, type = "3") # if you have interactions, type-3 sums-of-squares is appropriate
+plot(richness_shoot_fit1)
+plot(allEffects(richness_shoot_fit1))
+
+#additive model 
+richness_shoot_fit2 = aov(log(SpeciesRichness) ~ InoculationLabeled + WaterLabeled, data = shoot_dat)
+Anova(richness_shoot_fit2, type = "2")
+plot(richness_shoot_fit2)
+plot(allEffects(richness_shoot_fit2))
+```
+
+**Post-hoc test shoots: planned comparisons**
+```{r}
+#For shoots, only inoculation was significant
+#apply the emmeans() command to the ANOVA object.
+RichShoots <- emmeans(richness_shoot_fit2, ~ InoculationLabeled)
+RichShoots
+
+#obtain the planned 95% confidence intervals for a pairwise comparison
+ShootsPlanned <- contrast(RichShoots, adjust = "none")
+ShootsPlanned
+
+```

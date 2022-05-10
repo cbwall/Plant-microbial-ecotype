@@ -1,0 +1,186 @@
+---
+title: "PERMANOVA"
+author: "Hynson Lab"
+date: "11/11/2021"
+output:
+  html_document:
+    code_folding: hide
+    toc: yes
+    toc_depth: 4
+    toc_float: yes
+  pdf_document:
+    toc: yes
+    toc_depth: '4'
+---
+  
+```{r setup chunk, setup, warning=FALSE, message=FALSE, fig.align='center', include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+**PERMANOVA**
+```{r, fig.show='hide', warning=FALSE, message=FALSE, include=FALSE}
+#load libraries / data
+library(labdsv)
+library(vegan)
+library(phyloseq)
+library(ggplot2)
+
+ps.pips <- readRDS("./intermediate_data/ps.pips.rds")
+```
+
+```{r}
+# run inoculation, then water, then main effects in combined model, then interaction
+
+#bray curtis distance matrix
+ps.pips.bray <- phyloseq::distance(ps.pips, method = "bray")
+
+#make a data frame from the sample_data
+sampledf <- data.frame(sample_data(ps.pips))
+```
+
+**Inoculation effect** 
+```{r}
+# ---------------------------
+#run PERMANOVA for inoculation as the independent variable
+adonis_inoculation = adonis2(ps.pips.bray ~ Inoculation, permutations = 9999, data = sampledf)
+print(adonis_inoculation)
+
+# Homogeneity of dispersion test
+beta.Inoc <- betadisper(ps.pips.bray, sampledf$Inoculation)
+permutest(beta.Inoc)
+```
+
+**Water effect** 
+```{r}
+# ---------------------------
+
+#run PERMANOVA water
+adonis_water = adonis2(ps.pips.bray ~ Water, permutations = 9999, data = sampledf)
+print(adonis_water)
+
+# Homogeneity of dispersion test
+beta.Wat <- betadisper(ps.pips.bray, sampledf$Water)
+permutest(beta.Wat)
+```
+
+**Inoculation + Water effect** 
+```{r}
+# ---------------------------
+
+# with main effects, no interacton
+adonis_combo = adonis2(ps.pips.bray ~ Inoculation + Water, permutations = 9999, data = sampledf, method = "bray")
+print(adonis_combo)
+
+```
+
+**Inoculation x Water effect** 
+This model shows all levels are significant, but inoculation is most important at R2 = 21%
+
+```{r}
+# with interacton
+# all levels significant, but inoculation most important R2=21%
+adonis_combo = adonis2(ps.pips.bray ~ Inoculation * Water, permutations = 9999, data = sampledf, method = "bray")
+print(adonis_combo)
+
+
+```
+
+**subset the phyloseq objects to get individual objects for each level of inocula.**  
+Make sure to subset both the samples but also prune the taxa!
+*Note* there are ~200 taxa that would disappear from the taxonomy table if you do a prune taxa for the global dataset with taxa removed if not present in at least one sample: such as `sub.global<-prune_taxa(taxa_sums(ps.pips) > 0, ps.pips)`  
+I did this, but it could be reversed just as well.
+
+```{r, warning=FALSE, message=FALSE}
+##########
+########## Subset dataframe and run permanova for each inoculum testing for water effect
+
+# remove taxa that are not in at least 1 sample globally?
+sub.global<-prune_taxa(taxa_sums(ps.pips) > 0, ps.pips)
+
+#subset phyloseq object to make 5 dataframes representing each inoculation treatment
+sub1<-subset_samples(sub.global, Inoculation=="1") # only inoculum 1
+sub.1<-prune_taxa(taxa_sums(sub1) > 0, sub1) # remove the taxa that are not in at least 1 sample of inoc. 1
+
+sub2<-subset_samples(sub.global, Inoculation=="2") # only inoculum 2
+sub.2<-prune_taxa(taxa_sums(sub1) > 0, sub2)
+
+sub3<-subset_samples(sub.global, Inoculation=="3") # only inoculum 3
+sub.3<-prune_taxa(taxa_sums(sub3) > 0, sub3)
+
+sub4<-subset_samples(sub.global, Inoculation=="4") # only inoculum 4
+sub.4<-prune_taxa(taxa_sums(sub4) > 0, sub4)
+
+sub5<-subset_samples(sub.global, Inoculation=="5") # only inoculum 5
+sub.5<-prune_taxa(taxa_sums(sub1) > 0, sub5)
+
+
+# now make 5 bray-curtis distance
+ps.pips.bray1 <- phyloseq::distance(sub.1, method = "bray")
+ps.pips.bray2 <- phyloseq::distance(sub.2, method = "bray")
+ps.pips.bray3 <- phyloseq::distance(sub.3, method = "bray")
+ps.pips.bray4 <- phyloseq::distance(sub.4, method = "bray")
+ps.pips.bray5 <- phyloseq::distance(sub.5, method = "bray")
+
+#make a data frame from the sample_data
+sampledf1 <- data.frame(sample_data(sub.1))
+sampledf2 <- data.frame(sample_data(sub.2))
+sampledf3 <- data.frame(sample_data(sub.3))
+sampledf4 <- data.frame(sample_data(sub.4))
+sampledf5 <- data.frame(sample_data(sub.5))
+```
+
+## Inocula PERMANOVA  
+Run the PERMANOVA and betadispersion test for each inocula, testing the effect of water
+  
+### Inoculum 1
+```{r}
+### Inoculum 1
+adonis_inoc1 = adonis2(ps.pips.bray1 ~ Water, permutations = 9999, data = sampledf1)
+print(adonis_inoc1)
+
+beta.1 <- betadisper(ps.pips.bray1, sampledf1$Water)
+permutest(beta.1)
+```
+
+### Inoculum 2
+```{r}
+### Inoculum 2
+adonis_inoc2 = adonis2(ps.pips.bray2 ~ Water, permutations = 9999, data = sampledf2)
+print(adonis_inoc2)
+
+beta.2 <- betadisper(ps.pips.bray2, sampledf2$Water)
+permutest(beta.2)
+```
+
+### Inoculum 3
+```{r}
+### Inoculum 3
+adonis_inoc3 = adonis2(ps.pips.bray3 ~ Water, permutations = 9999, data = sampledf3)
+print(adonis_inoc3)
+
+beta.3 <- betadisper(ps.pips.bray3, sampledf3$Water)
+permutest(beta.3)
+```
+
+### Inoculum 4
+```{r}
+### Inoculum 4
+adonis_inoc4 = adonis2(ps.pips.bray4 ~ Water, permutations = 9999, data = sampledf4)
+print(adonis_inoc4)
+
+beta.4 <- betadisper(ps.pips.bray4, sampledf4$Water)
+permutest(beta.4)
+```
+
+### Inoculum 5
+```{r}
+### Inoculum 5
+adonis_inoc5 = adonis2(ps.pips.bray5 ~ Water, permutations = 9999, data = sampledf5)
+print(adonis_inoc5)
+
+beta.5 <- betadisper(ps.pips.bray5, sampledf5$Water)
+permutest(beta.5)
+
+#########################
+
+```

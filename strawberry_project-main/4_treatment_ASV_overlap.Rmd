@@ -1,0 +1,87 @@
+---
+title: "Treatment / ASV overlap"
+author: "Francisca Rodriguez"
+date: "11/5/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+**Pre-decontamination**
+```{r}
+library(phyloseq)
+
+#load data
+ps <- readRDS("./intermediate_data/ps.rds")
+all_samples_asv <- readRDS("./intermediate_data/all_samples_asv.rds")
+
+```
+
+**Prune ASVs with only 1 read / add names to ASV tables**
+```{r}
+#initialize variables + lists for loop
+sd <- as.data.frame(sample_data(ps))
+categories <- unique(sd$SampleType)
+all_samples_pruned_asv <- list()
+
+for (a_cat in categories) {
+  
+  subset_ps <- subset_samples(ps, sample_data(ps)$SampleType==a_cat)
+  pruned_ps <- prune_taxa(taxa_sums(subset_ps) > 0, subset_ps)
+  asv <- as.data.frame(otu_table(pruned_ps))
+  rownames(asv) <- paste(a_cat, 1:nrow(asv), sep = " ") # generate the row names 
+
+  all_samples_pruned_asv[[a_cat]] <- asv    #asv tables of data by sample type
+}
+
+```
+
+**Subset by ASV table**
+```{r}
+#subset from pruned dataset 
+prune <- c("DNA_neg", "di_water", "i6", "pre_inoc")
+
+for (i in prune){
+  data <- all_samples_pruned_asv[[i]]
+  assign(paste(i, "_asv", sep = ""), data)
+}
+
+
+#don't prune these - want to check overlap first
+no_prune <- c("slurry", "post_inoc_pre_stress", "post_inoc_post_stress")
+
+for (i in no_prune){
+  data <- all_samples_asv[[i]]
+  rownames(data) <- paste(i, 1:nrow(data), sep = " ")
+  assign(paste(i, "_asv", sep = ""), data) 
+}
+
+
+```
+
+**Combine ASV tables**
+```{r}
+#create control ASV table
+control_asvs <- dplyr::bind_rows(DNA_neg_asv, di_water_asv, i6_asv, pre_inoc_asv)
+
+#obtain a list of all the columns in that data frame
+asvs <- colnames(control_asvs)
+
+#filter for ASVs present in controls
+edited_slurry <- slurry_asv[,asvs]
+edited_postinocprestress <- post_inoc_pre_stress_asv[,asvs]
+edited_postinocpoststress <- post_inoc_post_stress_asv[,asvs]
+
+#combine data frames
+comboASVs <- dplyr::bind_rows(control_asvs, edited_slurry, edited_postinocprestress, edited_postinocpoststress)
+
+#export as .csv
+write.csv(comboASVs, "./output/controlASVs.csv")
+
+##DETERMINE TOTAL READS FROM TREATMENT ####
+totalTreatmentReads <- rowSums(post_inoc_post_stress_asv)
+write.csv(totalTreatmentReads, "./output/treatmentASVs.csv")
+
+```

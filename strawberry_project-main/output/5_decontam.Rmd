@@ -1,0 +1,47 @@
+---
+title: "Decontamination"
+author: "Francisca Rodriguez"
+date: "11/4/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#load libraries / data
+library(phyloseq)
+library(ggplot2)
+library(decontam)
+
+ps <- readRDS("./intermediate_data/ps.rds")
+
+```
+
+**Decontaminate controls**
+```{r}
+#remove taxa with only one read 
+ps <- prune_taxa(taxa_sums(ps) > 1, ps)
+
+#look at the library sizes of the controls and samples
+df <- as.data.frame(sample_data(ps)) # Put sample_data into a ggplot-friendly data.frame
+df$LibrarySize <- sample_sums(ps)
+df <- df[order(df$LibrarySize),]
+df$Index <- seq(nrow(df))
+ggplot(data=df, aes(x=Index, y=LibrarySize, color=Sample_or_Control)) + geom_point()
+
+#label controls (extraction negatives) and clean
+sample_data(ps)$is.neg <- sample_data(ps)$Sample_or_Control == "Control"
+contams <- isContaminant(ps, method="prevalence", neg="is.neg")
+table(contams$contaminant)
+
+#Remove contaminants
+ps.noncontam <- prune_taxa(!contams$contaminant, ps)
+ps.noncontam
+
+#save phyloseq object
+saveRDS(ps.noncontam, "./intermediate_data/ps.noncontam.rds")
+```
+
+

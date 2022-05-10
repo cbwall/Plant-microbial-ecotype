@@ -21,7 +21,7 @@ if (!require("pacman")) install.packages("pacman"); library(pacman) # for rapid 
 if(!requireNamespace("BiocManager", quietly = TRUE))
 	install.packages("BiocManager")	#Load packages from Bioconductor
 
-pacman::p_load('FedData', 'latticeExtra', 'scales', 'viridis', 'ggmap', 'phyloseq', 'raster', 'rgdal', 'RColorBrewer', 'ggplot2', 'vegan', 'ggplot2', 'phyloseq', 'bipartite', 'plotrix', 'viridis', 'lattice', 'fossil', 'plyr', 'devtools', 'ggpubr', 'gridExtra', 'cowplot')
+pacman::p_load('FedData', 'latticeExtra', 'scales', 'viridis', 'ggmap', 'phyloseq', 'raster', 'rgdal', 'RColorBrewer', 'ggplot2', 'vegan', 'ggplot2', 'phyloseq', 'bipartite', 'plotrix', 'viridis', 'lattice', 'fossil', 'plyr', 'devtools', 'ggpubr', 'gridExtra', 'cowplot', 'rgr', 'ggplot2', 'cowplot')
 
 
 data<-as.matrix(read.csv("data/inoculum test/abundance_table_97.csv", header = TRUE, row.names = 1))
@@ -56,6 +56,46 @@ spec_rich_hab
 
 dev.copy(pdf, "figures/spec_rich_hab.pdf", height=4, width=6)
 dev.off() 
+
+```
+
+```{r, LiCor}
+### Licor data for the plants Feb 16th
+
+Licor<-read.csv("data/LiCor/Licor_R.csv", header = TRUE)
+Licor$iWUE<-Licor$A/Licor$gsw
+Licor$insWUE<-Licor$A/Licor$E
+
+# remove all negative and zero values in dataframe to NA
+# to replace any numeric coded values, e.g., -9999 with NAs, set coded = -9999
+Licor2 <- ltdl.fix.df(Licor, negs2na = TRUE, coded = -9999, zero2na = TRUE)
+
+box_plot.E <- ggplot(Licor2, aes(x = trt, y = E)) +
+  xlab("") +
+  geom_boxplot(aes(fill=trt)) + theme_classic()
+
+box_plot.A <- ggplot(Licor2, aes(x = trt, y = A)) +
+  xlab("") +
+  geom_boxplot(aes(fill=trt)) + theme_classic()
+
+box_plot.gsw <- ggplot(Licor2, aes(x = trt, y = gsw)) +
+  xlab("") +
+  geom_boxplot(aes(fill=trt)) + theme_classic()
+
+box_plot.iWUE <- ggplot(Licor2, aes(x = trt, y = iWUE)) +
+  ylab("iWUE (A/gsw)") +
+  xlab("Treatment") +
+  geom_boxplot(aes(fill=trt)) + theme_classic()
+
+box_plot.insWUE <- ggplot(Licor2, aes(x = trt, y = insWUE)) +
+  ylab("insWUE (A/E)") +
+  xlab("Treatment") +
+  geom_boxplot(aes(fill=trt)) + theme_classic()
+
+plot_grid(box_plot.E, box_plot.A, box_plot.gsw, box_plot.iWUE, box_plot.insWUE, labels = c('A', 'B', 'C', 'D', 'E'))
+
+dev.copy(pdf, "data/LiCor/output.plots.pdf", height=5, width=8)
+dev.off()
 
 ```
 

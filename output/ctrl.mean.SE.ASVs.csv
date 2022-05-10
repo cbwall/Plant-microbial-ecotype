@@ -1,0 +1,5 @@
+"","n","","","n","n","","","","","","","","","",""
+"ctrl_labels",pre_inoc,di_water1,di_water2,DNA_PCR_neg,i6,slurry_1a,slurry_1b,slurry_2a,slurry_2b,slurry_3a,slurry_3b,slurry_4a,slurry_4b,slurry_5a,slurry_5b
+"ctrl_means",6.35,18,3,6.38461538461539,18.6593406593407,13,9,19,14,15,19,5,5,1,49
+"ctrl_std_err",0.828044621223302,0,0,0.977558848241449,0.753861816672863,0,0,0,0,0,0,0,0,0,0
+"ctrl_reps",20,1,2,13,91,1,1,1,1,1,1,1,1,1,1

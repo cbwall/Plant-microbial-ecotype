@@ -1,0 +1,5 @@
+"","n","n","n","n"
+"exp_labels",post_inoc_pre_stress,post_inoc_post_stress1,post_inoc_post_stress2,post_inoc_post_stress3
+"exp_means",12.2815533980583,32.1439393939394,34.8571428571429,36.8461538461538
+"exp_std_err",0.571786949131124,1.50886548797742,1.50738406665866,1.26592239715496
+"exp_rep",103,132,140,130

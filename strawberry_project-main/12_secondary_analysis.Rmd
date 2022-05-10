@@ -1,0 +1,672 @@
+---
+title: "Secondary analysis - comparing the two approaches (inter-treatment vs. treatment vs. controls)"
+author: "Francisca Rodriguez"
+date: "12/3/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+**Data input**
+```{r}
+#load libraries 
+library(phyloseq)
+library(tibble)
+library(dplyr)
+
+#Load seqtable.nochim and taxa from dada2 files from Kacie
+seqtable.nochim <- readRDS('./raw_data/dada2_seqtable.RDS')
+taxa <- readRDS('./raw_data/RDP_Taxonomy_from_dada2.RDS')
+strawb_miseq_map <- read.csv("./raw_data/Strawberry_Miseq_Map_forQIIME.csv", fileEncoding="UTF-8-BOM")
+
+# add empty column
+strawb_miseq_map <- add_column(strawb_miseq_map, SampleType = NA)
+
+# get rid of unneeded cols
+strawb_miseq_map <- select(strawb_miseq_map, 
+                           SampleID, 
+                           TimePoint, 
+                           Type, 
+                           PlantID, 
+                           WeightGrams, 
+                           SampleNotes, 
+                           Water, 
+                           Inoculation, 
+                           Replicate, 
+                           PlantNotes, 
+                           SampleType)
+
+# label sample types *INOCULATION 6 INCLUDED IN POST_INOC_POST_STRESS*
+strawb_miseq_map$SampleType[strawb_miseq_map$TimePoint == "T0"] <- "post_inoc_pre_stress"
+strawb_miseq_map$SampleType[strawb_miseq_map$TimePoint == "T1"] <- "post_inoc_post_stress"
+strawb_miseq_map$SampleType[strawb_miseq_map$SampleNotes == "Empty Extraction Tube Control"] <- "DNA_neg"
+strawb_miseq_map$SampleType[grep("Inoc", strawb_miseq_map$SampleNotes)] <- "slurry"
+strawb_miseq_map$SampleType[grep("Inocolum 6", strawb_miseq_map$SampleNotes)] <- "di_water"
+strawb_miseq_map$SampleType[grep("pre-inoc", strawb_miseq_map$SampleNotes)] <- "pre_inoc"
+
+# add empty column for control
+strawb_miseq_map <- add_column(strawb_miseq_map, Sample_or_Control = "True Sample")
+
+#label controls (i6, DI water, DNA/PCR negative, pre-inoculated plants)
+strawb_miseq_map$Sample_or_Control[strawb_miseq_map$SampleType == "di_water"] <- "Control"
+strawb_miseq_map$Sample_or_Control[strawb_miseq_map$SampleType == "DNA_neg"] <- "Control"
+strawb_miseq_map$Sample_or_Control[strawb_miseq_map$SampleType == "pre_inoc"] <- "Control"
+strawb_miseq_map$Sample_or_Control[strawb_miseq_map$Inoculation == "6" & strawb_miseq_map$TimePoint == "T1"] <- "Control"
+
+# remove unwanted samples
+strawb_miseq_map <- strawb_miseq_map[grep("CSIA", strawb_miseq_map$SampleNotes, invert = TRUE),]
+strawb_miseq_map <- strawb_miseq_map[strawb_miseq_map$Type != "Palmyra",]
+
+#save new map as a .csv file
+write.csv(strawb_miseq_map, "./combined_treatment_data/strawb_miseq_map2.csv")
+```
+
+**Phyloseq**
+```{r}
+# Hand off to Phyloseq ####
+otu <- otu_table(seqtable.nochim,taxa_are_rows = FALSE)
+tax <- tax_table(taxa)
+met <- sample_data(strawb_miseq_map)
+row.names(met) <- strawb_miseq_map$SampleID
+
+ps2 <- phyloseq(otu,met,tax)
+
+# generate the ASV0001, ASV0002 names
+pretty_names <- paste("ASV", sprintf('%0.4d', 1:length(taxa_names(ps2))), sep = "")
+
+# reassign the taxa_names from the sequences to the generated ASV names
+taxa_names(ps2) <- pretty_names
+
+#save phyloseq object
+saveRDS(ps2, "./combined_treatment_data/ps2.rds")
+
+```
+
+**Decontaminate controls**
+```{r}
+library(decontam)
+
+#remove taxa with only one read 
+ps2 <- prune_taxa(taxa_sums(ps2) > 1, ps2)
+
+#label controls (extraction negatives) and clean
+sample_data(ps2)$is.neg <- sample_data(ps2)$Sample_or_Control == "Control"
+contams <- isContaminant(ps2, method="prevalence", neg="is.neg")
+table(contams$contaminant)
+
+#Remove contaminants
+ps.noncontam2 <- prune_taxa(!contams$contaminant, ps2)
+
+#save phyloseq object
+saveRDS(ps.noncontam2, "./combined_treatment_data/ps.noncontam2.rds")
+```
+
+**Subset by post-inoc post-stress**
+```{r}
+#post_inoc_post_stress table 
+post_inoc_post_stress_ps <- subset_samples(ps.noncontam2, sample_data(ps.noncontam2)$SampleType=="post_inoc_post_stress")
+post_inoc_post_stress_ps <- prune_taxa(taxa_sums(post_inoc_post_stress_ps) > 0, post_inoc_post_stress_ps)
+post_inoc_post_stress_asv <- as.data.frame(otu_table(post_inoc_post_stress_ps))
+
+#Hellinger transformation for all replicates in post-inoculation/post-stress ASV contingency table
+transformed_pips_ASV <- hellinger(post_inoc_post_stress_asv)
+
+#On this transformed data, calculate a “relative abundance” by summing the new totals for all ASVs (the transformed number of total reads) within a replicate and then dividing the transformed number of reads for each ASV by this total
+rel_abund <- transformed_pips_ASV / rowSums(transformed_pips_ASV) 
+
+#pull out tax table and metadata from post_inoc_post_stress_ps to create new phyloseq object
+pips_metadata <- as(sample_data(post_inoc_post_stress_ps), 'matrix')
+pips_metadata <- as.data.frame(pips_metadata)
+pips_taxtable <- as(tax_table(post_inoc_post_stress_ps), 'matrix')
+
+#Create new phyloseq object with transformed table
+otu <- otu_table(rel_abund,taxa_are_rows = FALSE)
+tax <- tax_table(pips_taxtable)
+met <- sample_data(pips_metadata)
+row.names(met) <- pips_metadata$SampleID
+
+ps.pips2 <- phyloseq(otu,met,tax)
+
+#Using this new table, calculate Bray-Cutis community dissimilarities for all replicates and build an NMDS visualization where you code inoculum type by color and water treatment by shape.
+GP.ord <- ordinate(ps.pips2, "NMDS", "bray")
+p1 = plot_ordination(ps.pips2, GP.ord, type="samples", color="Inoculation", shape = "Water", title="Bray-Cutis community dissimilarities for all replicates")
+print(p1)
+
+
+#save phyloseq object
+saveRDS(ps.pips2, "./combined_treatment_data/ps.pips2.rds")
+```
+
+**Box and whisker plot of average richness**
+```{r}
+#Sum ASVs across samples to add to metadata
+richness_sums <- rowSums(post_inoc_post_stress_asv)
+
+#add column to new df with corresponding richness values
+pips_complete2 <- dplyr::bind_cols(pips_metadata, richness_sums)
+
+#rename column
+names(pips_complete2)[14] <- 'SpeciesRichness'
+str(pips_complete2)
+
+#Grouped boxplot by inoculation and water treatment
+ggplot(pips_complete2, aes(x=Inoculation, y=SpeciesRichness, fill=Water)) + 
+    geom_boxplot() + theme_light()
+
+#Grouped boxplot by inoculation and plant part
+ggplot(pips_complete2, aes(x=Inoculation, y=SpeciesRichness, fill=Water)) + 
+    geom_boxplot() + theme_light() + facet_wrap(~ Type)
+
+#write this to .csv
+write.csv(pips_complete2, "./combined_treatment_data/pips_complete2.csv")
+
+```
+
+**Outlier analysis: **
+```{r}
+#load libraries
+library(tidyverse)
+library(car)
+library(ggpubr)
+library(effects)
+library(emmeans)
+
+dat = read.csv("./combined_treatment_data/pips_complete2_edited.csv") |>
+  mutate(
+    Inoculation = as.character(Inoculation),
+    Water = as.character(Water)
+  )
+
+# interaction model
+fit1 = aov(log(SpeciesRichness) ~ Type + Inoculation * Water, data = dat)
+Anova(fit1, type = "3") # if you have interactions, type-3 sums-of-squares is appropriate
+
+# additive model
+fit2 = aov(log(SpeciesRichness) ~ Type + Inoculation + Water, data = dat)
+Anova(fit2, type = "2") # if you don't have interactions, type-2 sums-of-squares is appropriate
+
+#plot to check residuals
+plot(fit1)
+plot(fit2)
+
+# Studentized residuals
+MASS::studres(fit1) |>
+  abs() |>
+  sort()
+
+#remove the outliers, re-run the analysis
+filtered_dat = dat[-c(88, 34, 91, 464, 133), ]
+
+# interaction model
+fit1 = aov(log(SpeciesRichness) ~ Type + Inoculation * Water, data = filtered_dat)
+Anova(fit1, type = "3") # if you have interactions, type-3 sums-of-squares is appropriate
+
+# additive model
+fit2 = aov(log(SpeciesRichness) ~ Type + Inoculation + Water, data = filtered_dat)
+Anova(fit2, type = "2") # if you don't have interactions, type-2 sums-of-squares is appropriate
+
+#plot to check residuals
+plot(fit1)
+plot(fit2)
+
+#Re-plot grouped boxplot by inoculation and plant part without the outliers
+ggplot(filtered_dat, aes(x=Inoculation, y=log(SpeciesRichness), fill=Water)) + 
+    geom_boxplot() + theme_light() + facet_wrap(~ Type)
+
+```
+
+**ANOVA: roots**
+```{r}
+root_dat = subset(filtered_dat, Type == "Root")
+
+#interaction model
+richness_root_fit1 = aov(log(SpeciesRichness) ~ InoculationLabeled * WaterLabeled, data = root_dat)
+Anova(richness_root_fit1, type = "3") # if you have interactions, type-3 sums-of-squares is appropriate
+plot(richness_root_fit1)
+plot(allEffects(richness_root_fit1))
+
+#additive model 
+richness_root_fit2 = aov(log(SpeciesRichness) ~ InoculationLabeled + WaterLabeled, data = root_dat)
+Anova(richness_root_fit2, type = "2")
+plot(richness_root_fit2)
+plot(allEffects(richness_root_fit2))
+```
+
+**Post-hoc test roots: planned comparisons**
+```{r}
+## Type III ANOVA ##
+
+#apply the emmeans() command to the ANOVA object.
+RichRootsW1<- emmeans(richness_root_fit1, ~ WaterLabeled)
+RichRootsW1
+
+#obtain the planned 95% confidence intervals for a pairwise comparison
+RootsPlannedW1 <- contrast(RichRootsW1, adjust = "none")
+RootsPlannedW1
+
+#apply the emmeans() command to the ANOVA object.
+RichRootsI1<- emmeans(richness_root_fit1, ~ InoculationLabeled)
+RichRootsI1
+
+#obtain the planned 95% confidence intervals for a pairwise comparison
+RootsPlannedI1 <- contrast(RichRootsI1, adjust = "none")
+RootsPlannedI1
+
+## Type II ANOVA ##
+#apply the emmeans() command to the ANOVA object.
+RichRootsW2<- emmeans(richness_root_fit2, ~ WaterLabeled)
+RichRootsW2
+
+#obtain the planned 95% confidence intervals for a pairwise comparison
+RootsPlannedW2 <- contrast(RichRootsW2, adjust = "none")
+RootsPlannedW2
+
+#apply the emmeans() command to the ANOVA object.
+RichRootsI2<- emmeans(richness_root_fit2, ~ InoculationLabeled)
+RichRootsI2
+
+#obtain the planned 95% confidence intervals for a pairwise comparison
+RootsPlannedI2 <- contrast(RichRootsI2, adjust = "none")
+RootsPlannedI2
+```
+
+**ANOVA: shoots**
+```{r}
+shoot_dat = subset(filtered_dat, Type == "Shoot")
+
+#interaction model
+richness_shoot_fit1 = aov(log(SpeciesRichness) ~ InoculationLabeled * WaterLabeled, data = shoot_dat)
+Anova(richness_shoot_fit1, type = "3") # if you have interactions, type-3 sums-of-squares is appropriate
+plot(richness_shoot_fit1)
+plot(allEffects(richness_shoot_fit1))
+
+#additive model 
+richness_shoot_fit2 = aov(log(SpeciesRichness) ~ InoculationLabeled + WaterLabeled, data = shoot_dat)
+Anova(richness_shoot_fit2, type = "2")
+plot(richness_shoot_fit2)
+plot(allEffects(richness_shoot_fit2))
+```
+
+**Post-hoc test shoots: planned comparisons**
+```{r}
+## Type III ANOVA ##
+
+#apply the emmeans() command to the ANOVA object.
+RichShootsW1<- emmeans(richness_shoot_fit1, ~ WaterLabeled)
+RichShootsW1
+
+#obtain the planned 95% confidence intervals for a pairwise comparison
+ShootsPlannedW1 <- contrast(RichShootsW1, adjust = "none")
+ShootsPlannedW1
+
+#apply the emmeans() command to the ANOVA object.
+RichShootsI1<- emmeans(richness_shoot_fit1, ~ InoculationLabeled)
+RichShootsI1
+
+#obtain the planned 95% confidence intervals for a pairwise comparison
+ShootsPlannedI1 <- contrast(RichShootsI1, adjust = "none")
+ShootsPlannedI1
+
+## Type II ANOVA ##
+#apply the emmeans() command to the ANOVA object.
+RichShootsW2<- emmeans(richness_shoot_fit2, ~ WaterLabeled)
+RichShootsW2
+
+#obtain the planned 95% confidence intervals for a pairwise comparison
+ShootsPlannedW2 <- contrast(RichShootsW2, adjust = "none")
+ShootsPlannedW2
+
+#apply the emmeans() command to the ANOVA object.
+RichShootsI2 <- emmeans(richness_shoot_fit2, ~ InoculationLabeled)
+RichShootsI2
+
+#obtain the planned 95% confidence intervals for a pairwise comparison
+ShootsPlannedI2 <- contrast(RichShootsI2, adjust = "none")
+ShootsPlannedI2
+
+```
+
+**Outlier analysis: below-ground biomass**
+```{r}
+bio_root = subset(dat, Type == "Root")
+  
+#interaction model
+root_mass1= aov(WeightGrams ~ Inoculation * Water, data = bio_root)
+Anova(root_mass1, type = "3") # if you have interactions, type-3 sums-of-squares is appropriate
+
+#additive model
+root_mass2 = aov(WeightGrams ~ Inoculation + Water, data = bio_root)
+Anova(root_mass2, type = "2")
+
+#plot to check residuals
+plot(root_mass1)
+plot(root_mass2)
+
+# Studentized residuals
+MASS::studres(root_mass1) |>
+  abs() |>
+  sort()
+
+#remove the outliers, re-run the analysis
+filtered_root = bio_root[-c(219), ]
+
+```
+
+**Outlier analysis: above-ground biomass**
+```{r}
+
+bio_shoot = subset(dat, Type == "Shoot")
+
+#interaction model
+shoot_mass1 = aov(WeightGrams ~ Inoculation * Water, data = bio_shoot)
+Anova(shoot_mass1, type = "3") # if you have interactions, type-3 sums-of-squares is appropriate
+
+#additive model
+shoot_mass2 = aov(WeightGrams ~ Inoculation + Water, data = bio_shoot)
+Anova(shoot_mass2, type = "2")
+
+#plot to check residuals
+plot(shoot_mass1)
+plot(shoot_mass2)
+
+# Studentized residuals
+MASS::studres(shoot_mass1) |>
+  abs() |>
+  sort()
+
+#remove the outliers, re-run the analysis
+filtered_shoot = bio_shoot[-c(384, 439), ]
+```
+
+**ANOVA: below-ground biomass**
+```{r}
+  
+#interaction model
+root_mass1= aov(WeightGrams ~ InoculationLabeled * WaterLabeled, data = filtered_root)
+Anova(root_mass1, type = "3") # if you have interactions, type-3 sums-of-squares is appropriate
+plot(root_mass1, main = "Root")
+plot(allEffects(root_mass1))
+
+#additive model
+root_mass2 = aov(WeightGrams ~ InoculationLabeled + WaterLabeled, data = filtered_root)
+Anova(root_mass2, type = "2")
+plot(root_mass2, main = "Root")
+plot(allEffects(root_mass2))
+```
+
+**Post-hoc test: below-ground biomass**
+```{r}
+## Type III ANOVA ##
+
+#apply the emmeans() command to the ANOVA object.
+RootsW1<- emmeans(root_mass1, ~ WaterLabeled)
+RootsW1
+
+#obtain the planned 95% confidence intervals for a pairwise comparison
+RootsPlannedW1 <- contrast(RootsW1, adjust = "none")
+RootsPlannedW1
+
+#apply the emmeans() command to the ANOVA object.
+RootsI1<- emmeans(root_mass1, ~ InoculationLabeled)
+RootsI1
+
+#obtain the planned 95% confidence intervals for a pairwise comparison
+RootsPlannedI1 <- contrast(RootsI1, adjust = "none")
+RootsPlannedI1
+
+## Type II ANOVA ##
+
+#apply the emmeans() command to the ANOVA object.
+RootsW2<- emmeans(root_mass2, ~ WaterLabeled)
+RootsW2
+
+#obtain the planned 95% confidence intervals for a pairwise comparison
+RootsPlannedW2 <- contrast(RootsW2, adjust = "none")
+RootsPlannedW2
+
+#apply the emmeans() command to the ANOVA object.
+RootsI2<- emmeans(root_mass2, ~ InoculationLabeled)
+RootsI2
+
+#obtain the planned 95% confidence intervals for a pairwise comparison
+RootsPlannedI2 <- contrast(RootsI2, adjust = "none")
+RootsPlannedI2
+```
+
+**ANOVA: above-ground biomass**
+```{r}
+
+#interaction model
+shoot_mass1 = aov(WeightGrams ~ InoculationLabeled * WaterLabeled, data = filtered_shoot)
+Anova(shoot_mass1, type = "3") # if you have interactions, type-3 sums-of-squares is appropriate
+plot(shoot_mass1, main = "Shoot")
+plot(allEffects(shoot_mass1))
+
+#additive model
+shoot_mass2 = aov(WeightGrams ~ InoculationLabeled + WaterLabeled, data = filtered_shoot)
+Anova(shoot_mass2, type = "2")
+plot(shoot_mass2, main = "Shoot")
+plot(allEffects(shoot_mass2))
+```
+
+**Post-hoc test: above-ground biomass**
+```{r}
+## Type III ANOVA ##
+
+#apply the emmeans() command to the ANOVA object.
+ShootsW1<- emmeans(shoot_mass1, ~ WaterLabeled)
+ShootsW1
+
+#obtain the planned 95% confidence intervals for a pairwise comparison
+ShootsPlannedW1 <- contrast(ShootsW1, adjust = "none")
+ShootsPlannedW1
+
+#apply the emmeans() command to the ANOVA object.
+ShootsI1<- emmeans(shoot_mass1, ~ InoculationLabeled)
+ShootsI1
+
+#obtain the planned 95% confidence intervals for a pairwise comparison
+ShootsPlannedI1 <- contrast(ShootsI1, adjust = "none")
+ShootsPlannedI1
+
+## Type II ANOVA ##
+
+#apply the emmeans() command to the ANOVA object.
+ShootsW2<- emmeans(shoot_mass2, ~ WaterLabeled)
+ShootsW2
+
+#obtain the planned 95% confidence intervals for a pairwise comparison
+ShootsPlannedW2 <- contrast(ShootsW2, adjust = "none")
+ShootsPlannedW2
+
+#apply the emmeans() command to the ANOVA object.
+ShootsI2<- emmeans(shoot_mass2, ~ InoculationLabeled)
+ShootsI2
+
+#obtain the planned 95% confidence intervals for a pairwise comparison
+ShootsPlannedI2 <- contrast(ShootsI2, adjust = "none")
+ShootsPlannedI2
+```
+**PERMANOVA**
+```{r, fig.show='hide', warning=FALSE, message=FALSE, include=FALSE}
+#load libraries / data
+library(labdsv)
+library(vegan)
+library(phyloseq)
+library(ggplot2)
+
+ps.pips <- readRDS("./combined_treatment_data/ps.pips2.rds")
+```
+
+```{r}
+# run inoculation, then water, then main effects in combined model, then interaction
+
+#bray curtis distance matrix
+ps.pips.bray <- phyloseq::distance(ps.pips, method = "bray")
+
+#make a data frame from the sample_data
+sampledf <- data.frame(sample_data(ps.pips))
+```
+
+**Inoculation effect** 
+```{r}
+# ---------------------------
+#run PERMANOVA for inoculation as the independent variable
+adonis_inoculation = adonis2(ps.pips.bray ~ Inoculation, permutations = 9999, data = sampledf)
+print(adonis_inoculation)
+
+# Homogeneity of dispersion test
+beta.Inoc <- betadisper(ps.pips.bray, sampledf$Inoculation)
+permutest(beta.Inoc)
+```
+
+**Water effect** 
+```{r}
+# ---------------------------
+
+#run PERMANOVA water
+adonis_water = adonis2(ps.pips.bray ~ Water, permutations = 9999, data = sampledf)
+print(adonis_water)
+
+# Homogeneity of dispersion test
+beta.Wat <- betadisper(ps.pips.bray, sampledf$Water)
+permutest(beta.Wat)
+```
+
+**Inoculation + Water effect** 
+```{r}
+# ---------------------------
+
+# with main effects, no interacton
+adonis_combo = adonis2(ps.pips.bray ~ Inoculation + Water, permutations = 9999, data = sampledf, method = "bray")
+print(adonis_combo)
+
+```
+
+**Inoculation x Water effect** 
+This model shows all levels are significant, but inoculation is most important at R2 = 21%
+
+```{r}
+# with interacton
+# all levels significant, but inoculation most important R2=21%
+adonis_combo = adonis2(ps.pips.bray ~ Inoculation * Water, permutations = 9999, data = sampledf, method = "bray")
+print(adonis_combo)
+
+
+```
+
+**subset the phyloseq objects to get individual objects for each level of inocula.**  
+Make sure to subset both the samples but also prune the taxa!
+*Note* there are ~200 taxa that would disappear from the taxonomy table if you do a prune taxa for the global dataset with taxa removed if not present in at least one sample: such as `sub.global<-prune_taxa(taxa_sums(ps.pips) > 0, ps.pips)`  
+I did this, but it could be reversed just as well.
+
+```{r, warning=FALSE, message=FALSE}
+##########
+########## Subset dataframe and run permanova for each inoculum testing for water effect
+
+# remove taxa that are not in at least 1 sample globally?
+sub.global<-prune_taxa(taxa_sums(ps.pips) > 0, ps.pips)
+
+#subset phyloseq object to make 5 dataframes representing each inoculation treatment
+sub1<-subset_samples(sub.global, Inoculation=="1") # only inoculum 1
+sub.1<-prune_taxa(taxa_sums(sub1) > 0, sub1) # remove the taxa that are not in at least 1 sample of inoc. 1
+
+sub2<-subset_samples(sub.global, Inoculation=="2") # only inoculum 2
+sub.2<-prune_taxa(taxa_sums(sub2) > 0, sub2)
+
+sub3<-subset_samples(sub.global, Inoculation=="3") # only inoculum 3
+sub.3<-prune_taxa(taxa_sums(sub3) > 0, sub3)
+
+sub4<-subset_samples(sub.global, Inoculation=="4") # only inoculum 4
+sub.4<-prune_taxa(taxa_sums(sub4) > 0, sub4)
+
+sub5<-subset_samples(sub.global, Inoculation=="5") # only inoculum 5
+sub.5<-prune_taxa(taxa_sums(sub5) > 0, sub5)
+
+sub6<-subset_samples(sub.global, Inoculation=="6") # only inoculum 6
+sub.6<-prune_taxa(taxa_sums(sub6) > 0, sub6)
+
+# now make 5 bray-curtis distance
+ps.pips.bray1 <- phyloseq::distance(sub.1, method = "bray")
+ps.pips.bray2 <- phyloseq::distance(sub.2, method = "bray")
+ps.pips.bray3 <- phyloseq::distance(sub.3, method = "bray")
+ps.pips.bray4 <- phyloseq::distance(sub.4, method = "bray")
+ps.pips.bray5 <- phyloseq::distance(sub.5, method = "bray")
+ps.pips.bray6 <- phyloseq::distance(sub.6, method = "bray")
+
+#make a data frame from the sample_data
+sampledf1 <- data.frame(sample_data(sub.1))
+sampledf2 <- data.frame(sample_data(sub.2))
+sampledf3 <- data.frame(sample_data(sub.3))
+sampledf4 <- data.frame(sample_data(sub.4))
+sampledf5 <- data.frame(sample_data(sub.5))
+sampledf6 <- data.frame(sample_data(sub.6))
+```
+
+## Inocula PERMANOVA  
+Run the PERMANOVA and betadispersion test for each inocula, testing the effect of water
+  
+### Inoculum 1
+```{r}
+### Inoculum 1
+adonis_inoc1 = adonis2(ps.pips.bray1 ~ Water, permutations = 9999, data = sampledf1)
+print(adonis_inoc1)
+
+beta.1 <- betadisper(ps.pips.bray1, sampledf1$Water)
+permutest(beta.1)
+```
+
+### Inoculum 2
+```{r}
+### Inoculum 2
+adonis_inoc2 = adonis2(ps.pips.bray2 ~ Water, permutations = 9999, data = sampledf2)
+print(adonis_inoc2)
+
+beta.2 <- betadisper(ps.pips.bray2, sampledf2$Water)
+permutest(beta.2)
+```
+
+### Inoculum 3
+```{r}
+### Inoculum 3
+adonis_inoc3 = adonis2(ps.pips.bray3 ~ Water, permutations = 9999, data = sampledf3)
+print(adonis_inoc3)
+
+beta.3 <- betadisper(ps.pips.bray3, sampledf3$Water)
+permutest(beta.3)
+```
+
+### Inoculum 4
+```{r}
+### Inoculum 4
+adonis_inoc4 = adonis2(ps.pips.bray4 ~ Water, permutations = 9999, data = sampledf4)
+print(adonis_inoc4)
+
+beta.4 <- betadisper(ps.pips.bray4, sampledf4$Water)
+permutest(beta.4)
+```
+
+### Inoculum 5
+```{r}
+### Inoculum 5
+adonis_inoc5 = adonis2(ps.pips.bray5 ~ Water, permutations = 9999, data = sampledf5)
+print(adonis_inoc5)
+
+beta.5 <- betadisper(ps.pips.bray5, sampledf5$Water)
+permutest(beta.5)
+
+#########################
+
+```
+
+### Inoculum 6
+```{r}
+### Inoculum 6
+adonis_inoc6 = adonis2(ps.pips.bray6 ~ Water, permutations = 9999, data = sampledf6)
+print(adonis_inoc6)
+
+beta.6 <- betadisper(ps.pips.bray6, sampledf6$Water)
+permutest(beta.6)
+```

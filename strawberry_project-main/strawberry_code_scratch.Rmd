@@ -1,0 +1,247 @@
+---
+title: "Strawb_script_final"
+author: "Francisca Rodriguez"
+date: "12/1/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+**Data import**
+```{r}
+#load libraries 
+library(phyloseq)
+library(tibble)
+library(dplyr)
+
+#Load seqtable.nochim and taxa from dada2 files from Kacie
+seqtable.nochim <- readRDS('./raw_data/dada2_seqtable.RDS')
+taxa <- readRDS('./raw_data/RDP_Taxonomy_from_dada2.RDS')
+strawb_miseq_map <- read.csv("./raw_data/Strawberry_Miseq_Map_forQIIME.csv", fileEncoding="UTF-8-BOM")
+
+# add empty column
+strawb_miseq_map <- add_column(strawb_miseq_map, SampleType = NA)
+
+# get rid of unneeded cols
+strawb_miseq_map <- select(strawb_miseq_map, 
+                           SampleID, 
+                           TimePoint, 
+                           Type, 
+                           PlantID, 
+                           WeightGrams, 
+                           SampleNotes, 
+                           Water, 
+                           Inoculation, 
+                           Replicate, 
+                           PlantNotes, 
+                           SampleType)
+
+# label sample types
+strawb_miseq_map$SampleType[strawb_miseq_map$TimePoint == "T0"] <- "post_inoc_pre_stress"
+strawb_miseq_map$SampleType[strawb_miseq_map$TimePoint == "T1"] <- "post_inoc_post_stress"
+strawb_miseq_map$SampleType[strawb_miseq_map$SampleNotes == "Empty Extraction Tube Control"] <- "DNA_PCR_neg"
+strawb_miseq_map$SampleType[grep("Inoc", strawb_miseq_map$SampleNotes)] <- "slurry"
+strawb_miseq_map$SampleType[strawb_miseq_map$Inoculation == "6"] <- "i6"
+strawb_miseq_map$SampleType[grep("Inocolum 6", strawb_miseq_map$SampleNotes)] <- "di_water"
+strawb_miseq_map$SampleType[grep("pre-inoc", strawb_miseq_map$SampleNotes)] <- "pre_inoc"
+
+# add empty column for control
+strawb_miseq_map <- add_column(strawb_miseq_map, Sample_or_Control = "True Sample")
+
+#label controls (i6, DI water, DNA/PCR negative, pre-inoculated plants)
+strawb_miseq_map$Sample_or_Control[strawb_miseq_map$SampleType == "i6"] <- "Control"
+strawb_miseq_map$Sample_or_Control[strawb_miseq_map$SampleType == "di_water"] <- "Control"
+strawb_miseq_map$Sample_or_Control[strawb_miseq_map$SampleType == "DNA_PCR_neg"] <- "Control"
+strawb_miseq_map$Sample_or_Control[strawb_miseq_map$SampleType == "pre_inoc"] <- "Control"
+
+# remove unwanted samples
+strawb_miseq_map <- strawb_miseq_map[grep("CSIA", strawb_miseq_map$SampleNotes, invert = TRUE),]
+strawb_miseq_map <- strawb_miseq_map[strawb_miseq_map$Type != "Palmyra",]
+
+#save new map as a .csv file
+write.csv(strawb_miseq_map, "./raw_data/strawb_miseq_map.csv")
+```
+
+
+**Phyloseq**
+```{r}
+# Hand off to Phyloseq ####
+otu <- otu_table(seqtable.nochim,taxa_are_rows = FALSE)
+tax <- tax_table(taxa)
+met <- sample_data(strawb_miseq_map)
+row.names(met) <- strawb_miseq_map$SampleID
+
+ps <- phyloseq(otu,met,tax)
+
+# generate the ASV0001, ASV0002 names
+pretty_names <- paste("ASV", sprintf('%0.4d', 1:length(taxa_names(ps))), sep = "")
+
+# reassign the taxa_names from the sequences to the generated ASV names
+taxa_names(ps) <- pretty_names
+
+#save phyloseq object
+saveRDS(ps, "./intermediate_data/ps.rds")
+
+```
+
+
+**Data cleanup**
+```{r}
+#############################################################################
+##################### PRE-DECONTAM ##########################################
+#############################################################################
+
+library(ggVennDiagram)
+library(phyloseq)
+
+#load data
+ps <- readRDS("./intermediate_data/ps.rds")
+
+##subset data by sample type
+
+ps_pruned <- prune_taxa(taxa_sums(ps) > 0, ps)
+
+categories <- unique(sd$SampleType)
+table_list <- list()
+ps_list <- list()
+
+for (a_cat in categories) {
+  
+  subset_ps <- subset_samples(ps, sample_data(ps)$SampleType==a_cat)
+  pruned_ps <- prune_taxa(taxa_sums(subset_ps) > 0, subset_ps)
+  asv <- as.data.frame(otu_table(pruned_ps))
+  
+  table_list[[a_cat]] <- asv
+  ps_list[[a_cat]] <- pruned_ps
+  
+}
+
+
+##subset post_inoc_pre_stress to count ############################################## 
+post_inoc_pre_stress_i1 <- subset_samples(post_inoc_pre_stress_ps, sample_data(post_inoc_pre_stress_ps)$Inoculation == "1")
+post_inoc_pre_stress_i2 <- subset_samples(post_inoc_pre_stress_ps, sample_data(post_inoc_pre_stress_ps)$Inoculation == "2")
+post_inoc_pre_stress_i3 <- subset_samples(post_inoc_pre_stress_ps, sample_data(post_inoc_pre_stress_ps)$Inoculation == "3")
+post_inoc_pre_stress_i4 <- subset_samples(post_inoc_pre_stress_ps, sample_data(post_inoc_pre_stress_ps)$Inoculation == "4")
+post_inoc_pre_stress_i5 <- subset_samples(post_inoc_pre_stress_ps, sample_data(post_inoc_pre_stress_ps)$Inoculation == "5")
+
+
+##loops to subset by inoculation and water##
+
+##post inoc pre stress loops##
+inoc_names <- c("Inoc1", "Inoc2", "Inoc3", "Inoc4", "Inoc5")
+
+water1 <- list()
+water1_names <- sapply(inoc_names, function(x) paste(x, "Water1"))
+
+
+for (inoc in inocs_vec) {
+  a_ps <- subset_samples(ps_list[["post_inoc_post_stress"]], 
+                         Inoculation == inoc & Water == "1")
+  a_pr <- prune_taxa(taxa_sums(a_ps) > 0, a_ps)
+  water1[[inoc]] <- a_pr
+}
+
+names(water1) <- water1_names
+
+all_ps_objects <- c(water1, water2, water3)
+
+
+##post inoc post stress loops##
+inoc_names <- c("Inoc1", "Inoc2", "Inoc3", "Inoc4", "Inoc5")
+
+water1 <- list()
+water1_names <- sapply(inoc_names, function(x) paste(x, "Water1"))
+
+
+for (inoc in inocs_vec) {
+  a_ps <- subset_samples(ps_list[["post_inoc_post_stress"]], 
+                         Inoculation == inoc & Water == "1")
+  a_pr <- prune_taxa(taxa_sums(a_ps) > 0, a_ps)
+  water1[[inoc]] <- a_pr
+}
+
+names(water1) <- water1_names
+
+water2 <- list()
+water2_names <- sapply(inoc_names, function(x) paste(x, "water2"))
+
+
+for (inoc in inocs_vec) {
+  a_ps <- subset_samples(ps_list[["post_inoc_post_stress"]], 
+                         Inoculation == inoc & Water == "2")
+  a_pr <- prune_taxa(taxa_sums(a_ps) > 0, a_ps)
+  water2[[inoc]] <- a_pr
+}
+
+names(water2) <- water2_names
+
+
+water3 <- list()
+water3_names <- sapply(inoc_names, function(x) paste(x, "water3"))
+
+
+for (inoc in inocs_vec) {
+  a_ps <- subset_samples(ps_list[["post_inoc_post_stress"]], 
+                         Inoculation == inoc & Water == "2")
+  a_pr <- prune_taxa(taxa_sums(a_ps) > 0, a_ps)
+  water3[[inoc]] <- a_pr
+}
+
+names(water3) <- water3_names
+
+# make big list
+all_ps_objects <- c(water1, water2, water3)
+
+ps_i1_w1 <- all_ps_objects[["Inoc1 Water1"]]
+
+```
+
+
+```{r}
+
+
+## SLURRY ##
+#Inoculation 1 
+slurry1 <- subset_samples(slurry_ps, sample_data(slurry_ps)$Type == "Inoculum 1")
+slurry1 <- prune_taxa(taxa_sums(slurry1) > 0, slurry1)
+slurry1_asv <- as.data.frame(otu_table(slurry1))
+mean_slurry_1a <- richness(slurry1_asv[1,])
+mean_slurry_1b <- richness(slurry1_asv[2,])
+rep_slurry_1a = 1 
+rep_slurry_1b = 1 
+
+#Inoculation 2
+slurry2 <- subset_samples(slurry_ps, sample_data(slurry_ps)$Type == "Inoculum 2")
+slurry2_asv <- as.data.frame(otu_table(slurry2))
+mean_slurry_2a <- richness(slurry2_asv[1,])
+mean_slurry_2b <- richness(slurry2_asv[2,])
+rep_slurry_2a = 1
+rep_slurry_2b = 1
+
+#Inoculation 3
+slurry3 <- subset_samples(slurry_ps, sample_data(slurry_ps)$Type == "Inoculum 3")
+slurry3_asv <- as.data.frame(otu_table(slurry3))
+mean_slurry_3a <- richness(slurry3_asv[1,])
+mean_slurry_3b <- richness(slurry3_asv[2,])
+rep_slurry_3a = 1
+rep_slurry_3b = 1 
+
+#Inoculation 4
+slurry4 <- subset_samples(slurry_ps, sample_data(slurry_ps)$Type == "Inoculum 4")
+slurry4_asv <- as.data.frame(otu_table(slurry4))
+mean_slurry_4a <- richness(slurry4_asv[1,])
+mean_slurry_4b <- richness(slurry4_asv[2,])
+rep_slurry_4a = 1
+rep_slurry_4b = 1 
+
+#Inoculation 5
+slurry5 <- subset_samples(slurry_ps, sample_data(slurry_ps)$Type == "Inoculum 5")
+slurry5_asv <- as.data.frame(otu_table(slurry5))
+mean_slurry_5a <- richness(slurry5_asv[1,])
+mean_slurry_5b <- richness(slurry5_asv[2,])
+rep_slurry_5a = 1 
+rep_slurry_5b = 1 
+
+```

@@ -1,0 +1,59 @@
+---
+title: "Data cleanup"
+author: "Francisca Rodriguez"
+date: "11/4/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+**Pre-decontamination**
+```{r}
+library(phyloseq)
+
+#load data
+ps <- readRDS("./intermediate_data/ps.rds")
+
+```
+
+**Subset by sample type**
+```{r}
+#initialize variables + lists for loop
+sd <- as.data.frame(sample_data(ps))
+categories <- unique(sd$SampleType)
+all_samples_asv <- list()
+total_index <- list()
+max_asv <- list()
+
+for (a_cat in categories) {
+  
+  subset_ps <- subset_samples(ps, sample_data(ps)$SampleType==a_cat)
+  asv <- as.data.frame(otu_table(subset_ps))
+  index = which(colSums(asv) > 0)
+  total_index[[a_cat]] <- index
+  max_asv[[a_cat]] <- max(colSums(asv)) #find highest number of reads for any ASV found in each sample type
+  
+  all_samples_asv[[a_cat]] <- asv             #combined asv tables of data by sample type
+}
+
+#save ASV table
+saveRDS(all_samples_asv, "./intermediate_data/all_samples_asv.rds")
+```
+
+**Negative control exploration - Venn diagram**
+
+```{r}
+library(ggVennDiagram)
+
+#create Venn diagram
+ggVennDiagram(total_index, label = "count")
+
+
+#check total count of ASVs, remove ASVs with one count, re-tally
+ASV_table <- as(otu_table(ps), "matrix")
+ASV_sums <- colSums(ASV_table)
+ASV_index <- which(ASV_sums > 1)
+
+```

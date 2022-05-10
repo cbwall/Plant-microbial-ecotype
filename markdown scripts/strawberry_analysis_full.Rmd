@@ -1,0 +1,1204 @@
+---
+title: "Strawberry Analysis"
+author: "Francisca Rodriguez"
+date: "9/4/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+
+##INITIAL SETUP################################
+
+# Packages
+library(tidyverse)
+library(dada2)
+library(phyloseq)
+library(purrr)
+library(Biostrings)
+library(ggplot2)
+library(gapminder)
+library(dplyr)
+library(tibble)
+library(vegan)
+library(ggridges)
+library(viridis)
+library(hrbrthemes)
+library(decontam)
+library(iNEXT)
+
+#Load seqtable.nochim and taxa from dada2 files from Kacie
+seqtable.nochim <- readRDS('./raw_data/dada2_seqtable.RDS')
+taxa <- readRDS('./raw_data/RDP_Taxonomy_from_dada2.RDS')
+strawb_miseq_map <- read.csv("./raw_data/Strawberry_Miseq_Map_forQIIME.csv", fileEncoding="UTF-8-BOM")
+
+# add empty column
+strawb_miseq_map <- add_column(strawb_miseq_map, SampleType = NA)
+
+# get rid of unneeded cols
+strawb_miseq_map <- select(strawb_miseq_map, 
+                           SampleID, 
+                           TimePoint, 
+                           Type, 
+                           PlantID, 
+                           WeightGrams, 
+                           SampleNotes, 
+                           Water, 
+                           Inoculation, 
+                           Replicate, 
+                           PlantNotes, 
+                           SampleType)
+
+# label sample types
+strawb_miseq_map$SampleType[strawb_miseq_map$TimePoint == "T0"] <- "post_inoc_pre_stress"
+strawb_miseq_map$SampleType[strawb_miseq_map$TimePoint == "T1"] <- "post_inoc_post_stress"
+strawb_miseq_map$SampleType[strawb_miseq_map$SampleNotes == "Empty Extraction Tube Control"] <- "DNA_PCR_neg"
+strawb_miseq_map$SampleType[grep("Inoc", strawb_miseq_map$SampleNotes)] <- "slurry"
+strawb_miseq_map$SampleType[strawb_miseq_map$Inoculation == "6"] <- "i6"
+strawb_miseq_map$SampleType[grep("Inocolum 6", strawb_miseq_map$SampleNotes)] <- "di_water"
+strawb_miseq_map$SampleType[grep("pre-inoc", strawb_miseq_map$SampleNotes)] <- "pre_inoc"
+
+# add empty column for control
+strawb_miseq_map <- add_column(strawb_miseq_map, Sample_or_Control = "True Sample")
+
+#label controls (i6, DI water, DNA/PCR negative, pre-inoculated plants)
+strawb_miseq_map$Sample_or_Control[strawb_miseq_map$SampleType == "i6"] <- "Control"
+strawb_miseq_map$Sample_or_Control[strawb_miseq_map$SampleType == "di_water"] <- "Control"
+strawb_miseq_map$Sample_or_Control[strawb_miseq_map$SampleType == "DNA_PCR_neg"] <- "Control"
+strawb_miseq_map$Sample_or_Control[strawb_miseq_map$SampleType == "pre_inoc"] <- "Control"
+
+# remove unwanted samples
+strawb_miseq_map <- strawb_miseq_map[grep("CSIA", strawb_miseq_map$SampleNotes, invert = TRUE),]
+strawb_miseq_map <- strawb_miseq_map[strawb_miseq_map$Type != "Palmyra",]
+
+#save new map as a .csv file
+write.csv(strawb_miseq_map, "./raw_data/strawb_miseq_map.csv")
+
+#############################################################################
+#################### PHYLOSEQ ###############################################
+#############################################################################
+
+# Hand off to Phyloseq ####
+otu <- otu_table(seqtable.nochim,taxa_are_rows = FALSE)
+tax <- tax_table(taxa)
+met <- sample_data(strawb_miseq_map)
+row.names(met) <- strawb_miseq_map$SampleID
+
+ps <- phyloseq(otu,met,tax)
+
+# generate the ASV0001, ASV0002 names
+pretty_names <- paste("ASV", sprintf('%0.4d', 1:length(taxa_names(ps))), sep = "")
+
+# reassign the taxa_names from the sequences to the generated ASV names
+taxa_names(ps) <- pretty_names
+
+
+```
+
+
+```{r}
+#############################################################################
+############  PRE-DECONTAM: VENN DIAGRAMS  ##################################
+#############################################################################
+library(ggVennDiagram)
+
+# pre inoc table
+pre_inoc_ps <- subset_samples(ps, sample_data(ps)$SampleType=="pre_inoc")
+pre_inoc_asv <- as.data.frame(otu_table(pre_inoc_ps))
+
+#slurry table
+slurry_ps <- subset_samples(ps, sample_data(ps)$SampleType=="slurry")
+slurry_asv <- as.data.frame(otu_table(slurry_ps))
+
+# #DNA_PCR_neg table
+DNA_PCR_neg_ps <- subset_samples(ps, sample_data(ps)$SampleType=="DNA_PCR_neg")
+DNA_PCR_neg_asv <- as.data.frame(otu_table(DNA_PCR_neg_ps))
+
+#di_water table
+di_water_ps <- subset_samples(ps, sample_data(ps)$SampleType=="di_water")
+di_water_asv <- as.data.frame(otu_table(di_water_ps))
+
+#i6 table
+i6_ps <- subset_samples(ps, sample_data(ps)$SampleType=="i6")
+i6_asv <- as.data.frame(otu_table(i6_ps))
+
+#post_inoc_pre_stress table
+post_inoc_pre_stress_ps <- subset_samples(ps, sample_data(ps)$SampleType=="post_inoc_pre_stress")
+post_inoc_pre_stress_asv <- as.data.frame(otu_table(post_inoc_pre_stress_ps))
+
+##subset post_inoc_pre_stress to count ############################################## 
+post_inoc_pre_stress_i1 <- subset_samples(post_inoc_pre_stress_ps, sample_data(post_inoc_pre_stress_ps)$Inoculation == "1")
+post_inoc_pre_stress_i2 <- subset_samples(post_inoc_pre_stress_ps, sample_data(post_inoc_pre_stress_ps)$Inoculation == "2")
+post_inoc_pre_stress_i3 <- subset_samples(post_inoc_pre_stress_ps, sample_data(post_inoc_pre_stress_ps)$Inoculation == "3")
+post_inoc_pre_stress_i4 <- subset_samples(post_inoc_pre_stress_ps, sample_data(post_inoc_pre_stress_ps)$Inoculation == "4")
+post_inoc_pre_stress_i5 <- subset_samples(post_inoc_pre_stress_ps, sample_data(post_inoc_pre_stress_ps)$Inoculation == "5")
+
+#post_inoc_post_stress table
+post_inoc_post_stress_ps <- subset_samples(ps, sample_data(ps)$SampleType=="post_inoc_post_stress")
+post_inoc_post_stress_asv <- as.data.frame(otu_table(post_inoc_post_stress_ps))
+
+##subset post_inoc_post_stress to count###############################################
+#inoculation 1 
+post_inoc_post_stress_i1_w1 <- subset_samples(post_inoc_post_stress_ps, sample_data(post_inoc_post_stress_ps)$Inoculation == "1" & sample_data(post_inoc_post_stress_ps)$Water == "1")
+post_inoc_post_stress_i1_w2 <- subset_samples(post_inoc_post_stress_ps, sample_data(post_inoc_post_stress_ps)$Inoculation == "1" & sample_data(post_inoc_post_stress_ps)$Water == "2")
+post_inoc_post_stress_i1_w3 <- subset_samples(post_inoc_post_stress_ps, sample_data(post_inoc_post_stress_ps)$Inoculation == "1" & sample_data(post_inoc_post_stress_ps)$Water == "3")
+
+#inoculation 2
+post_inoc_post_stress_i2_w1 <- subset_samples(post_inoc_post_stress_ps, sample_data(post_inoc_post_stress_ps)$Inoculation == "2" & sample_data(post_inoc_post_stress_ps)$Water == "1")
+post_inoc_post_stress_i2_w2 <- subset_samples(post_inoc_post_stress_ps, sample_data(post_inoc_post_stress_ps)$Inoculation == "2" & sample_data(post_inoc_post_stress_ps)$Water == "2")
+post_inoc_post_stress_i2_w3 <- subset_samples(post_inoc_post_stress_ps, sample_data(post_inoc_post_stress_ps)$Inoculation == "2" & sample_data(post_inoc_post_stress_ps)$Water == "3")
+
+#inoculation 3
+post_inoc_post_stress_i3_w1 <- subset_samples(post_inoc_post_stress_ps, sample_data(post_inoc_post_stress_ps)$Inoculation == "3" & sample_data(post_inoc_post_stress_ps)$Water == "1")
+post_inoc_post_stress_i3_w2 <- subset_samples(post_inoc_post_stress_ps, sample_data(post_inoc_post_stress_ps)$Inoculation == "3" & sample_data(post_inoc_post_stress_ps)$Water == "2")
+post_inoc_post_stress_i3_w3 <- subset_samples(post_inoc_post_stress_ps, sample_data(post_inoc_post_stress_ps)$Inoculation == "3" & sample_data(post_inoc_post_stress_ps)$Water == "3")
+
+#inoculation 4
+post_inoc_post_stress_i4_w1 <- subset_samples(post_inoc_post_stress_ps, sample_data(post_inoc_post_stress_ps)$Inoculation == "4" & sample_data(post_inoc_post_stress_ps)$Water == "1")
+post_inoc_post_stress_i4_w2 <- subset_samples(post_inoc_post_stress_ps, sample_data(post_inoc_post_stress_ps)$Inoculation == "4" & sample_data(post_inoc_post_stress_ps)$Water == "2")
+post_inoc_post_stress_i4_w3 <- subset_samples(post_inoc_post_stress_ps, sample_data(post_inoc_post_stress_ps)$Inoculation == "4" & sample_data(post_inoc_post_stress_ps)$Water == "3")
+
+#inoculation 5
+post_inoc_post_stress_i5_w1 <- subset_samples(post_inoc_post_stress_ps, sample_data(post_inoc_post_stress_ps)$Inoculation == "5" & sample_data(post_inoc_post_stress_ps)$Water == "1")
+post_inoc_post_stress_i5_w2 <- subset_samples(post_inoc_post_stress_ps, sample_data(post_inoc_post_stress_ps)$Inoculation == "5" & sample_data(post_inoc_post_stress_ps)$Water == "2")
+post_inoc_post_stress_i5_w3 <- subset_samples(post_inoc_post_stress_ps, sample_data(post_inoc_post_stress_ps)$Inoculation == "5" & sample_data(post_inoc_post_stress_ps)$Water == "3")
+
+#############################################################################
+##NEGATIVE CONTROL EXPOLORATION - VENN DIAGRAMS##############################
+#############################################################################
+
+#sum asv columns into a list
+sum_pre_inoc_asv = colSums(pre_inoc_asv)
+sum_slurry_asv = colSums(slurry_asv)
+sum_DNA_PCR_neg_asv = colSums(DNA_PCR_neg_asv)
+sum_di_water_asv = colSums(di_water_asv)
+sum_i6_asv = colSums(i6_asv)
+sum_post_inoc_pre_stress_asv = colSums(post_inoc_pre_stress_asv)
+sum_post_inoc_post_stress_asv = colSums(post_inoc_post_stress_asv)
+
+#get index of values > 0
+index_pre_inoc_asv = which(sum_pre_inoc_asv > 0)
+index_slurry_asv = which(sum_slurry_asv > 0)
+index_DNA_PCR_neg_asv = which(sum_DNA_PCR_neg_asv > 0)
+index_di_water_asv = which(sum_di_water_asv > 0)
+index_i6_asv = which(sum_i6_asv > 0)
+index_post_inoc_pre_stress_asv = which(sum_post_inoc_pre_stress_asv > 0)
+index_post_inoc_post_stress_asv = which(sum_post_inoc_post_stress_asv > 0)
+
+#create a list containing all the indexes from above
+total_index <- list(DNA_PCR_neg = index_DNA_PCR_neg_asv, di_water = index_di_water_asv, pre_inoc = index_pre_inoc_asv, slurry = index_slurry_asv, post_inoc_pre_stress = index_post_inoc_pre_stress_asv, post_inoc_post_stress = index_post_inoc_post_stress_asv, i6 = index_i6_asv)
+
+#create venn diagram
+ggVennDiagram(total_index, label = "count")
+
+#find highest number of reads for any ASV found in each sample type
+max_pre_inoc_asv = max(sum_pre_inoc_asv)
+max_slurry_asv = max(sum_slurry_asv)
+max_DNA_PCR_neg_asv = max(sum_DNA_PCR_neg_asv)
+max_di_water_asv = max(sum_di_water_asv)
+max_i6_asv = max(sum_i6_asv)
+max_post_inoc_pre_stress_asv = max(sum_post_inoc_pre_stress_asv)
+max_post_inoc_post_stress_asv = max(sum_post_inoc_post_stress_asv)
+
+#check total count of ASVs, remove ASVs with one count, re-tally
+ASV_table <- as(otu_table(ps), "matrix")
+ASV_sums <- colSums(ASV_table)
+ASV_index <- which(ASV_sums > 1)
+
+```
+
+```{r}
+#############################################################################
+####### PRE-DECONTAM: DETERMINE MEAN/STD. E OF SAMPLES ######################
+#############################################################################
+
+##subset slurry by inoculation ##############################################
+slurry1 <- subset_samples(slurry_ps, sample_data(slurry_ps)$Type == "Inoculum 1")
+slurry1_asv <- as.data.frame(otu_table(slurry1))
+sum_slurry1 <- colSums(slurry1_asv)
+  
+slurry2 <- subset_samples(slurry_ps, sample_data(slurry_ps)$Type == "Inoculum 2")
+slurry2_asv <- as.data.frame(otu_table(slurry2))
+sum_slurry2 <- colSums(slurry2_asv)
+
+slurry3 <- subset_samples(slurry_ps, sample_data(slurry_ps)$Type == "Inoculum 3")
+slurry3_asv <- as.data.frame(otu_table(slurry3))
+sum_slurry3 <- colSums(slurry3_asv)
+
+slurry4 <- subset_samples(slurry_ps, sample_data(slurry_ps)$Type == "Inoculum 4")
+slurry4_asv <- as.data.frame(otu_table(slurry4))
+sum_slurry4 <- colSums(slurry4_asv)
+
+slurry5 <- subset_samples(slurry_ps, sample_data(slurry_ps)$Type == "Inoculum 5")
+slurry5_asv <- as.data.frame(otu_table(slurry5))
+sum_slurry5 <- colSums(slurry5_asv)
+
+##subset post_inoc_post_stress by water treatment ###########################
+post_inoc_post_stress1 <- subset_samples(post_inoc_post_stress_ps, sample_data(post_inoc_post_stress_ps)$Water == "1")
+post_inoc_post_stress1_asv <- as.data.frame(otu_table(post_inoc_post_stress1))
+sum_post_inoc_post_stress1 <- colSums(post_inoc_post_stress1_asv)
+
+post_inoc_post_stress2 <- subset_samples(post_inoc_post_stress_ps, sample_data(post_inoc_post_stress_ps)$Water == "2")
+post_inoc_post_stress2_asv <- as.data.frame(otu_table(post_inoc_post_stress2))
+sum_post_inoc_post_stress2 <- colSums(post_inoc_post_stress2_asv)
+
+post_inoc_post_stress3 <- subset_samples(post_inoc_post_stress_ps, sample_data(post_inoc_post_stress_ps)$Water == "3")
+post_inoc_post_stress3_asv <- as.data.frame(otu_table(post_inoc_post_stress3))
+sum_post_inoc_post_stress3 <- colSums(post_inoc_post_stress3_asv)
+
+#find avg. number of ASVs
+mean_pre_inoc_asv = mean(sum_pre_inoc_asv)
+mean_di_water_asv = mean(sum_di_water_asv)
+mean_DNA_PCR_neg_asv = mean(sum_DNA_PCR_neg_asv)
+mean_i6_asv = mean(sum_i6_asv)
+mean_slurry1_asv = mean(sum_slurry1)
+mean_slurry2_asv = mean(sum_slurry2)
+mean_slurry3_asv = mean(sum_slurry3)
+mean_slurry4_asv = mean(sum_slurry4)
+mean_slurry5_asv = mean(sum_slurry5)
+mean_post_inoc_pre_stress_asv = mean(sum_post_inoc_pre_stress_asv)
+mean_post_inoc_post_stress1_asv = mean(sum_post_inoc_post_stress1)
+mean_post_inoc_post_stress2_asv = mean(sum_post_inoc_post_stress2)
+mean_post_inoc_post_stress3_asv = mean(sum_post_inoc_post_stress3)
+
+#find std. err. of ASVs
+std_err_pre_inoc_asv = sd(sum_pre_inoc_asv) / sqrt(length(sum_pre_inoc_asv))
+std_err_di_water_asv = sd(sum_di_water_asv) / sqrt(length(sum_di_water_asv))
+std_err_DNA_PCR_neg_asv = sd(sum_DNA_PCR_neg_asv) / sqrt(length(sum_DNA_PCR_neg_asv))
+std_err_i6_asv = sd(sum_i6_asv) / sqrt(length(sum_i6_asv))
+std_err_slurry1_asv = sd(sum_slurry1) / sqrt(length(sum_slurry1))
+std_err_slurry2_asv = sd(sum_slurry2) / sqrt(length(sum_slurry2))
+std_err_slurry3_asv = sd(sum_slurry3) / sqrt(length(sum_slurry3))
+std_err_slurry4_asv = sd(sum_slurry4) / sqrt(length(sum_slurry4))
+std_err_slurry5_asv = sd(sum_slurry5) / sqrt(length(sum_slurry5))
+std_err_post_inoc_pre_stress_asv = sd(sum_post_inoc_pre_stress_asv) / sqrt(length(sum_post_inoc_pre_stress_asv))
+std_err_post_inoc_post_stress1_asv = sd(sum_post_inoc_post_stress1) / sqrt(length(sum_post_inoc_post_stress1))
+std_err_post_inoc_post_stress2_asv = sd(sum_post_inoc_post_stress2) / sqrt(length(sum_post_inoc_post_stress2))
+std_err_post_inoc_post_stress3_asv = sd(sum_post_inoc_post_stress3) / sqrt(length(sum_post_inoc_post_stress3))
+
+#create a dataframe to export control data ##################################
+ctrl_means <- c(mean_pre_inoc_asv, 
+           mean_di_water_asv, 
+           mean_DNA_PCR_neg_asv, 
+           mean_i6_asv, 
+           mean_slurry1_asv, 
+           mean_slurry2_asv, 
+           mean_slurry3_asv, 
+           mean_slurry4_asv, 
+           mean_slurry5_asv)
+
+ctrl_std_err <- c(std_err_pre_inoc_asv, 
+             std_err_di_water_asv, 
+             std_err_DNA_PCR_neg_asv, 
+             std_err_i6_asv, 
+             std_err_slurry1_asv, 
+             std_err_slurry2_asv, 
+             std_err_slurry3_asv, 
+             std_err_slurry4_asv, 
+             std_err_slurry5_asv)
+
+ctrl_labels <- c("pre_inoc", 
+            "di_water", 
+            "DNA_PCR_neg", 
+            "i6", 
+            "slurry1", 
+            "slurry2", 
+            "slurry3", 
+            "slurry4", 
+            "slurry5")
+            
+ctrl.mean.SE.ASVs <- rbind(ctrl_labels, ctrl_means, ctrl_std_err)
+
+#export as .csv
+ctrl.mean.SE.ASVs <-  write.csv(ctrl.mean.SE.ASVs, "./output/ctrl.mean.SE.ASVs.csv")
+
+## repeat for experimental data #############################################
+exp_means <- c(mean_post_inoc_pre_stress_asv, 
+                  mean_post_inoc_post_stress1_asv, 
+                  mean_post_inoc_post_stress2_asv, 
+                  mean_post_inoc_post_stress3_asv)
+
+exp_std_err <- c(std_err_post_inoc_pre_stress_asv, 
+                  std_err_post_inoc_post_stress1_asv, 
+                  std_err_post_inoc_post_stress2_asv, 
+                  std_err_post_inoc_post_stress3_asv)
+
+exp_labels <- c("post_inoc_pre_stress",
+                  "post_inoc_post_stress1", 
+                  "post_inoc_post_stress2", 
+                  "post_inoc_post_stress3")
+            
+exp.mean.SE.ASVs <- rbind(exp_labels, exp_means, exp_std_err)
+
+#export as .csv
+exp.mean.SE.ASVs <-  write.csv(exp.mean.SE.ASVs, "./output/exp.mean.SE.ASVs.csv")
+
+```
+
+
+```{r}
+#############################################################################
+###### PRE-DECONTAM: CHECK SPREAD OF NEGATIVE CONTROL ASVS  #################
+#############################################################################
+
+##DNA PCR NEG####
+DNA_PCR_neg_ps <- subset_samples(ps, sample_data(ps)$SampleType=="DNA_PCR_neg") #DNA_PCR_neg table
+DNA_PCR_neg_ps <- prune_taxa(taxa_sums(DNA_PCR_neg_ps) > 1, DNA_PCR_neg_ps) #get rid of zeroes
+DNA_PCR_neg_names <- paste("DNA_PCR_neg_", sprintf('%0.4d', 1:length(sample_names(DNA_PCR_neg_ps))), sep = "") # generate the row names 
+sample_names(DNA_PCR_neg_ps) <- DNA_PCR_neg_names # reassign the names from the sequences to the generated sample names
+DNA_PCR_neg_asv <- as.data.frame(otu_table(DNA_PCR_neg_ps)) #create asv table
+
+##DI WATER#############
+di_water_ps <- subset_samples(ps, sample_data(ps)$SampleType=="di_water")
+di_water_ps <- prune_taxa(taxa_sums(di_water_ps) > 1, di_water_ps)
+di_water_names <- paste("di_water_", sprintf('%0.4d', 1:length(sample_names(di_water_ps))), sep = "") 
+sample_names(di_water_ps) <- di_water_names
+di_water_asv <- as.data.frame(otu_table(di_water_ps))
+
+##INOCULATION 6 - H2O CONTROL#############
+i6_ps <- subset_samples(ps, sample_data(ps)$SampleType=="i6")
+i6_ps <- prune_taxa(taxa_sums(i6_ps) > 1, i6_ps)
+i6_names <- paste("i6_", sprintf('%0.4d', 1:length(sample_names(i6_ps))), sep = "") 
+sample_names(i6_ps) <- i6_names
+i6_asv <- as.data.frame(otu_table(i6_ps))
+
+##PRE INOC########
+pre_inoc_ps <- subset_samples(ps, sample_data(ps)$SampleType=="pre_inoc")
+pre_inoc_ps <- prune_taxa(taxa_sums(pre_inoc_ps) > 1, pre_inoc_ps)
+pre_inoc_names <- paste("pre_inoc_", sprintf('%0.4d', 1:length(sample_names(pre_inoc_ps))), sep = "") 
+sample_names(pre_inoc_ps) <- pre_inoc_names
+pre_inoc_asv <- as.data.frame(otu_table(pre_inoc_ps))
+
+##SLURRY#########
+slurry_ps <- subset_samples(ps, sample_data(ps)$SampleType=="slurry") #slurry table
+slurry_names <- paste("slurry_", sprintf('%0.4d', 1:length(sample_names(slurry_ps))), sep = "")
+sample_names(slurry_ps) <- slurry_names 
+slurry_asv <- as.data.frame(otu_table(slurry_ps))
+
+##POST INOC PRE STRESS#####
+post_inoc_pre_stress_ps <- subset_samples(ps, sample_data(ps)$SampleType=="post_inoc_pre_stress")
+post_inoc_pre_stress_names <- paste("post_inoc_pre_stress_", sprintf('%0.4d', 1:length(sample_names(post_inoc_pre_stress_ps))), sep = "")
+sample_names(post_inoc_pre_stress_ps) <- post_inoc_pre_stress_names
+post_inoc_pre_stress_asv <- as.data.frame(otu_table(post_inoc_pre_stress_ps))
+
+##POST INOC POST STRESS####
+post_inoc_post_stress_ps <- subset_samples(ps, sample_data(ps)$SampleType=="post_inoc_post_stress")
+post_inoc_post_stress_names <- paste("post_inoc_post_stress_", sprintf('%0.4d', 1:length(sample_names(post_inoc_post_stress_ps))), sep = "")
+sample_names(post_inoc_post_stress_ps) <- post_inoc_post_stress_names
+post_inoc_post_stress_asv <- as.data.frame(otu_table(post_inoc_post_stress_ps)) 
+
+##COMBINE ASV TABLES########
+
+#create control ASV table
+control_asvs <- dplyr::bind_rows(DNA_PCR_neg_asv, di_water_asv, i6_asv, pre_inoc_asv)
+
+#obtain a list of all the columns in that data frame
+asvs <- colnames(control_asvs)
+
+#filter for ASVs present in controls
+edited_slurry <- slurry_asv[,asvs]
+edited_postinocprestress <- post_inoc_pre_stress_asv[,asvs]
+edited_postinocpoststress <- post_inoc_post_stress_asv[,asvs]
+
+#combine data frames
+comboASVs <- dplyr::bind_rows(control_asvs, edited_slurry, edited_postinocprestress, edited_postinocpoststress)
+
+#export as .csv
+controlASVs <-  write.csv(comboASVs, "./output/controlASVs.csv")
+
+##DETERMINE TOTAL READS FROM TREATMENT ####
+totalTreatmentReads <- rowSums(post_inoc_post_stress_asv)
+treatmentASVs <- write.csv(totalTreatmentReads, "./output/treatmentASVs.csv")
+
+```
+
+
+```{r}
+#############################################################################
+################ DECONTAMINATE CONTROLS #####################################
+#############################################################################
+
+#remove ASVs with only one read 
+ps <- prune_taxa(taxa_sums(ps) > 1, ps)
+ps
+
+#look at the library sizes of the controls and samples
+df <- as.data.frame(sample_data(ps)) # Put sample_data into a ggplot-friendly data.frame
+df$LibrarySize <- sample_sums(ps)
+df <- df[order(df$LibrarySize),]
+df$Index <- seq(nrow(df))
+ggplot(data=df, aes(x=Index, y=LibrarySize, color=Sample_or_Control)) + geom_point()
+
+#label controls (extraction negatives) and clean
+sample_data(ps)$is.neg <- sample_data(ps)$Sample_or_Control == "Control"
+contams <- isContaminant(ps, method="prevalence", neg="is.neg")
+table(contams$contaminant)
+
+#Remove contaminants
+ps.noncontam <- prune_taxa(!contams$contaminant, ps)
+ps.noncontam
+
+```
+
+
+```{r}
+#############################################################################
+### POST-DECONTAM: DATA BY PRE/POST STRESS AND INOC X WATER TREATMENT   #####
+#############################################################################
+
+##POST INOC PRE STRESS ######################################################
+
+#post_inoc_pre_stress table 
+post_inoc_pre_stress_ps <- subset_samples(ps.noncontam, sample_data(ps.noncontam)$SampleType=="post_inoc_pre_stress")
+
+##label post_inoc_pre_stress by inoculation
+post_inoc_pre_stress_i1 <- subset_samples(post_inoc_pre_stress_ps, sample_data(post_inoc_pre_stress_ps)$Inoculation == "1")
+  post_inoc_pre_stress_i1 <- as.data.frame(otu_table(post_inoc_pre_stress_i1))
+  
+post_inoc_pre_stress_i2 <- subset_samples(post_inoc_pre_stress_ps, sample_data(post_inoc_pre_stress_ps)$Inoculation == "2")
+  post_inoc_pre_stress_i2 <- as.data.frame(otu_table(post_inoc_pre_stress_i2))
+  
+post_inoc_pre_stress_i3 <- subset_samples(post_inoc_pre_stress_ps, sample_data(post_inoc_pre_stress_ps)$Inoculation == "3")
+  post_inoc_pre_stress_i3 <- as.data.frame(otu_table(post_inoc_pre_stress_i3))
+  
+post_inoc_pre_stress_i4 <- subset_samples(post_inoc_pre_stress_ps, sample_data(post_inoc_pre_stress_ps)$Inoculation == "4")
+  post_inoc_pre_stress_i4 <- as.data.frame(otu_table(post_inoc_pre_stress_i4))
+  
+post_inoc_pre_stress_i5 <- subset_samples(post_inoc_pre_stress_ps, sample_data(post_inoc_pre_stress_ps)$Inoculation == "5")
+  post_inoc_pre_stress_i5 <- as.data.frame(otu_table(post_inoc_pre_stress_i5))
+  
+##POST INOC POST STRESS#####################################################
+
+#post_inoc_post_stress table 
+post_inoc_post_stress_ps <- subset_samples(ps.noncontam, sample_data(ps.noncontam)$SampleType=="post_inoc_post_stress")
+
+##label post_inoc_post_stress by inoculation x water treatment
+
+#inoculation 1 
+post_inoc_post_stress_i1_w1 <- subset_samples(post_inoc_post_stress_ps, sample_data(post_inoc_post_stress_ps)$Inoculation == "1" & sample_data(post_inoc_post_stress_ps)$Water == "1")
+  post_inoc_post_stress_i1_w1 <- as.data.frame(otu_table(post_inoc_post_stress_i1_w1))
+
+post_inoc_post_stress_i1_w2 <- subset_samples(post_inoc_post_stress_ps, sample_data(post_inoc_post_stress_ps)$Inoculation == "1" & sample_data(post_inoc_post_stress_ps)$Water == "2")
+  post_inoc_post_stress_i1_w2 <- as.data.frame(otu_table(post_inoc_post_stress_i1_w2))
+
+post_inoc_post_stress_i1_w3 <- subset_samples(post_inoc_post_stress_ps, sample_data(post_inoc_post_stress_ps)$Inoculation == "1" & sample_data(post_inoc_post_stress_ps)$Water == "3")
+  post_inoc_post_stress_i1_w3 <- as.data.frame(otu_table(post_inoc_post_stress_i1_w3))
+
+#inoculation 2
+post_inoc_post_stress_i2_w1 <- subset_samples(post_inoc_post_stress_ps, sample_data(post_inoc_post_stress_ps)$Inoculation == "2" & sample_data(post_inoc_post_stress_ps)$Water == "1")
+  post_inoc_post_stress_i2_w1 <- as.data.frame(otu_table(post_inoc_post_stress_i2_w1))
+
+post_inoc_post_stress_i2_w2 <- subset_samples(post_inoc_post_stress_ps, sample_data(post_inoc_post_stress_ps)$Inoculation == "2" & sample_data(post_inoc_post_stress_ps)$Water == "2")
+  post_inoc_post_stress_i2_w2 <- as.data.frame(otu_table(post_inoc_post_stress_i2_w2))
+
+post_inoc_post_stress_i2_w3 <- subset_samples(post_inoc_post_stress_ps, sample_data(post_inoc_post_stress_ps)$Inoculation == "2" & sample_data(post_inoc_post_stress_ps)$Water == "3")
+  post_inoc_post_stress_i2_w3 <- as.data.frame(otu_table(post_inoc_post_stress_i2_w3))
+
+#inoculation 3
+post_inoc_post_stress_i3_w1 <- subset_samples(post_inoc_post_stress_ps, sample_data(post_inoc_post_stress_ps)$Inoculation == "3" & sample_data(post_inoc_post_stress_ps)$Water == "1")
+  post_inoc_post_stress_i3_w1 <- as.data.frame(otu_table(post_inoc_post_stress_i3_w1))
+
+post_inoc_post_stress_i3_w2 <- subset_samples(post_inoc_post_stress_ps, sample_data(post_inoc_post_stress_ps)$Inoculation == "3" & sample_data(post_inoc_post_stress_ps)$Water == "2")
+  post_inoc_post_stress_i3_w2 <- as.data.frame(otu_table(post_inoc_post_stress_i3_w2))
+
+post_inoc_post_stress_i3_w3 <- subset_samples(post_inoc_post_stress_ps, sample_data(post_inoc_post_stress_ps)$Inoculation == "3" & sample_data(post_inoc_post_stress_ps)$Water == "3")
+  post_inoc_post_stress_i3_w3 <- as.data.frame(otu_table(post_inoc_post_stress_i3_w3))
+
+#inoculation 4
+post_inoc_post_stress_i4_w1 <- subset_samples(post_inoc_post_stress_ps, sample_data(post_inoc_post_stress_ps)$Inoculation == "4" & sample_data(post_inoc_post_stress_ps)$Water == "1")
+  post_inoc_post_stress_i4_w1 <- as.data.frame(otu_table(post_inoc_post_stress_i4_w1))
+
+post_inoc_post_stress_i4_w2 <- subset_samples(post_inoc_post_stress_ps, sample_data(post_inoc_post_stress_ps)$Inoculation == "4" & sample_data(post_inoc_post_stress_ps)$Water == "2")
+  post_inoc_post_stress_i4_w2 <- as.data.frame(otu_table(post_inoc_post_stress_i4_w2))
+
+post_inoc_post_stress_i4_w3 <- subset_samples(post_inoc_post_stress_ps, sample_data(post_inoc_post_stress_ps)$Inoculation == "4" & sample_data(post_inoc_post_stress_ps)$Water == "3")
+  post_inoc_post_stress_i4_w3 <- as.data.frame(otu_table(post_inoc_post_stress_i4_w3))
+
+#inoculation 5
+post_inoc_post_stress_i5_w1 <- subset_samples(post_inoc_post_stress_ps, sample_data(post_inoc_post_stress_ps)$Inoculation == "5" & sample_data(post_inoc_post_stress_ps)$Water == "1")
+  post_inoc_post_stress_i5_w1 <- as.data.frame(otu_table(post_inoc_post_stress_i5_w1))
+
+post_inoc_post_stress_i5_w2 <- subset_samples(post_inoc_post_stress_ps, sample_data(post_inoc_post_stress_ps)$Inoculation == "5" & sample_data(post_inoc_post_stress_ps)$Water == "2")
+  post_inoc_post_stress_i5_w2 <- as.data.frame(otu_table(post_inoc_post_stress_i5_w2))
+
+post_inoc_post_stress_i5_w3 <- subset_samples(post_inoc_post_stress_ps, sample_data(post_inoc_post_stress_ps)$Inoculation == "5" & sample_data(post_inoc_post_stress_ps)$Water == "3")
+  post_inoc_post_stress_i5_w3 <- as.data.frame(otu_table(post_inoc_post_stress_i5_w3))
+
+```
+
+```{r}
+#############################################################################
+#####  POST-DECONTAM: SPECIES ACCUMULATION CURVES (BETA DIVERSITY)  #########
+#############################################################################
+  
+par(mfrow=c(4,5))
+
+##POST INOC PRE STRESS #####################################################
+accurve_prei1 <- specaccum(post_inoc_pre_stress_i1, method = "random", permutations = 400)
+plot(accurve_prei1$sites, accurve_prei1$richness,
+     xlab = "Number of sample",
+     ylab = "Species richness",
+     main = "Post-inoc pre-stress ASVs - Inoculation 1")
+
+accurve_prei2 <- specaccum(post_inoc_pre_stress_i2, method = "random", permutations = 400)
+plot(accurve_prei2$sites, accurve_prei2$richness,
+     xlab = "Number of sample",
+     ylab = "Species richness",
+     main = "Post-inoc pre-stress ASVs - Inoculation 2")
+
+accurve_prei3 <- specaccum(post_inoc_pre_stress_i3, method = "random", permutations = 400)
+plot(accurve_prei3$sites, accurve_prei3$richness,
+     xlab = "Number of sample",
+     ylab = "Species richness",
+     main = "Post-inoc pre-stress ASVs - Inoculation 3")
+
+accurve_prei4 <- specaccum(post_inoc_pre_stress_i4, method = "random", permutations = 400)
+plot(accurve_prei4$sites, accurve_prei4$richness,
+     xlab = "Number of sample",
+     ylab = "Species richness",
+     main = "Post-inoc pre-stress ASVs - Inoculation 4")
+
+accurve_prei5 <- specaccum(post_inoc_pre_stress_i5, method = "random", permutations = 400)
+plot(accurve_prei5$sites, accurve_prei5$richness,
+     xlab = "Number of sample",
+     ylab = "Species richness",
+     main = "Post-inoc pre-stress ASVs - Inoculation 5")
+
+
+##POST INOC POST STRESS #####################################################
+
+accurve_posti1w1 <- specaccum(post_inoc_post_stress_i1_w1, method = "random", permutations = 400)
+plot(accurve_posti1w1$sites, accurve_posti1w1$richness,
+     xlab = "Number of sample",
+     ylab = "Species richness",
+     main = "Post-inoc post-stress ASVs - i1 x w1")
+
+accurve_posti1w2 <- specaccum(post_inoc_post_stress_i1_w2, method = "random", permutations = 400)
+plot(accurve_posti1w2$sites, accurve_posti1w2$richness,
+     xlab = "Number of sample",
+     ylab = "Species richness",
+     main = "Post-inoc post-stress ASVs - i1 x w2")
+
+accurve_posti1w3 <- specaccum(post_inoc_post_stress_i1_w3, method = "random", permutations = 400)
+plot(accurve_posti1w3$sites, accurve_posti1w3$richness,
+     xlab = "Number of sample",
+     ylab = "Species richness",
+     main = "Post-inoc post-stress ASVs - i1 x w3")
+
+accurve_posti2w1 <- specaccum(post_inoc_post_stress_i2_w1, method = "random", permutations = 400)
+plot(accurve_posti2w1$sites, accurve_posti2w1$richness,
+     xlab = "Number of sample",
+     ylab = "Species richness",
+     main = "Post-inoc post-stress ASVs - i2 x w1")
+
+accurve_posti2w2 <- specaccum(post_inoc_post_stress_i2_w2, method = "random", permutations = 400)
+plot(accurve_posti2w2$sites, accurve_posti2w2$richness,
+     xlab = "Number of sample",
+     ylab = "Species richness",
+     main = "Post-inoc post-stress ASVs - i2 x w2")
+
+accurve_posti2w3 <- specaccum(post_inoc_post_stress_i2_w3, method = "random", permutations = 400)
+plot(accurve_posti2w3$sites, accurve_posti2w3$richness,
+     xlab = "Number of sample",
+     ylab = "Species richness",
+     main = "Post-inoc post-stress ASVs - i2 x w3")
+
+accurve_posti3w1 <- specaccum(post_inoc_post_stress_i3_w1, method = "random", permutations = 400)
+plot(accurve_posti3w1$sites, accurve_posti3w1$richness,
+     xlab = "Number of sample",
+     ylab = "Species richness",
+     main = "Post-inoc post-stress ASVs - i3 x w1")
+
+accurve_posti3w2 <- specaccum(post_inoc_post_stress_i3_w2, method = "random", permutations = 400)
+plot(accurve_posti3w2$sites, accurve_posti3w2$richness,
+     xlab = "Number of sample",
+     ylab = "Species richness",
+     main = "Post-inoc post-stress ASVs - i3 x w2")
+
+accurve_posti3w3 <- specaccum(post_inoc_post_stress_i3_w3, method = "random", permutations = 400)
+plot(accurve_posti3w3$sites, accurve_posti3w3$richness,
+     xlab = "Number of sample",
+     ylab = "Species richness",
+     main = "Post-inoc post-stress ASVs - i3 x w3")
+
+accurve_posti4w1 <- specaccum(post_inoc_post_stress_i4_w1, method = "random", permutations = 400)
+plot(accurve_posti4w1$sites, accurve_posti4w1$richness,
+     xlab = "Number of sample",
+     ylab = "Species richness",
+     main = "Post-inoc post-stress ASVs - i4 x w1")
+
+accurve_posti4w2 <- specaccum(post_inoc_post_stress_i4_w2, method = "random", permutations = 400)
+plot(accurve_posti4w2$sites, accurve_posti4w2$richness,
+     xlab = "Number of sample",
+     ylab = "Species richness",
+     main = "Post-inoc post-stress - i4 x w2")
+
+accurve_posti4w3 <- specaccum(post_inoc_post_stress_i4_w3, method = "random", permutations = 400)
+plot(accurve_posti4w3$sites, accurve_posti4w3$richness,
+     xlab = "Number of sample",
+     ylab = "Species richness",
+     main = "Post-inoc post-stress - i4 x w3")
+
+accurve_posti5w1 <- specaccum(post_inoc_post_stress_i5_w1, method = "random", permutations = 400)
+plot(accurve_posti5w1$sites, accurve_posti5w1$richness,
+     xlab = "Number of sample",
+     ylab = "Species richness",
+     main = "Post-inoc post-stress ASVs - i5 x w1")
+
+accurve_posti5w2 <- specaccum(post_inoc_post_stress_i5_w2, method = "random", permutations = 400)
+plot(accurve_posti5w2$sites, accurve_posti5w2$richness,
+     xlab = "Number of sample",
+     ylab = "Species richness",
+     main = "Post-inoc post-stress ASVs - i5 x w2")
+
+accurve_posti5w3 <- specaccum(post_inoc_post_stress_i5_w3, method = "random", permutations = 400)
+plot(accurve_posti5w3$sites, accurve_posti5w3$richness,
+     xlab = "Number of sample",
+     ylab = "Species richness",
+     main = "Post-inoc post-stress ASVs - i5 x w3")
+
+```
+
+```{r}
+
+#############################################################################
+#####  POST-DECONTAM: SEQ DEPTH CURVES (ALPHA DIVERSITY)  ###################
+#############################################################################
+
+par(mfrow=c(4,5))
+
+##POST INOC PRE STRESS#######################################################
+
+#post_inoc_pre_stress_i1
+rarecurve(post_inoc_pre_stress_i1,
+          step = 1, 
+          col = "blue", 
+          label = FALSE,
+          cex = 0.6, 
+          xlab = "Sample Size", 
+          ylab = "ASV", 
+          main = "Post-inoc pre-stress ASVs - Inoculation 1")
+
+#post_inoc_pre_stress_i2
+rarecurve(post_inoc_pre_stress_i2, 
+          step = 20, 
+          col = "blue", 
+          label = FALSE,
+          cex = 0.6, 
+          xlab = "Sample Size", 
+          ylab = "ASV", 
+          main = "Post-inoc pre-stress ASVs - Inoculation 2")
+
+#post_inoc_pre_stress_i3
+rarecurve(post_inoc_pre_stress_i3, 
+          step = 20, 
+          col = "blue", 
+          label = FALSE,
+          cex = 0.6, 
+          xlab = "Sample Size",
+          ylab = "ASV", 
+          main = "Post-inoc pre-stress ASVs - Inoculation 3")
+
+#post_inoc_pre_stress_i4
+rarecurve(post_inoc_pre_stress_i4, 
+          step = 20, 
+          col = "blue", 
+          label = FALSE,
+          cex = 0.6, 
+          xlab = "Sample Size", 
+          ylab = "ASV", 
+          main = "Post-inoc pre-stress ASVs - Inoculation 4")
+
+#post_inoc_pre_stress_i5
+rarecurve(post_inoc_pre_stress_i5, 
+          step = 20, 
+          col = "blue", 
+          label = FALSE,
+          cex = 0.6, 
+          xlab = "Sample Size", 
+          ylab = "ASV", 
+          main = "Post-inoc pre-stress ASVs - Inoculation 5")
+
+##POST INOC POST STRESS#######################################################
+
+##INOCULATION 1
+#post_inoc_post_stress_i1_w1
+rarecurve(post_inoc_post_stress_i1_w1, 
+          step = 20,
+          label = FALSE,
+          col = "blue", 
+          cex = 0.6, 
+          xlab = "Sample Size", 
+          ylab = "ASV", 
+          main = "Post-inoc post-stress ASVs - i1 x w1")
+
+#post_inoc_post_stress_i1_w2
+rarecurve(post_inoc_post_stress_i1_w2, 
+          step = 20, 
+          col = "blue",
+          label = FALSE,
+          cex = 0.6, 
+          xlab = "Sample Size", 
+          ylab = "ASV", 
+          main = "Post-inoc post-stress ASVs - i1 x w2")
+
+#post_inoc_post_stress_i1_w3
+rarecurve(post_inoc_post_stress_i1_w3, 
+          step = 20, 
+          col = "blue", 
+          label = FALSE,
+          cex = 0.6, 
+          xlab = "Sample Size", 
+          ylab = "ASV", 
+          main = "Post-inoc post-stress ASVs - i1 x w3")
+
+##INOCULATION 2
+#post_inoc_post_stress_i2_w1
+rarecurve(post_inoc_post_stress_i2_w1, 
+          step = 20, 
+          col = "blue", 
+          label = FALSE,
+          cex = 0.6, 
+          xlab = "Sample Size", 
+          ylab = "ASV", 
+          main = "Post-inoc post-stress ASVs - i2 x w1")
+
+#post_inoc_post_stress_i2_w2
+rarecurve(post_inoc_post_stress_i2_w2, 
+          step = 20, 
+          col = "blue", 
+          label = FALSE,
+          cex = 0.6, 
+          xlab = "Sample Size", 
+          ylab = "ASV", 
+          main = "Post-inoc post-stress ASVs - i2 x w2")
+
+#post_inoc_post_stress_i2_w3
+rarecurve(post_inoc_post_stress_i2_w3, 
+          step = 20, 
+          col = "blue", 
+          label = FALSE,
+          cex = 0.6, 
+          xlab = "Sample Size", 
+          ylab = "ASV", 
+          main = "Post-inoc post-stress ASVs - i2 x w3")
+
+##INOCULATION 3
+#post_inoc_post_stress_i3_w1
+rarecurve(post_inoc_post_stress_i3_w1, 
+          step = 20, 
+          col = "blue", 
+          label = FALSE,
+          cex = 0.6, 
+          xlab = "Sample Size", 
+          ylab = "ASV", 
+          main = "Post-inoc post-stress ASVs - i3 x w1")
+
+#post_inoc_post_stress_i3_w2
+rarecurve(post_inoc_post_stress_i3_w2, 
+          step = 20, 
+          col = "blue", 
+          label = FALSE,
+          cex = 0.6, 
+          xlab = "Sample Size", 
+          ylab = "ASV", 
+          main = "Post-inoc post-stress ASVs - i3 x w2")
+
+#post_inoc_post_stress_i3_w3
+rarecurve(post_inoc_post_stress_i3_w3, 
+          step = 20, 
+          col = "blue", 
+          cex = 0.6, 
+          label = FALSE,
+          xlab = "Sample Size", 
+          ylab = "ASV", 
+          main = "Post-inoc post-stress ASVs - i3 x w3")
+
+##INOCULATION 4
+#post_inoc_post_stress_i4_w1
+rarecurve(post_inoc_post_stress_i4_w1, 
+          step = 20, 
+          col = "blue", 
+          label = FALSE,
+          cex = 0.6, 
+          xlab = "Sample Size", 
+          ylab = "ASV", 
+          main = "Post-inoc post-stress ASVs - i4 x w1")
+
+#post_inoc_post_stress_i4_w2
+rarecurve(post_inoc_post_stress_i4_w2, 
+          step = 20, 
+          col = "blue", 
+          cex = 0.6, 
+          label = FALSE,
+          xlab = "Sample Size", 
+          ylab = "ASV", 
+          main = "Post-inoc post-stress ASVs - i4 x w2")
+
+#post_inoc_post_stress_i4_w3
+rarecurve(post_inoc_post_stress_i4_w3, 
+          step = 20, 
+          col = "blue", 
+          label = FALSE,
+          cex = 0.6, 
+          xlab = "Sample Size", 
+          ylab = "ASV", 
+          main = "Post-inoc post-stress ASVs - i4 x w3")
+
+
+##INOCULATION 5 
+#post_inoc_post_stress_i5_w1
+rarecurve(post_inoc_post_stress_i5_w1, 
+          step = 20, 
+          col = "blue", 
+          label = FALSE,
+          cex = 0.6, 
+          xlab = "Sample Size", 
+          ylab = "ASV", 
+          main = "Post-inoc post-stress ASVs - i5 x w1")
+
+#post_inoc_post_stress_i5_w2
+rarecurve(post_inoc_post_stress_i5_w2, 
+          step = 20, 
+          col = "blue", 
+          cex = 0.6, 
+          label = FALSE,
+          xlab = "Sample Size", 
+          ylab = "ASV", 
+          main = "Post-inoc post-stress ASVs - i5 x w2")
+
+#post_inoc_post_stress_i5_w3
+rarecurve(post_inoc_post_stress_i5_w3, 
+          step = 20, 
+          col = "blue", 
+          label = FALSE,
+          cex = 0.6, 
+          xlab = "Sample Size", 
+          ylab = "ASV", 
+          main = "Post-inoc post-stress ASVs - i5 x w3")
+
+```
+
+
+
+``` {r}
+
+#############################################################################
+################  POST-DECONTAM: NMDS  ######################################
+#############################################################################
+
+library(labdsv)
+library(metagMisc)
+
+#determine relative abundance + NMDS plot - drop all the post-inoc/pre-stress samples from future analysis
+#post_inoc_post_stress table 
+post_inoc_post_stress_asv <- as.data.frame(otu_table(post_inoc_post_stress_ps))
+
+#Hellinger transformation for all replicates in post-inoculation/post-stress ASV contingency table
+transformed_pips_ASV <- hellinger(post_inoc_post_stress_asv)
+
+#On this transformed data, calculate a “relative abundance” by summing the new totals for all ASVs (the transformed number of total reads) within a replicate and then dividing the transformed number of reads for each ASV by this total
+rel_abund <- transformed_pips_ASV / rowSums(transformed_pips_ASV) 
+
+#pull out tax table and metadata from post_inoc_post_stress_ps to create new phyloseq object
+pips_metadata <- as(sample_data(post_inoc_post_stress_ps), 'matrix')
+pips_metadata <- as.data.frame(pips_metadata)
+pips_taxtable <- as(tax_table(post_inoc_post_stress_ps), 'matrix')
+
+#Create new phyloseq object with transformed table
+otu <- otu_table(rel_abund,taxa_are_rows = FALSE)
+tax <- tax_table(pips_taxtable)
+met <- sample_data(pips_metadata)
+row.names(met) <- pips_metadata$SampleID
+
+ps.pips <- phyloseq(otu,met,tax)
+
+#Using this new table, calculate Bray-Cutis community dissimilarities for all replicates and build an NMDS visualization where you code inoculum type by color and water treatment by shape.
+GP.ord <- ordinate(ps.pips, "NMDS", "bray")
+p1 = plot_ordination(ps.pips, GP.ord, type="samples", color="Inoculation", shape = "Water", title="Bray-Cutis community dissimilarities for all replicates")
+print(p1)
+
+##Box and whisker plot of average richness ###################################
+
+#Sum ASVs across samples to add to metadata
+richness_sums <- rowSums(post_inoc_post_stress_asv)
+
+#add column to new df with corresponding richness values
+pips_complete <- dplyr::bind_cols(pips_metadata, richness_sums)
+
+#rename column
+names(pips_complete)[14] <- 'SpeciesRichness'
+str(pips_complete)
+
+#boxplot by inoculation
+ggplot(pips_complete, aes(x=Inoculation, y=SpeciesRichness)) + 
+    geom_boxplot() +theme_light() + geom_point()
+
+#Grouped boxplot by inoculation and water treatment
+ggplot(pips_complete, aes(x=Inoculation, y=SpeciesRichness, fill=Water)) + 
+    geom_boxplot() + theme_light()
+
+#Grouped boxplot by inoculation and plant part
+ggplot(pips_complete, aes(x=Inoculation, y=SpeciesRichness, fill=Water)) + 
+    geom_boxplot() + theme_light() + facet_wrap(~ Type)
+
+#write this to .csv
+pips_complete <- write.csv(pips_complete, "./pips_data/pips_complete.csv")
+
+
+## PERMANOVA #################################################################
+library(vegan)
+
+#bray curtis distance matrix
+ps.pips.bray <- phyloseq::distance(ps.pips, method = "bray")
+
+#make a data frame from the sample_data
+sampledf <- data.frame(sample_data(ps.pips))
+
+#run PERMANOVA for inoculation as the independent variable
+adonis_inoculation = adonis2(ps.pips.bray ~ Inoculation, data = sampledf)
+print(adonis_inoculation)
+
+#run PERMANOVA for inoculation and water
+adonis_water = adonis(ps.pips.bray ~ Water, data = sampledf)
+print(adonis_water)
+
+#run PERMANOVA for inoculation and water
+adonis_combo = adonis(ps.pips.bray ~ ps.pips.bray$Inoculation + Water, permutations = 9999, method = "bray")
+print(adonis_combo)
+
+# Homogeneity of dispersion test
+beta <- betadisper(ps.pips.bray, sampledf$Inoculation)
+permutest(beta)
+
+```
+
+```{r}
+
+#############################################################################
+################  POST-DECONTAM: ANOVA  #####################################
+#############################################################################
+
+library(tidyverse)
+library(car)
+library(ggpubr)
+library(effects)
+
+dat = read_csv("./pips_data/pips_complete.csv") |>
+  mutate(
+    Inoculation = as.character(Inoculation),
+    Water = as.character(Water)
+  )
+
+ggplot(dat, aes(Inoculation, SpeciesRichness, fill = Water)) +
+  facet_wrap(~ Type) +
+  scale_y_log10() +
+  geom_boxplot()
+
+## INITIAL EXPLORATORY ANALYSIS TO DETERMINE OUTLIERS - SPECIES RICHNESS: ROOTS AND SHOOTS ########################################
+# interaction model
+fit1 = aov(log(SpeciesRichness) ~ Type + Inoculation * Water, data = dat)
+Anova(fit1, type = "3") # if you have interactions, type-3 sums-of-squares is appropriate
+
+# additive model
+fit2 = aov(log(SpeciesRichness) ~ Type + Inoculation + Water, data = dat)
+Anova(fit2, type = "2") # if you don't have interactions, type-2 sums-of-squares is appropriate
+
+#plot to check residuals
+plot(fit1)
+plot(fit2)
+
+# Studentized residuals
+MASS::studres(fit1) |>
+  abs() |>
+  sort()
+
+#remove the outliers, re-run the analysis
+filtered_dat = dat[-c(401, 78, 34, 81, 123), ]
+
+#interaction model
+filtered_fit1 = aov(log(SpeciesRichness) ~ Type + Inoculation * Water, data = filtered_dat)
+Anova(filtered_fit1, type = "3") # if you have interactions, type-3 sums-of-squares is appropriate
+
+#additive model 
+filtered_fit2 = aov(log(SpeciesRichness) ~ Type + Inoculation + Water, data = filtered_dat)
+Anova(filtered_fit2, type = "2")
+plot(filtered_fit2)
+
+#check the outliers again
+shapiro.test(filtered_fit1$residuals)
+leveneTest(log(SpeciesRichness) ~ Water, data = dat[-c(401, 78, 34, 81, 123), ])
+
+filtered_dat = filtered_dat |>
+  mutate(res = resid(filtered_fit1))
+
+#plot the filtered data to check the spread
+ggplot(filtered_dat, aes(log(SpeciesRichness))) +
+  facet_grid(Water ~ Inoculation) +
+  # scale_x_log10() +
+  geom_histogram()
+
+#Re-plot grouped boxplot by inoculation and plant part without the outliers
+ggplot(filtered_dat, aes(x=Inoculation, y=SpeciesRichness, fill=Water)) + 
+    geom_boxplot() + theme_light() + facet_wrap(~ Type)
+
+
+## SPECIES RICHNESS: ROOTS ###################################################
+
+root_dat = subset(filtered_dat, Type == "Root")
+
+#interaction model
+root_fit1 = aov(log(SpeciesRichness) ~ Inoculation * Water, data = root_dat)
+Anova(root_fit1, type = "3") # if you have interactions, type-3 sums-of-squares is appropriate
+plot(root_fit1)
+plot(allEffects(root_fit1))
+
+#additive model 
+root_fit2 = aov(log(SpeciesRichness) ~ Inoculation + Water, data = root_dat)
+Anova(root_fit2, type = "2")
+plot(root_fit2)
+plot(allEffects(root_fit2))
+
+## SPECIES RICHNESS: SHOOTS  #################################################
+
+shoot_dat = subset(filtered_dat, Type == "Shoot")
+
+#interaction model
+shoot_fit1 = aov(log(SpeciesRichness) ~ Inoculation * Water, data = shoot_dat)
+Anova(shoot_fit1, type = "3") # if you have interactions, type-3 sums-of-squares is appropriate
+plot(shoot_fit1)
+plot(allEffects(shoot_fit1))
+
+#additive model 
+shoot_fit2 = aov(log(SpeciesRichness) ~ Inoculation + Water, data = shoot_dat)
+Anova(shoot_fit2, type = "2")
+plot(shoot_fit2)
+plot(allEffects(shoot_fit2))
+
+
+## TOTAL BIOMASS: ROOTS  #####################################################
+
+#interaction model
+root_mass1= aov(WeightGrams ~ Inoculation * Water, data = root_dat)
+Anova(root_mass1, type = "3") # if you have interactions, type-3 sums-of-squares is appropriate
+plot(root_mass1)
+plot(allEffects(root_mass1))
+
+
+#additive model
+root_mass2 = aov(WeightGrams ~ Inoculation + Water, data = root_dat)
+Anova(root_mass2, type = "2")
+plot(root_mass2)
+plot(allEffects(root_mass2))
+
+## TOTAL BIOMASS: SHOOTS #####################################################
+#interaction model
+shoot_mass1 = aov(WeightGrams ~ Inoculation * Water, data = shoot_dat)
+Anova(shoot_mass1, type = "3") # if you have interactions, type-3 sums-of-squares is appropriate
+plot(shoot_mass1)
+plot(allEffects(shoot_mass1))
+
+#additive model
+shoot_mass2 = aov(WeightGrams ~ Inoculation + Water, data = shoot_dat)
+Anova(shoot_mass2, type = "2")
+plot(shoot_mass2)
+plot(allEffects(shoot_mass2))
+
+
+## ROOT:SHOOT RATIO ##########################################################
+
+#load data with root:shoot ratio and total biomass (values calculated in excel)
+rs_dat = read_csv("./pips_data/pips_rootshoot_ratios.csv") |>
+  mutate(
+    Inoculation = as.character(Inoculation),
+    Water = as.character(Water),
+  )
+
+ggplot(rs_dat, aes(Inoculation, RootShootRatio, fill = Water)) +
+  scale_y_log10() +
+  geom_boxplot()
+
+#interaction model
+rs_fit1 = aov(RootShootRatio ~ Inoculation * Water, data = rs_dat)
+Anova(rs_fit1, type = "3") # if you have interactions, type-3 sums-of-squares is appropriate
+plot(rs_fit1)
+
+#additive model 
+rs_fit2 = aov(RootShootRatio ~ Inoculation + Water, data = rs_dat)
+Anova(rs_fit2, type = "2")
+plot(rs_fit2)
+
+# Studentized residuals
+MASS::studres(rs_fit1) |>
+  abs() |>
+  sort()
+
+#remove the outliers, re-run the analysis
+filtered_rs = rs_dat[-c(49), ]
+
+#plot the filtered data to check the spread
+ggplot(filtered_rs, aes(RootShootRatio)) +
+  facet_grid(Water ~ Inoculation) +
+  # scale_x_log10() +
+  geom_histogram()
+
+#interaction model
+rs_fit1 = aov(log(RootShootRatio) ~ Inoculation * Water, data = filtered_rs)
+Anova(rs_fit1, type = "3") # if you have interactions, type-3 sums-of-squares is appropriate
+plot(rs_fit1)
+
+shapiro.test(rs_fit1$residuals)
+
+#additive model 
+rs_fit2 = aov(log(RootShootRatio) ~ Inoculation + Water, data = filtered_rs)
+Anova(rs_fit2, type = "2")
+plot(rs_fit2)
+
+shapiro.test(rs_fit2$residuals)
+
+
+rootmass = kruskal.test(WeightGrams ~ Inoculation, data = root_dat)
+print(rootmass)
+
+shootmass =  kruskal.test(WeightGrams ~ Inoculation + Water, data = shoot_dat)
+
+```
+
+
+```{r}
+## TOTAL BIOMASS: ROOTS  #####################################################
+
+#interaction model
+root_mass1= aov(WeightGrams ~ Inoculation * Water, data = root_dat)
+Anova(root_mass1, type = "3") # if you have interactions, type-3 sums-of-squares is appropriate
+plot(root_mass1)
+plot(allEffects(root_mass1))
+
+#additive model
+root_mass2 = aov(WeightGrams ~ Inoculation + Water, data = root_dat)
+Anova(root_mass2, type = "2")
+plot(root_mass2)
+plot(allEffects(root_mass2))
+
+## TOTAL BIOMASS: SHOOTS #####################################################
+#interaction model
+shoot_mass1 = aov(WeightGrams ~ Inoculation * Water, data = shoot_dat)
+Anova(shoot_mass1, type = "3") # if you have interactions, type-3 sums-of-squares is appropriate
+plot(shoot_mass1)
+plot(allEffects(shoot_mass1))
+
+#additive model
+shoot_mass2 = aov(WeightGrams ~ Inoculation + Water, data = shoot_dat)
+Anova(shoot_mass2, type = "2")
+plot(shoot_mass2)
+plot(allEffects(shoot_mass2))
+
+#Re-plot grouped boxplot by inoculation and plant part without the outliers
+ggplot(filtered_dat, aes(x=Inoculation, y=WeightGrams, fill=Water)) + 
+    geom_boxplot() + theme_light() + facet_wrap(~ Type)
+
+```

@@ -1,0 +1,87 @@
+---
+title: "NMDS"
+author: "Francisca Rodriguez"
+date: "11/4/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+**Post-decontamination**
+```{r}
+#load libraries / data
+library(labdsv)
+library(metagMisc)
+library(vegan)
+library(phyloseq)
+
+ps.noncontam <- readRDS("./intermediate_data/ps.noncontam.rds")
+```
+
+**NMDS**
+``` {r}
+#determine relative abundance + NMDS plot - drop all the post-inoc/pre-stress samples from future analysis
+#post_inoc_post_stress table 
+post_inoc_post_stress_ps <- subset_samples(ps.noncontam, sample_data(ps.noncontam)$SampleType=="post_inoc_post_stress")
+post_inoc_post_stress_ps <- prune_taxa(taxa_sums(post_inoc_post_stress_ps) > 0, post_inoc_post_stress_ps)
+post_inoc_post_stress_asv <- as.data.frame(otu_table(post_inoc_post_stress_ps))
+
+#Hellinger transformation for all replicates in post-inoculation/post-stress ASV contingency table
+transformed_pips_ASV <- hellinger(post_inoc_post_stress_asv)
+
+#On this transformed data, calculate a “relative abundance” by summing the new totals for all ASVs (the transformed number of total reads) within a replicate and then dividing the transformed number of reads for each ASV by this total
+rel_abund <- transformed_pips_ASV / rowSums(transformed_pips_ASV) 
+
+#pull out tax table and metadata from post_inoc_post_stress_ps to create new phyloseq object
+pips_metadata <- as(sample_data(post_inoc_post_stress_ps), 'matrix')
+pips_metadata <- as.data.frame(pips_metadata)
+pips_taxtable <- as(tax_table(post_inoc_post_stress_ps), 'matrix')
+
+#Create new phyloseq object with transformed table
+otu <- otu_table(rel_abund,taxa_are_rows = FALSE)
+tax <- tax_table(pips_taxtable)
+met <- sample_data(pips_metadata)
+row.names(met) <- pips_metadata$SampleID
+
+ps.pips <- phyloseq(otu,met,tax)
+
+#save phyloseq object
+saveRDS(ps.pips, "./intermediate_data/ps.pips.rds")
+
+#Using this new table, calculate Bray-Cutis community dissimilarities for all replicates and build an NMDS visualization where you code inoculum type by color and water treatment by shape.
+GP.ord <- ordinate(ps.pips, "NMDS", "bray")
+p1 = plot_ordination(ps.pips, GP.ord, type="samples", color="Inoculation", shape = "Water", title="Bray-Cutis community dissimilarities for all replicates")
+print(p1)
+
+```
+
+**Box and whisker plot of average richness**
+```{r}
+#Sum ASVs across samples to add to metadata
+richness_sums <- rowSums(post_inoc_post_stress_asv)
+
+#add column to new df with corresponding richness values
+pips_complete <- dplyr::bind_cols(pips_metadata, richness_sums)
+
+#rename column
+names(pips_complete)[14] <- 'SpeciesRichness'
+str(pips_complete)
+
+#boxplot by inoculation
+ggplot(pips_complete, aes(x=Inoculation, y=SpeciesRichness)) + 
+    geom_boxplot() +theme_light() + geom_point()
+
+#Grouped boxplot by inoculation and water treatment
+ggplot(pips_complete, aes(x=Inoculation, y=SpeciesRichness, fill=Water)) + 
+    geom_boxplot() + theme_light()
+
+#Grouped boxplot by inoculation and plant part
+ggplot(pips_complete, aes(x=Inoculation, y=SpeciesRichness, fill=Water)) + 
+    geom_boxplot() + theme_light() + facet_wrap(~ Type)
+
+#write this to .csv
+pips_complete <- write.csv(pips_complete, "./pips_data/pips_complete.csv")
+
+```
