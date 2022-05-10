@@ -22,7 +22,7 @@ if(!requireNamespace("BiocManager", quietly = TRUE))
 	install.packages("BiocManager")	#Load packages from Bioconductor
 
 pacman::p_load('FedData', 'latticeExtra', 'scales', 'viridis', 'ggmap', 'phyloseq', 'raster', 'rgdal', 'RColorBrewer', 'ggplot2', 'vegan', 'ggplot2', 'phyloseq', 'bipartite', 'plotrix', 'viridis', 'lattice', 'fossil', 'plyr', 'devtools', 'ggpubr', 'gridExtra', 'cowplot', 'rgr', 'ggplot2', 'cowplot')
-
+ 
 
 data<-as.matrix(read.csv("data/inoculum test/abundance_table_97.csv", header = TRUE, row.names = 1))
 
