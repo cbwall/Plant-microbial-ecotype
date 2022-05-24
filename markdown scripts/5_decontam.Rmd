@@ -15,7 +15,7 @@ library(phyloseq)
 library(ggplot2)
 library(decontam)
 
-ps <- readRDS("./intermediate_data/ps.rds")
+ps <- readRDS("data/intermediate_data/ps.rds")
 
 ```
 
@@ -41,5 +41,5 @@ ps.noncontam <- prune_taxa(!contams$contaminant, ps)
 ps.noncontam
 
 #save phyloseq object
-saveRDS(ps.noncontam, "./intermediate_data/ps.noncontam.rds")
+saveRDS(ps.noncontam, "data/intermediate_data/ps.noncontam.rds")
 ```

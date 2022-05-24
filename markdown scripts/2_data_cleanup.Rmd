@@ -14,7 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(phyloseq)
 
 #load data
-ps <- readRDS("./intermediate_data/ps.rds")
+ps <- readRDS("data/intermediate_data/ps.rds")
 
 ```
 
@@ -39,7 +39,7 @@ for (a_cat in categories) {
 }
 
 #save ASV table
-saveRDS(all_samples_asv, "./intermediate_data/all_samples_asv.rds")
+saveRDS(all_samples_asv, "data/intermediate_data/all_samples_asv.rds")
 ```
 
 **Negative control exploration - Venn diagram**

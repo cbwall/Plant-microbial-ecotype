@@ -15,7 +15,7 @@ library(phyloseq)
 library(dplyr)
 
 #load data
-ps <- readRDS("./intermediate_data/ps.rds")
+ps <- readRDS("data/intermediate_data/ps.rds")
 
 #create a richness function
 richness <- function(v) {
@@ -127,6 +127,6 @@ for (i in sorting_types){
 }
 
 #export as .csv
-write.csv(summary_data, "./output/meanSE_total.csv")
+write.csv(summary_data, "output/meanSE_total.csv")
 
 ```

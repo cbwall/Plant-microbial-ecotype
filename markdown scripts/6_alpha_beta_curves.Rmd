@@ -17,7 +17,7 @@ library(ggplot2)
 library(decontam)
 library(vegan)
 
-ps.noncontam <- readRDS("./intermediate_data/ps.noncontam.rds")
+ps.noncontam <- readRDS("data/intermediate_data/ps.noncontam.rds")
 
 ```
 

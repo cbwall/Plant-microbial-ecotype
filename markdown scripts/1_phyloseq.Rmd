@@ -18,9 +18,9 @@ library(tibble)
 library(dplyr)
 
 #Load seqtable.nochim and taxa from dada2 files from Kacie
-seqtable.nochim <- readRDS('./raw_data/dada2_seqtable.RDS')
-taxa <- readRDS('./raw_data/RDP_Taxonomy_from_dada2.RDS')
-strawb_miseq_map <- read.csv("./raw_data/Strawberry_Miseq_Map_forQIIME.csv", fileEncoding="UTF-8-BOM")
+seqtable.nochim <- readRDS('data/raw_data/dada2_seqtable.RDS')
+taxa <- readRDS('data/raw_data/RDP_Taxonomy_from_dada2.RDS')
+strawb_miseq_map <- read.csv("data/raw_data/Strawberry_Miseq_Map_forQIIME.csv", fileEncoding="UTF-8-BOM")
 
 # add empty column
 strawb_miseq_map <- add_column(strawb_miseq_map, SampleType = NA)
@@ -62,7 +62,7 @@ strawb_miseq_map <- strawb_miseq_map[grep("CSIA", strawb_miseq_map$SampleNotes, 
 strawb_miseq_map <- strawb_miseq_map[strawb_miseq_map$Type != "Palmyra",]
 
 #save new map as a .csv file
-write.csv(strawb_miseq_map, "./raw_data/strawb_miseq_map.csv")
+write.csv(strawb_miseq_map, "data/raw_data/strawb_miseq_map.csv")
 ```
 
 **Phyloseq**
@@ -83,6 +83,6 @@ pretty_names <- paste("ASV", sprintf('%0.4d', 1:length(taxa_names(ps))), sep = "
 taxa_names(ps) <- pretty_names
 
 #save phyloseq object
-saveRDS(ps, "./intermediate_data/ps.rds")
+saveRDS(ps, "data/intermediate_data/ps.rds")
 
 ```

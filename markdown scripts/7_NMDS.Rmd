@@ -17,7 +17,7 @@ library(metagMisc)
 library(vegan)
 library(phyloseq)
 
-ps.noncontam <- readRDS("./intermediate_data/ps.noncontam.rds")
+ps.noncontam <- readRDS("data/intermediate_data/ps.noncontam.rds")
 ```
 
 **NMDS**

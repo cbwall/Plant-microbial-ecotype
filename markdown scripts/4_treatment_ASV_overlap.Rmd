@@ -14,8 +14,8 @@ knitr::opts_chunk$set(echo = TRUE)
 library(phyloseq)
 
 #load data
-ps <- readRDS("./intermediate_data/ps.rds")
-all_samples_asv <- readRDS("./intermediate_data/all_samples_asv.rds")
+ps <- readRDS("data/intermediate_data/ps.rds")
+all_samples_asv <- readRDS("data/intermediate_data/all_samples_asv.rds")
 
 ```
 
@@ -78,10 +78,10 @@ edited_postinocpoststress <- post_inoc_post_stress_asv[,asvs]
 comboASVs <- dplyr::bind_rows(control_asvs, edited_slurry, edited_postinocprestress, edited_postinocpoststress)
 
 #export as .csv
-write.csv(comboASVs, "./output/controlASVs.csv")
+write.csv(comboASVs, "output/controlASVs.csv")
 
 ##DETERMINE TOTAL READS FROM TREATMENT ####
 totalTreatmentReads <- rowSums(post_inoc_post_stress_asv)
-write.csv(totalTreatmentReads, "./output/treatmentASVs.csv")
+write.csv(totalTreatmentReads, "output/treatmentASVs.csv")
 
 ```

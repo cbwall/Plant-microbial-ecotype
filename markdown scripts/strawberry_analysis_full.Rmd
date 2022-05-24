@@ -5,36 +5,33 @@ date: "9/4/2021"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+``````{r global options, results="hide", warning=FALSE, message=FALSE}
+if (!require('knitr')) install.packages('knitr'); library('knitr')
+knitr::opts_chunk$set(warning=FALSE, message=FALSE, fig.align='center')
+
+# Load in packages
+if (!require("pacman")) install.packages("pacman"); library(pacman) # for rapid install if not in library
+if(!requireNamespace("BiocManager", quietly = TRUE))
+	install.packages("BiocManager")	#Load packages from Bioconductor
+
+
+#Packages
+pacman::p_load('FedData', 'latticeExtra', 'scales', 'viridis', 'ggmap', 'phyloseq', 'raster', 'rgdal', 'RColorBrewer', 'ggplot2', 'vegan', 'ggplot2', 'phyloseq', 'bipartite', 'plotrix', 'viridis', 'lattice', 'fossil', 'plyr', 'devtools', 'ggpubr', 'gridExtra', 'cowplot', 'rgr', 'ggplot2', 'cowplot', 'tidyverse', 'dada2', 'purrr', 'Biostrings', 'gapminder', 'tibble', 'ggridges', 'hrbrthemes', 'decontam', 'iNEXT', 'metagMisc')
 ```
 
 
-```{r}
+**Data input and Phyloseq**  
+Input the data files from dada2 sequence table (chimeras removed) and the dada2 taxonomy and Miseq map for metadata. Use these and make a complete csv that has non-run or unnecessary samples removed and label items/levels/treatments to help in down stream processing. 
 
+Subsequently, build the phyloseq data tables and generate ASV names with taxonomy, export the object and R.data
+
+```{r, initial setup}
 ##INITIAL SETUP################################
 
-# Packages
-library(tidyverse)
-library(dada2)
-library(phyloseq)
-library(purrr)
-library(Biostrings)
-library(ggplot2)
-library(gapminder)
-library(dplyr)
-library(tibble)
-library(vegan)
-library(ggridges)
-library(viridis)
-library(hrbrthemes)
-library(decontam)
-library(iNEXT)
-
 #Load seqtable.nochim and taxa from dada2 files from Kacie
-seqtable.nochim <- readRDS('./raw_data/dada2_seqtable.RDS')
-taxa <- readRDS('./raw_data/RDP_Taxonomy_from_dada2.RDS')
-strawb_miseq_map <- read.csv("./raw_data/Strawberry_Miseq_Map_forQIIME.csv", fileEncoding="UTF-8-BOM")
+seqtable.nochim <- readRDS('data/raw_data/dada2_seqtable.RDS')
+taxa <- readRDS('data/raw_data/RDP_Taxonomy_from_dada2.RDS')
+strawb_miseq_map <- read.csv("data/raw_data/Strawberry_Miseq_Map_forQIIME.csv", fileEncoding="UTF-8-BOM")
 
 # add empty column
 strawb_miseq_map <- add_column(strawb_miseq_map, SampleType = NA)
@@ -76,8 +73,11 @@ strawb_miseq_map <- strawb_miseq_map[grep("CSIA", strawb_miseq_map$SampleNotes, 
 strawb_miseq_map <- strawb_miseq_map[strawb_miseq_map$Type != "Palmyra",]
 
 #save new map as a .csv file
-write.csv(strawb_miseq_map, "./raw_data/strawb_miseq_map.csv")
+write.csv(strawb_miseq_map, "data/raw_data/strawb_miseq_map.csv")
+```
 
+
+```{r, phyloseq}
 #############################################################################
 #################### PHYLOSEQ ###############################################
 #############################################################################
@@ -99,8 +99,10 @@ taxa_names(ps) <- pretty_names
 
 ```
 
+**Pre-decontamination**  
+Before we decontaminate the samples we will assess otu tables for different samples and explore these with Venn diagrams. Load in the phyloseq object and subset by sample type. From here we will assess the negative and positive controls  
 
-```{r}
+```{r, pre decontam Venn}
 #############################################################################
 ############  PRE-DECONTAM: VENN DIAGRAMS  ##################################
 #############################################################################
@@ -210,8 +212,10 @@ ASV_sums <- colSums(ASV_table)
 ASV_index <- which(ASV_sums > 1)
 
 ```
+  
+Now calculate richness / mean / se / replicate number (n) for each inoculum and treatment after the stress period.  
 
-```{r}
+```{r, pre decontam richness}
 #############################################################################
 ####### PRE-DECONTAM: DETERMINE MEAN/STD. E OF SAMPLES ######################
 #############################################################################
@@ -281,6 +285,8 @@ std_err_post_inoc_post_stress2_asv = sd(sum_post_inoc_post_stress2) / sqrt(lengt
 std_err_post_inoc_post_stress3_asv = sd(sum_post_inoc_post_stress3) / sqrt(length(sum_post_inoc_post_stress3))
 
 #create a dataframe to export control data ##################################
+# these are all samples from DI water, negaive controls and the slurries
+
 ctrl_means <- c(mean_pre_inoc_asv, 
            mean_di_water_asv, 
            mean_DNA_PCR_neg_asv, 
@@ -314,9 +320,11 @@ ctrl_labels <- c("pre_inoc",
 ctrl.mean.SE.ASVs <- rbind(ctrl_labels, ctrl_means, ctrl_std_err)
 
 #export as .csv
-ctrl.mean.SE.ASVs <-  write.csv(ctrl.mean.SE.ASVs, "./output/ctrl.mean.SE.ASVs.csv")
+ctrl.mean.SE.ASVs <-  write.csv(ctrl.mean.SE.ASVs, "output/ctrl.mean.SE.ASVs.csv")
 
 ## repeat for experimental data #############################################
+## these are samples after the water stress component
+
 exp_means <- c(mean_post_inoc_pre_stress_asv, 
                   mean_post_inoc_post_stress1_asv, 
                   mean_post_inoc_post_stress2_asv, 
@@ -335,12 +343,12 @@ exp_labels <- c("post_inoc_pre_stress",
 exp.mean.SE.ASVs <- rbind(exp_labels, exp_means, exp_std_err)
 
 #export as .csv
-exp.mean.SE.ASVs <-  write.csv(exp.mean.SE.ASVs, "./output/exp.mean.SE.ASVs.csv")
+exp.mean.SE.ASVs <-  write.csv(exp.mean.SE.ASVs, "output/exp.mean.SE.ASVs.csv")
 
 ```
 
 
-```{r}
+```{r, negative controls}
 #############################################################################
 ###### PRE-DECONTAM: CHECK SPREAD OF NEGATIVE CONTROL ASVS  #################
 #############################################################################
@@ -416,8 +424,10 @@ treatmentASVs <- write.csv(totalTreatmentReads, "./output/treatmentASVs.csv")
 
 ```
 
+**Decontaminate controls**  
+We will use the prevalance method for removing contaminants in DADA2.  
 
-```{r}
+```{r, decontam controls}
 #############################################################################
 ################ DECONTAMINATE CONTROLS #####################################
 #############################################################################
@@ -444,11 +454,14 @@ ps.noncontam
 
 ```
 
-
-```{r}
+Re-visit ASVs now that decontaminants have been removed.
+  
+```{r, asv post decontam}
 #############################################################################
 ### POST-DECONTAM: DATA BY PRE/POST STRESS AND INOC X WATER TREATMENT   #####
 #############################################################################
+
+
 
 ##POST INOC PRE STRESS ######################################################
 
@@ -470,6 +483,8 @@ post_inoc_pre_stress_i4 <- subset_samples(post_inoc_pre_stress_ps, sample_data(p
   
 post_inoc_pre_stress_i5 <- subset_samples(post_inoc_pre_stress_ps, sample_data(post_inoc_pre_stress_ps)$Inoculation == "5")
   post_inoc_pre_stress_i5 <- as.data.frame(otu_table(post_inoc_pre_stress_i5))
+  
+  
   
 ##POST INOC POST STRESS#####################################################
 
@@ -530,12 +545,15 @@ post_inoc_post_stress_i5_w3 <- subset_samples(post_inoc_post_stress_ps, sample_d
 
 ```
 
-```{r}
+**Species Curves**  
+Here we will be assessing the accumulation curves for samples before and after stress.  
+
+```{r, beta diversity}
 #############################################################################
 #####  POST-DECONTAM: SPECIES ACCUMULATION CURVES (BETA DIVERSITY)  #########
 #############################################################################
   
-par(mfrow=c(4,5))
+par(mfrow=c(4,5), mar=c(1,1,1,1))
 
 ##POST INOC PRE STRESS #####################################################
 accurve_prei1 <- specaccum(post_inoc_pre_stress_i1, method = "random", permutations = 400)
@@ -663,13 +681,13 @@ plot(accurve_posti5w3$sites, accurve_posti5w3$richness,
 
 ```
 
-```{r}
+```{r, alpha diversity}
 
 #############################################################################
 #####  POST-DECONTAM: SEQ DEPTH CURVES (ALPHA DIVERSITY)  ###################
 #############################################################################
 
-par(mfrow=c(4,5))
+par(mfrow=c(4,5), mar=c(1,1,1,1))
 
 ##POST INOC PRE STRESS#######################################################
 
@@ -884,9 +902,10 @@ rarecurve(post_inoc_post_stress_i5_w3,
 ```
 
 
+**NMDS and Permanova**
+This data explores the impact of stress on the fungal communities.
 
-``` {r}
-
+``` {r, NMDS permanova}
 #############################################################################
 ################  POST-DECONTAM: NMDS  ######################################
 #############################################################################
@@ -916,12 +935,18 @@ met <- sample_data(pips_metadata)
 row.names(met) <- pips_metadata$SampleID
 
 ps.pips <- phyloseq(otu,met,tax)
+```
 
+NMDS plot
+``` {r, NMDS plot}
 #Using this new table, calculate Bray-Cutis community dissimilarities for all replicates and build an NMDS visualization where you code inoculum type by color and water treatment by shape.
 GP.ord <- ordinate(ps.pips, "NMDS", "bray")
 p1 = plot_ordination(ps.pips, GP.ord, type="samples", color="Inoculation", shape = "Water", title="Bray-Cutis community dissimilarities for all replicates")
 print(p1)
+```
 
+
+``` {r, average richness}
 ##Box and whisker plot of average richness ###################################
 
 #Sum ASVs across samples to add to metadata
@@ -947,9 +972,11 @@ ggplot(pips_complete, aes(x=Inoculation, y=SpeciesRichness, fill=Water)) +
     geom_boxplot() + theme_light() + facet_wrap(~ Type)
 
 #write this to .csv
-pips_complete <- write.csv(pips_complete, "./pips_data/pips_complete.csv")
+pips_complete <- write.csv(pips_complete, "data/pips_data/pips_complete.csv")
+```
 
 
+``` {r, permanova}
 ## PERMANOVA #################################################################
 library(vegan)
 
@@ -959,26 +986,48 @@ ps.pips.bray <- phyloseq::distance(ps.pips, method = "bray")
 #make a data frame from the sample_data
 sampledf <- data.frame(sample_data(ps.pips))
 
+
+#---------
 #run PERMANOVA for inoculation as the independent variable
 adonis_inoculation = adonis2(ps.pips.bray ~ Inoculation, data = sampledf)
 print(adonis_inoculation)
 
-#run PERMANOVA for inoculation and water
-adonis_water = adonis(ps.pips.bray ~ Water, data = sampledf)
+# Homogeneity of dispersion test
+beta.Inoc <- betadisper(ps.pips.bray, sampledf$Inoculation)
+permutest(beta.Inoc)
+
+#---------
+#run PERMANOVA water
+adonis_water = adonis2(ps.pips.bray ~ Water, data = sampledf)
 print(adonis_water)
 
+# Homogeneity of dispersion test
+beta.Wat <- betadisper(ps.pips.bray, sampledf$Water)
+permutest(beta.Wat)
+
+
+#---------
 #run PERMANOVA for inoculation and water
-adonis_combo = adonis(ps.pips.bray ~ ps.pips.bray$Inoculation + Water, permutations = 9999, method = "bray")
+# with main effects
+adonis_combo = adonis2(ps.pips.bray ~ Inoculation + Water, 
+                       data = sampledf, method = "bray")
 print(adonis_combo)
 
-# Homogeneity of dispersion test
-beta <- betadisper(ps.pips.bray, sampledf$Inoculation)
-permutest(beta)
+#---------
+#run PERMANOVA for inoculation and water
+# with interaction 
+adonis_combo_int = adonis2(ps.pips.bray ~ Inoculation * Water, permutations = 9999, 
+                       data = sampledf, method = "bray")
+print(adonis_combo_int)
 
+#This model shows all levels are significant, but inoculation is most important at R2 = 21%
 ```
 
-```{r}
 
+
+
+#### start here : outlier removal makes no sense
+```{r, anova}
 #############################################################################
 ################  POST-DECONTAM: ANOVA  #####################################
 #############################################################################
@@ -988,53 +1037,56 @@ library(car)
 library(ggpubr)
 library(effects)
 
-dat = read_csv("./pips_data/pips_complete.csv") |>
-  mutate(
+dat = read.csv("data/pips_data/pips_complete.csv") %>%
+  mutate(dat,
     Inoculation = as.character(Inoculation),
     Water = as.character(Water)
   )
 
 ggplot(dat, aes(Inoculation, SpeciesRichness, fill = Water)) +
   facet_wrap(~ Type) +
-  scale_y_log10() +
+  #scale_y_log10() +
   geom_boxplot()
+
 
 ## INITIAL EXPLORATORY ANALYSIS TO DETERMINE OUTLIERS - SPECIES RICHNESS: ROOTS AND SHOOTS ########################################
 # interaction model
-fit1 = aov(log(SpeciesRichness) ~ Type + Inoculation * Water, data = dat)
-Anova(fit1, type = "3") # if you have interactions, type-3 sums-of-squares is appropriate
+fit1 = lm(log(SpeciesRichness) ~ Type + Inoculation * Water, data = dat)
 
 # additive model
-fit2 = aov(log(SpeciesRichness) ~ Type + Inoculation + Water, data = dat)
-Anova(fit2, type = "2") # if you don't have interactions, type-2 sums-of-squares is appropriate
+fit2 = lm(log(SpeciesRichness) ~ Type + Inoculation + Water, data = dat)
+
+anova(fit1, fit2)
+AIC(fit1, fit2)
+# fit 2 superior
+Anova(fit2, type=2)
 
 #plot to check residuals
 plot(fit1)
 plot(fit2)
 
-# Studentized residuals
-MASS::studres(fit1) |>
-  abs() |>
-  sort()
-
 #remove the outliers, re-run the analysis
 filtered_dat = dat[-c(401, 78, 34, 81, 123), ]
 
 #interaction model
-filtered_fit1 = aov(log(SpeciesRichness) ~ Type + Inoculation * Water, data = filtered_dat)
-Anova(filtered_fit1, type = "3") # if you have interactions, type-3 sums-of-squares is appropriate
+filtered_fit1 = lm(log(SpeciesRichness) ~ Type + Inoculation * Water, data = filtered_dat)
 
 #additive model 
-filtered_fit2 = aov(log(SpeciesRichness) ~ Type + Inoculation + Water, data = filtered_dat)
-Anova(filtered_fit2, type = "2")
+filtered_fit2 = lm(log(SpeciesRichness) ~ Type + Inoculation + Water, data = filtered_dat)
 plot(filtered_fit2)
+
+anova(filtered_fit1, filtered_fit2)
+AIC(filtered_fit1, filtered_fit2)
+
+# models about the same, but interaction meaningless
+Anova(filtered_fit2, type=2)
 
 #check the outliers again
 shapiro.test(filtered_fit1$residuals)
-leveneTest(log(SpeciesRichness) ~ Water, data = dat[-c(401, 78, 34, 81, 123), ])
+leveneTest(log(SpeciesRichness) ~ Water, data = filtered_dat)
 
-filtered_dat = filtered_dat |>
-  mutate(res = resid(filtered_fit1))
+filtered_dat <- filtered_dat %>%
+  mutate(filtered_dat, res = resid(filtered_fit1))
 
 #plot the filtered data to check the spread
 ggplot(filtered_dat, aes(log(SpeciesRichness))) +
@@ -1045,8 +1097,10 @@ ggplot(filtered_dat, aes(log(SpeciesRichness))) +
 #Re-plot grouped boxplot by inoculation and plant part without the outliers
 ggplot(filtered_dat, aes(x=Inoculation, y=SpeciesRichness, fill=Water)) + 
     geom_boxplot() + theme_light() + facet_wrap(~ Type)
+```
 
 
+```{r, anova roots}
 ## SPECIES RICHNESS: ROOTS ###################################################
 
 root_dat = subset(filtered_dat, Type == "Root")
@@ -1112,8 +1166,8 @@ plot(allEffects(shoot_mass2))
 ## ROOT:SHOOT RATIO ##########################################################
 
 #load data with root:shoot ratio and total biomass (values calculated in excel)
-rs_dat = read_csv("./pips_data/pips_rootshoot_ratios.csv") |>
-  mutate(
+rs_dat = read_csv("data/pips_data/pips_rootshoot_ratios.csv") |>
+  mutate(rs_dat,
     Inoculation = as.character(Inoculation),
     Water = as.character(Water),
   )

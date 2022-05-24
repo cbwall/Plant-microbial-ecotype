@@ -19,7 +19,7 @@ library(effects)
 library(readxl)
 library(emmeans)
 
-dat = read_excel("./pips_data/pips_complete.xlsx") |>
+dat = read.csv("data/pips_data/pips_complete.csv") |>
   mutate(
     Inoculation = as.character(Inoculation),
     Water = as.character(Water)

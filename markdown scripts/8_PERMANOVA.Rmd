@@ -25,7 +25,7 @@ library(vegan)
 library(phyloseq)
 library(ggplot2)
 
-ps.pips <- readRDS("./intermediate_data/ps.pips.rds")
+ps.pips <- readRDS("data/intermediate_data/ps.pips.rds")
 ```
 
 ```{r}
