@@ -68,7 +68,7 @@ strawb_miseq_map$SampleType[grep("pre-inoc", strawb_miseq_map$SampleNotes)] <- "
 strawb_miseq_map <- add_column(strawb_miseq_map, Sample_or_Control = "True Sample")
 
 #label controls (i6, DI water, DNA/PCR negative, pre-inoculated plants)
-strawb_miseq_map$Sample_or_Control[strawb_miseq_map$Inoculation == "6"] <- "Control Trt"
+strawb_miseq_map$Sample_or_Control[strawb_miseq_map$Inoculation == "6"] <- "Control"
 strawb_miseq_map$Sample_or_Control[strawb_miseq_map$SampleType == "di_water"] <- "Control"
 strawb_miseq_map$Sample_or_Control[strawb_miseq_map$SampleType == "DNA_PCR_neg"] <- "Control"
 strawb_miseq_map$Sample_or_Control[strawb_miseq_map$SampleType == "pre_inoc"] <- "Control"
@@ -449,6 +449,8 @@ We will use the prevalence method for removing contaminants in DADA2.
 
 #remove ASVs with only one read 
 ps <- prune_taxa(taxa_sums(ps) > 1, ps)
+
+# 1964 taxa
 ps
 
 #look at the library sizes of the controls and samples
@@ -1041,7 +1043,7 @@ tax <- tax_table(pips_taxtable)
 met <- sample_data(pips_metadata)
 row.names(met) <- pips_metadata$SampleID
 
-ps.pips <- phyloseq(otu,met,tax)
+ps.pips.hell <- phyloseq(otu,met,tax)
 ```
 
 NMDS plot.
@@ -1049,8 +1051,8 @@ NMDS plot.
 Using this new table of hellinger transformed ASVs, calculate Bray-Cutis community dissimilarities for all replicates and build an NMDS visualization where you code inoculum type by color and water treatment by shape.  
 
 ``` {r, NMDS plot}
-GP.ord <- ordinate(ps.pips, "NMDS", "bray")
-NMDS.pips1 = plot_ordination(ps.pips, GP.ord, type="samples", color="Inoculation", shape = "Water", title="Bray-Cutis community dissimilarities for all replicates")
+GP.ord <- ordinate(ps.pips.hell, "NMDS", "bray")
+NMDS.pips1 = plot_ordination(ps.pips.hell, GP.ord, type="samples", color="Inoculation", shape = "Water", title="Bray-Cutis community dissimilarities for all replicates")
 
 print(NMDS.pips1)
 dev.copy(pdf, "figures/post.stress.NMDS.pdf", height=5, width=6)
@@ -1060,86 +1062,28 @@ dev.off()
 ```
 
 
-``` {r, average richness}
-##Box and whisker plot of average richness ###################################
-
-
-
-
-
-
-#Sum ASVs across samples to add to metadata
-richness_sums <- rowSums(post_inoc_post_stress_asv)
-
-#add column to new df with corresponding richness values
-pips_complete <- dplyr::bind_cols(pips_metadata, richness_sums)
-
-#rename column
-names(pips_complete)[14] <- 'SpeciesRichness'
-str(pips_complete)
-
-#boxplot by inoculation
-ggplot(pips_complete, aes(x=Inoculation, y=SpeciesRichness)) + 
-    geom_boxplot() +theme_light() + geom_point()
-
-#Grouped boxplot by inoculation and water treatment
-ggplot(pips_complete, aes(x=Inoculation, y=SpeciesRichness, fill=Water)) + 
-    geom_boxplot() + theme_light()
-
-#Grouped boxplot by inoculation and plant part
-ggplot(pips_complete, aes(x=Inoculation, y=SpeciesRichness, fill=Water)) + 
-    geom_boxplot() + theme_light() + facet_wrap(~ Type)
-
-#write this to .csv
-pips_complete <- write.csv(pips_complete, "data/pips_data/pips_complete.csv")
-```
-
-
 ``` {r, permanova}
 ## PERMANOVA #################################################################
 library(vegan)
 
 #bray curtis distance matrix
-ps.pips.bray <- phyloseq::distance(ps.pips, method = "bray")
+ps.pips.hell.bray <- phyloseq::distance(ps.pips.hell, method = "bray")
 
 #make a data frame from the sample_data
-sampledf <- data.frame(sample_data(ps.pips))
-
-
-#---------
-#run PERMANOVA for inoculation as the independent variable
-adonis_inoculation = adonis2(ps.pips.bray ~ Inoculation, data = sampledf)
-print(adonis_inoculation)
-
-# Homogeneity of dispersion test
-beta.Inoc <- betadisper(ps.pips.bray, sampledf$Inoculation)
-permutest(beta.Inoc)
-
-#---------
-#run PERMANOVA water
-adonis_water = adonis2(ps.pips.bray ~ Water, data = sampledf)
-print(adonis_water)
-
-# Homogeneity of dispersion test
-beta.Wat <- betadisper(ps.pips.bray, sampledf$Water)
-permutest(beta.Wat)
-
-
-#---------
-#run PERMANOVA for inoculation and water
-# with main effects
-adonis_combo = adonis2(ps.pips.bray ~ Inoculation + Water, 
-                       data = sampledf, method = "bray")
-print(adonis_combo)
+sampledf <- data.frame(sample_data(ps.pips.hell))
 
 #---------
 #run PERMANOVA for inoculation and water
 # with interaction 
-adonis_combo_int = adonis2(ps.pips.bray ~ Inoculation * Water, permutations = 9999, 
+adonis_combo_int = adonis2(ps.pips.hell.bray ~ Inoculation * Water, permutations = 9999, 
                        data = sampledf, method = "bray")
 print(adonis_combo_int)
 
-#This model shows all levels are significant, but inoculation is most important at R2 = 21%
+# Homogeneity of dispersion test
+beta.Inoc <- betadisper(ps.pips.hell.bray, sampledf$Inoculation)
+permutest(beta.Inoc)
+
+#This model shows all levels are significant, but inoculation is most important at R2 = 23%
 ```
 
 
