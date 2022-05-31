@@ -8,7 +8,7 @@ output: html_document
 ``````{r global options, results="hide", warning=FALSE, message=FALSE}
 if (!require('knitr')) install.packages('knitr'); library('knitr')
 knitr::opts_chunk$set(warning=FALSE, message=FALSE, fig.align='center')
-
+ 
 # Load in packages
 if (!require("pacman")) install.packages("pacman"); library(pacman) # for rapid install if not in library
 if(!requireNamespace("BiocManager", quietly = TRUE))
