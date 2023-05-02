@@ -712,6 +712,7 @@ plot(accurve_posti5w3$sites, accurve_posti5w3$richness,
      main = "Post-inoc post-stress ASVs - i5 x w3")
 
 ```
+
 ```{r, alpha diversity, eval=FALSE}
 
 #############################################################################

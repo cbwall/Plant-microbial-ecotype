@@ -41,7 +41,7 @@ for(i in 1:length(files))
   df<-df[!(df$timestamp > "2020-10-19 13:00:00"),] # end at this time
   make.names(assign(paste("SN",file.names[i], sep=""), df)) # put pattern at front of names
   # makes each df[i] as dataframe with specific file-name
-  write.csv(df, file=paste("trim_", file.names[i], ".csv", sep="")) # makes .csvs for output
+  # write.csv(df, file=paste("trim_", file.names[i], ".csv", sep="")) # makes .csvs for output
 }
 # this is the end of the loop
 
@@ -97,7 +97,7 @@ for(i in 1:length(files))
   df<-df[!(df$timestamp > "2020-10-26 12:00:00"),] # end at this time
   make.names(assign(paste("SN",file.names[i], sep=""), df)) # put pattern at front of names
   # makes each df[i] as dataframe with specific file-name
-  #write.csv(df, file=paste("trim_", file.names[i], ".csv", sep="")) # makes .csvs for output
+  # write.csv(df, file=paste("trim_", file.names[i], ".csv", sep="")) # makes .csvs for output
 }
 # this is the end of the loop
 
@@ -713,5 +713,57 @@ lines(Temp.data$bot3.Temp~Temp.data$Date, lwd=.6, lty=1, col="mediumseagreen")
 axis(side=2, at=c(0, 10, 20, 30), cex.lab=0.7, cex.axis=0.7)
 axis.Date(1, at=seq(min(Temp.data$Date), max(Temp.data$Date), by="2 month"), format="%b '%y", cex.lab=0.7, cex.axis=0.7)
 
-dev.copy(pdf, "data/hobo loggers/output/tempoutput.pdf", height=4, width=8)
+dev.copy(pdf, "output/tempoutput.pdf", height=4, width=8)
+dev.off()
+
+##############################
+# make mean df by Day
+Mean.df<-Temp.data %>%
+  mutate(date = day(Date)) %>%
+  group_by(Date) %>%
+  summarize(top1.Temp.mean = mean(top1.Temp), 
+            bot1.Temp.mean = mean(bot1.Temp),
+            top2.Temp.mean = mean(top2.Temp),
+            bot2.Temp.mean = mean(bot2.Temp),
+            top3.Temp.mean = mean(top3.Temp),
+            bot3.Temp.mean = mean(bot3.Temp))
+
+############### Mean temp plot
+####chamber 1
+plot(top1.Temp.mean~ Date, Mean.df, type="n", ylab="Daily Mean Temperature (°C)", ylim=c(15, 35), yaxt="n", 
+     xaxt="n", xlab="Date", cex.lab=0.7, cex.axis=0.7, main="chamber 1")
+
+#top-chamber1
+lines(Mean.df$top1.Temp.mean~ Mean.df$Date, lwd=1, lty=1, col="dodgerblue")
+
+#bot-Temp.data
+lines(Mean.df$bot1.Temp.mean~ Mean.df$Date, lwd=1, lty=1, col="mediumseagreen")
+axis(side=2, at=c(0, 10, 20, 30), cex.lab=0.7, cex.axis=0.7)
+legend("topright", legend=c("top", "bottom"),
+       col=c("dodgerblue", "mediumseagreen"), cex=0.6, lty =1, box.lty=0, lwd=1.5, bg="transparent")
+axis.Date(1, at=seq(min(Mean.df$Date), max(Mean.df$Date), by="2 month"), format="%b '%y", cex.lab=0.7, cex.axis=0.7)
+
+####chamber 2
+plot(top2.Temp.mean~ Date, Mean.df, type="n", ylab="", ylim=c(15, 35), yaxt="n", xaxt="n", 
+     xlab="Date", cex.lab=0.7, cex.axis=0.7, main="chamber 2")
+#top-chamber2
+lines(Mean.df$top2.Temp.mean~ Mean.df$Date, lwd=1, lty=1, col="dodgerblue")
+
+#bot-chamber2
+lines(Mean.df$bot2.Temp.mean~ Mean.df$Date, lwd=1, lty=1, col="mediumseagreen")
+axis(side=2, at=c(0, 10, 20, 30), cex.lab=0.7, cex.axis=0.7)
+axis.Date(1, at=seq(min(Temp.data$Date), max(Temp.data$Date), by="2 month"), format="%b '%y", cex.lab=0.7, cex.axis=0.7)
+
+####chamber 3
+plot(top3.Temp.mean~ Date, Mean.df, type="n", ylab="", ylim=c(15, 35), yaxt="n", xaxt="n", 
+     xlab="Date", cex.lab=0.7, cex.axis=0.7, main="chamber 3")
+#top-chamber3
+lines(Mean.df$top3.Temp.mean~ Mean.df$Date, lwd=1, lty=1, col="dodgerblue")
+
+#bot-chamber3
+lines(Mean.df$bot3.Temp.mean~ Mean.df$Date, lwd=1, lty=1, col="mediumseagreen")
+axis(side=2, at=c(0, 10, 20, 30), cex.lab=0.7, cex.axis=0.7)
+axis.Date(1, at=seq(min(Mean.df$Date), max(Mean.df$Date), by="2 month"), format="%b '%y", cex.lab=0.7, cex.axis=0.7)
+
+dev.copy(pdf, "output/tempoutput_dailymean.pdf", height=4, width=8)
 dev.off()
