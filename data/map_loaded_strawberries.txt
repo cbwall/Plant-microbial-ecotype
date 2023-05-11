@@ -1,0 +1,539 @@
+#OTU ID	TimePoint	Type	PlantID	WeightGrams	SampleNotes	Water	Inoculation	Replicate	PlantNotes	SampleType	Sample_or_Control
+KSTRAW0016	Control	Shoot		NA	pre-inoc shoots	NA	Initi Ctl	10		pre_inoc	Control
+KSTRAW0815	T1	Root	R01I01W01	0.2675		1	1	1		post_inoc_post_stress	True Sample
+KSTRAW0816	T1	Root	R02I01W01	0.188		1	1	2		post_inoc_post_stress	True Sample
+KSTRAW0817	T1	Root	R03I01W01	0.2581		1	1	3	P11	post_inoc_post_stress	True Sample
+KSTRAW0818	T1	Root	R04I01W01	0.067		1	1	4		post_inoc_post_stress	True Sample
+KSTRAW0819	T1	Root	R05I01W01	0.1729		1	1	5		post_inoc_post_stress	True Sample
+KSTRAW0820	T1	Root	R06I01W01	0.1321		1	1	6		post_inoc_post_stress	True Sample
+KSTRAW0821	T1	Root	R07I01W01	0.0334		1	1	7		post_inoc_post_stress	True Sample
+KSTRAW0822	T1	Root	R08I01W01	0.1349		1	1	8		post_inoc_post_stress	True Sample
+KSTRAW0823	T1	Root	R09I01W01	0.1169		1	1	9		post_inoc_post_stress	True Sample
+KSTRAW0824	T1	Root	R10I01W01	0.0696		1	1	10		post_inoc_post_stress	True Sample
+KSTRAW0825	T1	Root	R11I01W01	0.1303		1	1	11		post_inoc_post_stress	True Sample
+KSTRAW0826	T1	Root	R12I01W01	0.1895		1	1	12		post_inoc_post_stress	True Sample
+KSTRAW0827	T1	Root	R13I01W01	0.2464		1	1	13	P19	post_inoc_post_stress	True Sample
+KSTRAW0828	T1	Root	R14I01W01	0.2234		1	1	14		post_inoc_post_stress	True Sample
+KSTRAW0829	T1	Root	R01I02W01	0.0677		1	2	1		post_inoc_post_stress	True Sample
+KSTRAW0830	T1	Root	R02I02W01	0.255		1	2	2		post_inoc_post_stress	True Sample
+KSTRAW0831	T1	Root	R03I02W01	0.1171		1	2	3		post_inoc_post_stress	True Sample
+KSTRAW0832	T1	Root	R04I02W01	0.1804		1	2	4		post_inoc_post_stress	True Sample
+KSTRAW0833	T1	Shoot	R01I02W01	0.02123		1	2	1		post_inoc_post_stress	True Sample
+KSTRAW0834	T1	Root	R05I02W01	0.0617		1	2	5		post_inoc_post_stress	True Sample
+KSTRAW0835	T1	Shoot	R05I02W01	0.01988		1	2	5		post_inoc_post_stress	True Sample
+KSTRAW0836	T1	Root	R06I02W01	0.2493		1	2	6		post_inoc_post_stress	True Sample
+KSTRAW0837	T1	Shoot	R06I02W01	0.04132		1	2	6		post_inoc_post_stress	True Sample
+KSTRAW0838	T1	Root	R07I02W01	0.0884		1	2	7		post_inoc_post_stress	True Sample
+KSTRAW0839	T1	Shoot	R07I02W01	0.04715		1	2	7		post_inoc_post_stress	True Sample
+KSTRAW0840	T1	Root	R08I02W01	0.1509		1	2	8		post_inoc_post_stress	True Sample
+KSTRAW0841	T1	Shoot	R08I02W01	0.07335		1	2	8		post_inoc_post_stress	True Sample
+KSTRAW0842	T1	Root	R09I02W01	0.2546		1	2	9	P25	post_inoc_post_stress	True Sample
+KSTRAW0843	T1	Root	R01I03W01	0.0511		1	3	1		post_inoc_post_stress	True Sample
+KSTRAW0844	T1	Root	R02I03W01	0.1038		1	3	2		post_inoc_post_stress	True Sample
+KSTRAW0845	T1	Root	R03I03W01	0.2043		1	3	3		post_inoc_post_stress	True Sample
+KSTRAW0847	T1	Root	R05I03W01	0.0304	labeled as number 4	1	3	5	P10	post_inoc_post_stress	True Sample
+KSTRAW0850	T1	Root	R08I03W01	0.2615		1	3	8		post_inoc_post_stress	True Sample
+KSTRAW0851	T1	Root	R09I03W01	0.5181		1	3	9	P23	post_inoc_post_stress	True Sample
+KSTRAW0852	T1	Root	R10I03W01	0.1227		1	3	10		post_inoc_post_stress	True Sample
+KSTRAW0853	T1	Root	R11I03W01	0.0301	no sample saved	1	3	11		post_inoc_post_stress	True Sample
+KSTRAW0855	T1	Root	R13I03W01	0.3581		1	3	13	P22	post_inoc_post_stress	True Sample
+KSTRAW0856	T1	Root	R14I03W01	0.1528		1	3	14		post_inoc_post_stress	True Sample
+KSTRAW0860	T1	Root	R04I04W01	0.1201		1	4	4		post_inoc_post_stress	True Sample
+KSTRAW0861	T1	Root	R05I04W01	0.1131		1	4	5		post_inoc_post_stress	True Sample
+KSTRAW0863	T1	Root	R07I04W01	0.1961		1	4	7	P15	post_inoc_post_stress	True Sample
+KSTRAW0864	T1	Root	R08I04W01	0.1217		1	4	8		post_inoc_post_stress	True Sample
+KSTRAW0865	T1	Root	R09I04W01	0.2347		1	4	9		post_inoc_post_stress	True Sample
+KSTRAW0866	T1	Root	R10I04W01	0.0445		1	4	10		post_inoc_post_stress	True Sample
+KSTRAW0868	T1	Root	R12I04W01	0.0785		1	4	12		post_inoc_post_stress	True Sample
+KSTRAW0869	T1	Root	R13I04W01	0.3013		1	4	13		post_inoc_post_stress	True Sample
+KSTRAW0870	T1	Root	R14I04W01	0.2076		1	4	14	P27	post_inoc_post_stress	True Sample
+KSTRAW0871	T1	Root	R01I05W01	0.2357		1	5	1	P14	post_inoc_post_stress	True Sample
+KSTRAW0872	T1	Root	R02I05W01	0.08541		1	5	2		post_inoc_post_stress	True Sample
+KSTRAW0873	T1	Root	R03I05W01	0.0288		1	5	3		post_inoc_post_stress	True Sample
+KSTRAW0874	T1	Root	R04I05W01	0.0469		1	5	4		post_inoc_post_stress	True Sample
+KSTRAW0875	T1	Root	R05I05W01	0.1002		1	5	5		post_inoc_post_stress	True Sample
+KSTRAW0876	T1	Root	R06I05W01	0.2749		1	5	6	P17	post_inoc_post_stress	True Sample
+KSTRAW0877	T1	Root	R07I05W01	0.3748		1	5	7	P13	post_inoc_post_stress	True Sample
+KSTRAW0879	T1	Root	R09I05W01	0.17031		1	5	9		post_inoc_post_stress	True Sample
+KSTRAW0880	T1	Root	R10I05W01	0.3801		1	5	10	P21	post_inoc_post_stress	True Sample
+KSTRAW0881	T1	Root	R11I05W01	0.41185		1	5	11	P20	post_inoc_post_stress	True Sample
+KSTRAW0885	T1	Root	R01I06W01	0.1071		1	6	1		i6	Control
+KSTRAW0888	T1	Root	R04I06W01	0.1043		1	6	4		i6	Control
+KSTRAW0890	T1	Root	R06I06W01	0.1317		1	6	6		i6	Control
+KSTRAW0891	T1	Root	R07I06W01	0.1251		1	6	7		i6	Control
+KSTRAW0892	T1	Root	R08I06W01	0.1508		1	6	8		i6	Control
+KSTRAW0893	T1	Root	R09I06W01	0.3535		1	6	9	P28	i6	Control
+KSTRAW0894	T1	Root	R10I06W01	0.1285		1	6	10		i6	Control
+KSTRAW0896	T1	Root	R12I06W01	0.0301		1	6	12		i6	Control
+KSTRAW0897	T1	Root	R13I06W01	0.1912		1	6	13		i6	Control
+KSTRAW0898	T1	Root	R14I06W01	0.1261		1	6	14		i6	Control
+KSTRAW0899	T1	Root	R01I01W02	0.1108		2	1	1		post_inoc_post_stress	True Sample
+KSTRAW0900	T1	Root	R02I01W02	0.1343		2	1	2		post_inoc_post_stress	True Sample
+KSTRAW0901	T1	Root	R03I01W02	0.1755		2	1	3		post_inoc_post_stress	True Sample
+KSTRAW0902	T1	Root	R04I01W02	0.1444		2	1	4		post_inoc_post_stress	True Sample
+KSTRAW0903	T1	Root	R05I01W02	0.2316		2	1	5		post_inoc_post_stress	True Sample
+KSTRAW0904	T1	Root	R06I01W02	0.0768		2	1	6		post_inoc_post_stress	True Sample
+KSTRAW0905	T1	Root	R07I01W02	0.2833		2	1	7		post_inoc_post_stress	True Sample
+KSTRAW0906	T1	Root	R08I01W02	0.0777		2	1	8		post_inoc_post_stress	True Sample
+KSTRAW0907	T1	Root	R09I01W02	0.0602		2	1	9		post_inoc_post_stress	True Sample
+KSTRAW0908	T1	Root	R10I01W02	0.0646		2	1	10		post_inoc_post_stress	True Sample
+KSTRAW0909	T1	Root	R11I01W02	0.2615		2	1	11		post_inoc_post_stress	True Sample
+KSTRAW0911	T1	Root	R13I01W02	0.0156	no sample saved	2	1	13		post_inoc_post_stress	True Sample
+KSTRAW0912	T1	Root	R14I01W02	0.1932		2	1	14		post_inoc_post_stress	True Sample
+KSTRAW0914	T1	Root	R02I02W02	0.2001		2	2	2		post_inoc_post_stress	True Sample
+KSTRAW0915	T1	Root	R03I02W02	0.1292		2	2	3		post_inoc_post_stress	True Sample
+KSTRAW0916	T1	Root	R04I02W02	0.2845		2	2	4		post_inoc_post_stress	True Sample
+KSTRAW0917	T1	Root	R05I02W02	0.1714		2	2	5		post_inoc_post_stress	True Sample
+KSTRAW0918	T1	Root	R06I02W02	0.1001		2	2	6		post_inoc_post_stress	True Sample
+KSTRAW0919	T1	Root	R07I02W02	0.2215		2	2	7		post_inoc_post_stress	True Sample
+KSTRAW0920	T1	Root	R08I02W02	0.19		2	2	8		post_inoc_post_stress	True Sample
+KSTRAW0921	T1	Root	R09I02W02	0.1606		2	2	9	P34	post_inoc_post_stress	True Sample
+KSTRAW0922	T1	Root	R10I02W02	0.1743		2	2	10		post_inoc_post_stress	True Sample
+KSTRAW0923	T1	Root	R11I02W02	0.1387		2	2	11		post_inoc_post_stress	True Sample
+KSTRAW0925	T1	Root	R13I02W02	0.1971		2	2	13	P32	post_inoc_post_stress	True Sample
+KSTRAW0926	T1	Root	R14I02W02	0.1898		2	2	14		post_inoc_post_stress	True Sample
+KSTRAW0927	T1	Root	R01I03W02	0.2252		2	3	1		post_inoc_post_stress	True Sample
+KSTRAW0928	T1	Root	R02I03W02	0.1269		2	3	2		post_inoc_post_stress	True Sample
+KSTRAW0929	T1	Root	R03I03W02	0.3107		2	3	3		post_inoc_post_stress	True Sample
+KSTRAW0930	T1	Root	R04I03W02	0.1819		2	3	4		post_inoc_post_stress	True Sample
+KSTRAW0931	T1	Root	R05I03W02	0.1155		2	3	5		post_inoc_post_stress	True Sample
+KSTRAW0932	T1	Root	R06I03W02	0.1768		2	3	6		post_inoc_post_stress	True Sample
+KSTRAW0933	T1	Root	R07I03W02	0.1453		2	3	7		post_inoc_post_stress	True Sample
+KSTRAW0934	T1	Root	R08I03W02	0.0351		2	3	8		post_inoc_post_stress	True Sample
+KSTRAW0935	T1	Root	R09I03W02	0.2007		2	3	9		post_inoc_post_stress	True Sample
+KSTRAW0936	T1	Root	R10I03W02	0.1985		2	3	10	P35	post_inoc_post_stress	True Sample
+KSTRAW0937	T1	Root	R11I03W02	0.0244		2	3	11		post_inoc_post_stress	True Sample
+KSTRAW0938	T1	Root	R12I03W02	0.187		2	3	12		post_inoc_post_stress	True Sample
+KSTRAW0939	T1	Root	R13I03W02	0.1067		2	3	13		post_inoc_post_stress	True Sample
+KSTRAW0940	T1	Root	R14I03W02	0.1002		2	3	14		post_inoc_post_stress	True Sample
+KSTRAW0941	T1	Root	R01I04W02	0.1938		2	4	1		post_inoc_post_stress	True Sample
+KSTRAW0942	T1	Root	R02I04W02	0.3252		2	4	2		post_inoc_post_stress	True Sample
+KSTRAW0943	T1	Root	R03I04W02	0.0793		2	4	3		post_inoc_post_stress	True Sample
+KSTRAW0944	T1	Root	R04I04W02	0.1987		2	4	4		post_inoc_post_stress	True Sample
+KSTRAW0945	T1	Root	R05I04W02	0.3142		2	4	5		post_inoc_post_stress	True Sample
+KSTRAW0946	T1	Root	R06I04W02	0.19		2	4	6		post_inoc_post_stress	True Sample
+KSTRAW0947	T1	Root	R07I04W02	0.2678		2	4	7		post_inoc_post_stress	True Sample
+KSTRAW0949	T1	Root	R09I04W02	0.0708		2	4	9		post_inoc_post_stress	True Sample
+KSTRAW0950	T1	Root	R10I04W02	0.2957		2	4	10		post_inoc_post_stress	True Sample
+KSTRAW0952	T1	Root	R12I04W02	0.2795		2	4	12		post_inoc_post_stress	True Sample
+KSTRAW0953	T1	Root	R13I04W02	0.0655		2	4	13		post_inoc_post_stress	True Sample
+KSTRAW0954	T1	Root	R14I04W02	0.2658		2	4	14		post_inoc_post_stress	True Sample
+KSTRAW0956	T1	Root	R02I05W02	0.2302		2	5	2		post_inoc_post_stress	True Sample
+KSTRAW0957	T1	Root	R03I05W02	0.1621		2	5	3		post_inoc_post_stress	True Sample
+KSTRAW0958	T1	Root	R04I05W02	0.3142		2	5	4		post_inoc_post_stress	True Sample
+KSTRAW0960	T1	Root	R06I05W02	0.2922		2	5	6		post_inoc_post_stress	True Sample
+KSTRAW0961	T1	Root	R07I05W02	0.3449		2	5	7		post_inoc_post_stress	True Sample
+KSTRAW0962	T1	Root	R08I05W02	0.0496		2	5	8		post_inoc_post_stress	True Sample
+KSTRAW0963	T1	Root	R09I05W02	0.2731		2	5	9	P31	post_inoc_post_stress	True Sample
+KSTRAW0964	T1	Root	R10I05W02	0.4397		2	5	10	P33	post_inoc_post_stress	True Sample
+KSTRAW0965	T1	Root	R11I05W02	0.2446		2	5	11	P30	post_inoc_post_stress	True Sample
+KSTRAW0966	T1	Root	R12I05W02	0.2699		2	5	12		post_inoc_post_stress	True Sample
+KSTRAW0967	T1	Root	R13I05W02	0.2141		2	5	13		post_inoc_post_stress	True Sample
+KSTRAW0968	T1	Root	R14I05W02	0.1139		2	5	14		post_inoc_post_stress	True Sample
+KSTRAW0969	T1	Root	R01I06W02	0.0484		2	6	1		i6	Control
+KSTRAW0972	T1	Root	R04I06W02	0.3016		2	6	4		i6	Control
+KSTRAW0973	T1	Root	R05I06W02	0.2773		2	6	5		i6	Control
+KSTRAW0974	T1	Root	R06I06W02	0.0774		2	6	6		i6	Control
+KSTRAW0975	T1	Root	R07I06W02	0.1993		2	6	7		i6	Control
+KSTRAW0976	T1	Root	R08I06W02	0.0892		2	6	8		i6	Control
+KSTRAW0977	T1	Root	R09I06W02	0.0683		2	6	9		i6	Control
+KSTRAW0978	T1	Root	R10I06W02	0.0621		2	6	10		i6	Control
+KSTRAW0979	T1	Root	R11I06W02	0.0935		2	6	11		i6	Control
+KSTRAW0980	T1	Root	R12I06W02	0.2348		2	6	12		i6	Control
+KSTRAW0982	T1	Root	R14I06W02	0.0616		2	6	14		i6	Control
+KSTRAW0983	T1	Root	R01I01W03	0.0545		3	1	1		post_inoc_post_stress	True Sample
+KSTRAW0984	T1	Root	R02I01W03	0.1075		3	1	2		post_inoc_post_stress	True Sample
+KSTRAW0985	T1	Root	R03I01W03	0.1818		3	1	3		post_inoc_post_stress	True Sample
+KSTRAW0986	T1	Root	R04I01W03	0.1253		3	1	4		post_inoc_post_stress	True Sample
+KSTRAW0987	T1	Root	R05I01W03	0.1012		3	1	5		post_inoc_post_stress	True Sample
+KSTRAW0988	T1	Root	R06I01W03	0.1189		3	1	6		post_inoc_post_stress	True Sample
+KSTRAW0989	T1	Root	R07I01W03	0.0709		3	1	7		post_inoc_post_stress	True Sample
+KSTRAW0990	T1	Root	R08I01W03	0.2332		3	1	8	P8	post_inoc_post_stress	True Sample
+KSTRAW0992	T1	Root	R10I01W03	0.1621		3	1	10		post_inoc_post_stress	True Sample
+KSTRAW0993	T1	Root	R11I01W03	0.0684		3	1	11		post_inoc_post_stress	True Sample
+KSTRAW0994	T1	Root	R12I01W03	0.0812		3	1	12		post_inoc_post_stress	True Sample
+KSTRAW0995	T1	Root	R13I01W03	0.1368		3	1	13		post_inoc_post_stress	True Sample
+KSTRAW0996	T1	Root	R14I01W03	0.1111		3	1	14		post_inoc_post_stress	True Sample
+KSTRAW0997	T1	Root	R01I02W03	0.0263	no extra sample to put in envelope	3	2	1		post_inoc_post_stress	True Sample
+KSTRAW0998	T1	Root	R02I02W03	0.0948		3	2	2		post_inoc_post_stress	True Sample
+KSTRAW0999	T1	Root	R03I02W03	0.1772		3	2	3		post_inoc_post_stress	True Sample
+KSTRAW1000	T1	Root	R04I02W03	0.3069		3	2	4	P4	post_inoc_post_stress	True Sample
+KSTRAW1001	T1	Root	R05I02W03	0.1825		3	2	5	P5	post_inoc_post_stress	True Sample
+KSTRAW1002	T1	Root	R06I02W03	0.1533		3	2	6		post_inoc_post_stress	True Sample
+KSTRAW1003	T1	Root	R07I02W03	0.2617		3	2	7		post_inoc_post_stress	True Sample
+KSTRAW1004	T1	Root	R08I02W03	0.1998		3	2	8		post_inoc_post_stress	True Sample
+KSTRAW1005	T1	Root	R09I02W03	0.1226		3	2	9		post_inoc_post_stress	True Sample
+KSTRAW1006	T1	Root	R10I02W03	0.0554	no extra sample to put in envelope	3	2	10		post_inoc_post_stress	True Sample
+KSTRAW1007	T1	Root	R11I02W03	0.0998		3	2	11		post_inoc_post_stress	True Sample
+KSTRAW1008	T1	Root	R12I02W03	0.0634		3	2	12		post_inoc_post_stress	True Sample
+KSTRAW1009	T1	Root	R13I02W03	0.1321		3	2	13		post_inoc_post_stress	True Sample
+KSTRAW1010	T1	Root	R14I02W03	0.2397		3	2	14		post_inoc_post_stress	True Sample
+KSTRAW1011	T1	Root	R01I03W03	0.1796		3	3	1		post_inoc_post_stress	True Sample
+KSTRAW1013	T1	Root	R03I03W03	0.2631		3	3	3		post_inoc_post_stress	True Sample
+KSTRAW1014	T1	Root	R04I03W03	0.0348		3	3	4		post_inoc_post_stress	True Sample
+KSTRAW1015	T1	Root	R05I03W03	0.2193		3	3	5		post_inoc_post_stress	True Sample
+KSTRAW1016	T1	Root	R06I03W03	0.0413		3	3	6		post_inoc_post_stress	True Sample
+KSTRAW1017	T1	Root	R07I03W03	0.2275		3	3	7		post_inoc_post_stress	True Sample
+KSTRAW1018	T1	Root	R08I03W03	0.1696		3	3	8		post_inoc_post_stress	True Sample
+KSTRAW1019	T1	Root	R09I03W03	0.1078		3	3	9		post_inoc_post_stress	True Sample
+KSTRAW1020	T1	Root	R10I03W03	0.1469		3	3	10		post_inoc_post_stress	True Sample
+KSTRAW1021	T1	Root	R11I03W03	0.237		3	3	11		post_inoc_post_stress	True Sample
+KSTRAW1022	T1	Root	R12I03W03	0.1977		3	3	12		post_inoc_post_stress	True Sample
+KSTRAW1023	T1	Root	R13I03W03	0.1787		3	3	13		post_inoc_post_stress	True Sample
+KSTRAW1024	T1	Root	R14I03W03	0.2545		3	3	14		post_inoc_post_stress	True Sample
+KSTRAW1025	T1	Root	R01I04W03	0.155		3	4	1		post_inoc_post_stress	True Sample
+KSTRAW1026	T1	Root	R02I04W03	0.1084		3	4	2		post_inoc_post_stress	True Sample
+KSTRAW1027	T1	Root	R03I04W03	0.1528		3	4	3		post_inoc_post_stress	True Sample
+KSTRAW1028	T1	Root	R04I04W03	0.0262		3	4	4		post_inoc_post_stress	True Sample
+KSTRAW1029	T1	Root	R05I04W03	0.2467		3	4	5		post_inoc_post_stress	True Sample
+KSTRAW1030	T1	Root	R06I04W03	0.5279		3	4	6	P2	post_inoc_post_stress	True Sample
+KSTRAW1031	T1	Root	R07I04W03	0.0991		3	4	7		post_inoc_post_stress	True Sample
+KSTRAW1032	T1	Root	R08I04W03	0.2421		3	4	8		post_inoc_post_stress	True Sample
+KSTRAW1033	T1	Root	R09I04W03	0.1558		3	4	9		post_inoc_post_stress	True Sample
+KSTRAW1034	T1	Root	R10I04W03	0.1236		3	4	10		post_inoc_post_stress	True Sample
+KSTRAW1035	T1	Root	R11I04W03	0.2909		3	4	11		post_inoc_post_stress	True Sample
+KSTRAW1036	T1	Root	R12I04W03	0.2195		3	4	12		post_inoc_post_stress	True Sample
+KSTRAW1037	T1	Root	R13I04W03	0.0901		3	4	13		post_inoc_post_stress	True Sample
+KSTRAW1038	T1	Root	R14I04W03	0.2888		3	4	14	P7=P6-2	post_inoc_post_stress	True Sample
+KSTRAW1039	T1	Root	R01I05W03	0.3213		3	5	1	P1	post_inoc_post_stress	True Sample
+KSTRAW1040	T1	Root	R02I05W03	0.1152		3	5	2		post_inoc_post_stress	True Sample
+KSTRAW1041	T1	Root	R03I05W03	0.1751		3	5	3		post_inoc_post_stress	True Sample
+KSTRAW1042	T1	Root	R04I05W03	0.1271		3	5	4	P3	post_inoc_post_stress	True Sample
+KSTRAW1044	T1	Root	R06I05W03	0.2015		3	5	6		post_inoc_post_stress	True Sample
+KSTRAW1046	T1	Root	R08I05W03	0.2075		3	5	8	P9	post_inoc_post_stress	True Sample
+KSTRAW1047	T1	Root	R09I05W03	0.1204		3	5	9		post_inoc_post_stress	True Sample
+KSTRAW1048	T1	Root	R10I05W03	0.6737		3	5	10	P6	post_inoc_post_stress	True Sample
+KSTRAW1050	T1	Root	R12I05W03	0.2138		3	5	12		post_inoc_post_stress	True Sample
+KSTRAW1051	T1	Root	R13I05W03	0.0154		3	5	13		post_inoc_post_stress	True Sample
+KSTRAW1052	T1	Root	R14I05W03	0.2261		3	5	14		post_inoc_post_stress	True Sample
+KSTRAW1053	T1	Root	R01I06W03	0.26917		3	6	1		i6	Control
+KSTRAW1054	T1	Root	R02I06W03	0.1016		3	6	2		i6	Control
+KSTRAW1055	T1	Root	R03I06W03	0.1135		3	6	3		i6	Control
+KSTRAW1056	T1	Root	R04I06W03	0.02824		3	6	4		i6	Control
+KSTRAW1057	T1	Root	R05I06W03	0.10409		3	6	5		i6	Control
+KSTRAW1058	T1	Root	R06I06W03	0.0364		3	6	6		i6	Control
+KSTRAW1059	T1	Root	R07I06W03	0.1171		3	6	7		i6	Control
+KSTRAW1060	T1	Root	R08I06W03	0.17446		3	6	8		i6	Control
+KSTRAW1061	T1	Root	R09I06W03	0.1127		3	6	9		i6	Control
+KSTRAW1062	T1	Root	R10I06W03	0.17279		3	6	10		i6	Control
+KSTRAW1063	T1	Root	R11I06W03	0.11838		3	6	11		i6	Control
+KSTRAW1064	T1	Root	R12I06W03	0.1276		3	6	12		i6	Control
+KSTRAW1065	T1	Root	R13I06W03	0.15774		3	6	13		i6	Control
+KSTRAW1066	T1	Root	R14I06W03	0.2544		3	6	14		i6	Control
+KSTRAW1067	T1	Shoot	R01I01W01	0.14576		1	1	1		post_inoc_post_stress	True Sample
+KSTRAW1068	T1	Shoot	R02I01W01	0.03668		1	1	2		post_inoc_post_stress	True Sample
+KSTRAW1069	T1	Shoot	R03I01W01	0.13967		1	1	3	P11	post_inoc_post_stress	True Sample
+KSTRAW1070	T1	Shoot	R04I01W01	0.05564		1	1	4		post_inoc_post_stress	True Sample
+KSTRAW1071	T1	Shoot	R05I01W01	0.10263		1	1	5		post_inoc_post_stress	True Sample
+KSTRAW1073	T1	Shoot	R07I01W01	0.01929		1	1	7		post_inoc_post_stress	True Sample
+KSTRAW1074	T1	Shoot	R08I01W01	0.09991		1	1	8		post_inoc_post_stress	True Sample
+KSTRAW1075	T1	Shoot	R09I01W01	0.06137		1	1	9		post_inoc_post_stress	True Sample
+KSTRAW1076	T1	Shoot	R10I01W01	0.0402		1	1	10		post_inoc_post_stress	True Sample
+KSTRAW1077	T1	Shoot	R11I01W01	0.06099		1	1	11		post_inoc_post_stress	True Sample
+KSTRAW1078	T1	Shoot	R12I01W01	0.08811		1	1	12		post_inoc_post_stress	True Sample
+KSTRAW1079	T1	Shoot	R13I01W01	0.12888		1	1	13	P19	post_inoc_post_stress	True Sample
+KSTRAW1080	T1	Shoot	R14I01W01	0.10646		1	1	14		post_inoc_post_stress	True Sample
+KSTRAW1081	T1	Shoot	R09I02W01	0.15395		1	2	9	P25	post_inoc_post_stress	True Sample
+KSTRAW1082	T1	Shoot	R02I02W01	0.12414		1	2	2		post_inoc_post_stress	True Sample
+KSTRAW1083	T1	Shoot	R03I02W01	0.03754		1	2	3		post_inoc_post_stress	True Sample
+KSTRAW1084	T1	Shoot	R04I02W01	0.05596		1	2	4		post_inoc_post_stress	True Sample
+KSTRAW1085	T1	Root	R10I02W01	0.2685		1	2	10	P24	post_inoc_post_stress	True Sample
+KSTRAW1086	T1	Shoot	R10I02W01	0.12211		1	2	10	P24	post_inoc_post_stress	True Sample
+KSTRAW1087	T1	Root	R11I02W01	0.1875		1	2	11		post_inoc_post_stress	True Sample
+KSTRAW1088	T1	Shoot	R11I02W01	0.11087		1	2	11		post_inoc_post_stress	True Sample
+KSTRAW1089	T1	Root	R12I02W01	0.0708		1	2	12		post_inoc_post_stress	True Sample
+KSTRAW1090	T1	Shoot	R12I02W01	0.04035		1	2	12		post_inoc_post_stress	True Sample
+KSTRAW1092	T1	Shoot	R13I02W01	0.09249		1	2	13		post_inoc_post_stress	True Sample
+KSTRAW1093	T1	Root	R14I02W01	0.2462		1	2	14	P29	post_inoc_post_stress	True Sample
+KSTRAW1094	T1	Shoot	R14I02W01	0.16986		1	2	14	P29	post_inoc_post_stress	True Sample
+KSTRAW1095	T1	Shoot	R01I03W01	0.02456		1	3	1		post_inoc_post_stress	True Sample
+KSTRAW1096	T1	Shoot	R02I03W01	0.02884		1	3	2		post_inoc_post_stress	True Sample
+KSTRAW1097	T1	Shoot	R03I03W01	0.0518		1	3	3		post_inoc_post_stress	True Sample
+KSTRAW1099	T1	Shoot	R05I03W01	NA		1	3	5	P10	post_inoc_post_stress	True Sample
+KSTRAW1100	T1	Shoot	R06I03W01	0.06631		1	3	6	P16	post_inoc_post_stress	True Sample
+KSTRAW1102	T1	Shoot	R08I03W01	0.12361		1	3	8		post_inoc_post_stress	True Sample
+KSTRAW1104	T1	Shoot	R10I03W01	0.04842		1	3	10		post_inoc_post_stress	True Sample
+KSTRAW1105	T1	Shoot	R11I03W01	0.0353		1	3	11		post_inoc_post_stress	True Sample
+KSTRAW1106	T1	Shoot	R12I03W01	0.05161		1	3	12		post_inoc_post_stress	True Sample
+KSTRAW1107	T1	Shoot	R13I03W01	0.10096		1	3	13	P22	post_inoc_post_stress	True Sample
+KSTRAW1111	T1	Shoot	R03I04W01	0.0609		1	4	3	P12	post_inoc_post_stress	True Sample
+KSTRAW1113	T1	Shoot	R05I04W01	0.05321		1	4	5		post_inoc_post_stress	True Sample
+KSTRAW1114	T1	Shoot	R06I04W01	0.0257		1	4	6		post_inoc_post_stress	True Sample
+KSTRAW1115	T1	Shoot	R07I04W01	0.05381		1	4	7	P15	post_inoc_post_stress	True Sample
+KSTRAW1117	T1	Shoot	R09I04W01	0.09706		1	4	9		post_inoc_post_stress	True Sample
+KSTRAW1118	T1	Shoot	R10I04W01	0.03205		1	4	10		post_inoc_post_stress	True Sample
+KSTRAW1119	T1	Shoot	R11I04W01	0.05517		1	4	11		post_inoc_post_stress	True Sample
+KSTRAW1120	T1	Shoot	R12I04W01	0.04325		1	4	12		post_inoc_post_stress	True Sample
+KSTRAW1122	T1	Shoot	R14I04W01	0.08241		1	4	14	P27	post_inoc_post_stress	True Sample
+KSTRAW1124	T1	Shoot	R02I05W01	0.03888		1	5	2		post_inoc_post_stress	True Sample
+KSTRAW1125	T1	Shoot	R03I05W01	0.02552		1	5	3		post_inoc_post_stress	True Sample
+KSTRAW1126	T1	Shoot	R04I05W01	0.02925		1	5	4		post_inoc_post_stress	True Sample
+KSTRAW1128	T1	Shoot	R06I05W01	0.13449		1	5	6	P17	post_inoc_post_stress	True Sample
+KSTRAW1129	T1	Shoot	R07I05W01	0.12802		1	5	7	P13	post_inoc_post_stress	True Sample
+KSTRAW1130	T1	Shoot	R08I05W01	0.10791		1	5	8	P26	post_inoc_post_stress	True Sample
+KSTRAW1131	T1	Shoot	R09I05W01	0.06807		1	5	9		post_inoc_post_stress	True Sample
+KSTRAW1132	T1	Shoot	R10I05W01	0.14424	*may be sample 10 from inoc 6/water3	1	5	10	P21	post_inoc_post_stress	True Sample
+KSTRAW1133	T1	Shoot	R11I05W01	0.21752		1	5	11	P20	post_inoc_post_stress	True Sample
+KSTRAW1135	T1	Shoot	R13I05W01	0.01968		1	5	13		post_inoc_post_stress	True Sample
+KSTRAW1136	T1	Shoot	R14I05W01	0.096		1	5	14		post_inoc_post_stress	True Sample
+KSTRAW1137	T1	Shoot	R01I06W01	0.08892		1	6	1		i6	Control
+KSTRAW1140	T1	Shoot	R04I06W01	0.10879		1	6	4		i6	Control
+KSTRAW1142	T1	Shoot	R06I06W01	0.075		1	6	6		i6	Control
+KSTRAW1143	T1	Shoot	R07I06W01	0.1233		1	6	7		i6	Control
+KSTRAW1144	T1	Shoot	R08I06W01	0.13651		1	6	8		i6	Control
+KSTRAW1145	T1	Shoot	R09I06W01	0.18419		1	6	9	P28	i6	Control
+KSTRAW1146	T1	Shoot	R10I06W01	0.07222		1	6	10		i6	Control
+KSTRAW1148	T1	Shoot	R12I06W01	0.02643		1	6	12		i6	Control
+KSTRAW1149	T1	Shoot	R13I06W01	0.16522		1	6	13		i6	Control
+KSTRAW1150	T1	Shoot	R14I06W01	0.10872		1	6	14		i6	Control
+KSTRAW1151	T1	Shoot	R01I01W02	0.05775		2	1	1		post_inoc_post_stress	True Sample
+KSTRAW1152	T1	Shoot	R02I01W02	0.10331		2	1	2		post_inoc_post_stress	True Sample
+KSTRAW1153	T1	Shoot	R03I01W02	0.16029		2	1	3		post_inoc_post_stress	True Sample
+KSTRAW1154	T1	Shoot	R04I01W02	0.08585		2	1	4		post_inoc_post_stress	True Sample
+KSTRAW1155	T1	Shoot	R05I01W02	0.10794		2	1	5		post_inoc_post_stress	True Sample
+KSTRAW1157	T1	Shoot	R07I01W02	0.17716		2	1	7		post_inoc_post_stress	True Sample
+KSTRAW1158	T1	Shoot	R08I01W02	0.0748		2	1	8		post_inoc_post_stress	True Sample
+KSTRAW1159	T1	Shoot	R09I01W02	0.06222		2	1	9		post_inoc_post_stress	True Sample
+KSTRAW1160	T1	Shoot	R10I01W02	0.03573		2	1	10		post_inoc_post_stress	True Sample
+KSTRAW1161	T1	Shoot	R11I01W02	0.14492		2	1	11		post_inoc_post_stress	True Sample
+KSTRAW1162	T1	Shoot	R12I01W02	0.01339		2	1	12		post_inoc_post_stress	True Sample
+KSTRAW1163	T1	Shoot	R13I01W02	0.03182		2	1	13		post_inoc_post_stress	True Sample
+KSTRAW1164	T1	Shoot	R14I01W02	0.21145		2	1	14		post_inoc_post_stress	True Sample
+KSTRAW1165	T1	Shoot	R01I02W02	0.10963		2	2	1		post_inoc_post_stress	True Sample
+KSTRAW1167	T1	Shoot	R03I02W02	0.09784		2	2	3		post_inoc_post_stress	True Sample
+KSTRAW1168	T1	Shoot	R04I02W02	0.15066		2	2	4		post_inoc_post_stress	True Sample
+KSTRAW1169	T1	Shoot	R05I02W02	0.0923		2	2	5		post_inoc_post_stress	True Sample
+KSTRAW1170	T1	Shoot	R06I02W02	0.06068		2	2	6		post_inoc_post_stress	True Sample
+KSTRAW1171	T1	Shoot	R07I02W02	0.1211		2	2	7		post_inoc_post_stress	True Sample
+KSTRAW1172	T1	Shoot	R08I02W02	0.10557		2	2	8		post_inoc_post_stress	True Sample
+KSTRAW1173	T1	Shoot	R09I02W02	0.06823		2	2	9	P34	post_inoc_post_stress	True Sample
+KSTRAW1174	T1	Shoot	R10I02W02	0.12164		2	2	10		post_inoc_post_stress	True Sample
+KSTRAW1175	T1	Shoot	R11I02W02	0.08889		2	2	11		post_inoc_post_stress	True Sample
+KSTRAW1176	T1	Shoot	R12I02W02	0.13628		2	2	12		post_inoc_post_stress	True Sample
+KSTRAW1177	T1	Shoot	R13I02W02	0.11693		2	2	13	P32	post_inoc_post_stress	True Sample
+KSTRAW1178	T1	Shoot	R14I02W02	0.10996		2	2	14		post_inoc_post_stress	True Sample
+KSTRAW1179	T1	Shoot	R01I03W02	0.1107		2	3	1		post_inoc_post_stress	True Sample
+KSTRAW1180	T1	Shoot	R02I03W02	0.06067		2	3	2		post_inoc_post_stress	True Sample
+KSTRAW1181	T1	Shoot	R03I03W02	0.15395		2	3	3		post_inoc_post_stress	True Sample
+KSTRAW1182	T1	Shoot	R04I03W02	0.07743		2	3	4		post_inoc_post_stress	True Sample
+KSTRAW1183	T1	Shoot	R05I03W02	0.03641		2	3	5		post_inoc_post_stress	True Sample
+KSTRAW1184	T1	Shoot	R06I03W02	0.12903		2	3	6		post_inoc_post_stress	True Sample
+KSTRAW1185	T1	Shoot	R07I03W02	0.09526		2	3	7		post_inoc_post_stress	True Sample
+KSTRAW1186	T1	Shoot	R08I03W02	0.02274		2	3	8		post_inoc_post_stress	True Sample
+KSTRAW1187	T1	Shoot	R09I03W02	0.1		2	3	9		post_inoc_post_stress	True Sample
+KSTRAW1188	T1	Shoot	R10I03W02	0.10915		2	3	10	P35	post_inoc_post_stress	True Sample
+KSTRAW1189	T1	Shoot	R11I03W02	0.0178		2	3	11		post_inoc_post_stress	True Sample
+KSTRAW1190	T1	Shoot	R12I03W02	0.13861		2	3	12		post_inoc_post_stress	True Sample
+KSTRAW1191	T1	Shoot	R13I03W02	0.09997		2	3	13		post_inoc_post_stress	True Sample
+KSTRAW1192	T1	Shoot	R14I03W02	0.11697		2	3	14		post_inoc_post_stress	True Sample
+KSTRAW1193	T1	Shoot	R01I04W02	0.14117		2	4	1		post_inoc_post_stress	True Sample
+KSTRAW1194	T1	Shoot	R02I04W02	0.2267		2	4	2		post_inoc_post_stress	True Sample
+KSTRAW1195	T1	Shoot	R03I04W02	0.05928		2	4	3		post_inoc_post_stress	True Sample
+KSTRAW1196	T1	Shoot	R04I04W02	0.0805		2	4	4		post_inoc_post_stress	True Sample
+KSTRAW1197	T1	Shoot	R05I04W02	0.17535		2	4	5		post_inoc_post_stress	True Sample
+KSTRAW1199	T1	Shoot	R07I04W02	0.11929		2	4	7		post_inoc_post_stress	True Sample
+KSTRAW1200	T1	Shoot	R08I04W02	0.09466		2	4	8		post_inoc_post_stress	True Sample
+KSTRAW1201	T1	Shoot	R09I04W02	0.04354		2	4	9		post_inoc_post_stress	True Sample
+KSTRAW1202	T1	Shoot	R10I04W02	0.2487		2	4	10		post_inoc_post_stress	True Sample
+KSTRAW1203	T1	Shoot	R11I04W02	0.12263		2	4	11		post_inoc_post_stress	True Sample
+KSTRAW1204	T1	Shoot	R12I04W02	0.12876		2	4	12		post_inoc_post_stress	True Sample
+KSTRAW1205	T1	Shoot	R13I04W02	0.04235		2	4	13		post_inoc_post_stress	True Sample
+KSTRAW1206	T1	Shoot	R14I04W02	0.17629		2	4	14		post_inoc_post_stress	True Sample
+KSTRAW1207	T1	Shoot	R01I05W02	0.19355		2	5	1		post_inoc_post_stress	True Sample
+KSTRAW1208	T1	Shoot	R02I05W02	0.13772		2	5	2		post_inoc_post_stress	True Sample
+KSTRAW1209	T1	Shoot	R03I05W02	0.07572		2	5	3		post_inoc_post_stress	True Sample
+KSTRAW1210	T1	Shoot	R04I05W02	0.16963		2	5	4		post_inoc_post_stress	True Sample
+KSTRAW1211	T1	Shoot	R05I05W02	0.1547		2	5	5		post_inoc_post_stress	True Sample
+KSTRAW1212	T1	Shoot	R06I05W02	0.15076		2	5	6		post_inoc_post_stress	True Sample
+KSTRAW1213	T1	Shoot	R07I05W02	0.11751		2	5	7		post_inoc_post_stress	True Sample
+KSTRAW1214	T1	Shoot	R08I05W02	0.02168		2	5	8		post_inoc_post_stress	True Sample
+KSTRAW1215	T1	Shoot	R09I05W02	0.11503		2	5	9	P31	post_inoc_post_stress	True Sample
+KSTRAW1216	T1	Shoot	R10I05W02	0.20806		2	5	10	P33	post_inoc_post_stress	True Sample
+KSTRAW1217	T1	Shoot	R11I05W02	0.11148		2	5	11	P30	post_inoc_post_stress	True Sample
+KSTRAW1218	T1	Shoot	R12I05W02	0.13164		2	5	12		post_inoc_post_stress	True Sample
+KSTRAW1219	T1	Shoot	R13I05W02	0.1034		2	5	13		post_inoc_post_stress	True Sample
+KSTRAW1220	T1	Shoot	R14I05W02	0.04615		2	5	14		post_inoc_post_stress	True Sample
+KSTRAW1221	T1	Shoot	R01I06W02	0.02128		2	6	1		i6	Control
+KSTRAW1224	T1	Shoot	R04I06W02	0.39044		2	6	4		i6	Control
+KSTRAW1225	T1	Shoot	R05I06W02	0.09411		2	6	5		i6	Control
+KSTRAW1226	T1	Shoot	R06I06W02	0.10165		2	6	6		i6	Control
+KSTRAW1227	T1	Shoot	R07I06W02	0.14686		2	6	7		i6	Control
+KSTRAW1228	T1	Shoot	R08I06W02	0.04529		2	6	8		i6	Control
+KSTRAW1229	T1	Shoot	R09I06W02	0.06045		2	6	9		i6	Control
+KSTRAW1230	T1	Shoot	R10I06W02	0.03282		2	6	10		i6	Control
+KSTRAW1231	T1	Shoot	R11I06W02	0.0845		2	6	11		i6	Control
+KSTRAW1232	T1	Shoot	R12I06W02	0.2437		2	6	12		i6	Control
+KSTRAW1234	T1	Shoot	R14I06W02	0.03929		2	6	14		i6	Control
+KSTRAW1235	T1	Shoot	R01I01W03	0.03115		3	1	1		post_inoc_post_stress	True Sample
+KSTRAW1236	T1	Shoot	R02I01W03	0.07406		3	1	2		post_inoc_post_stress	True Sample
+KSTRAW1237	T1	Shoot	R03I01W03	0.11719		3	1	3		post_inoc_post_stress	True Sample
+KSTRAW1238	T1	Shoot	R04I01W03	0.06887		3	1	4		post_inoc_post_stress	True Sample
+KSTRAW1239	T1	Shoot	R05I01W03	0.0951		3	1	5		post_inoc_post_stress	True Sample
+KSTRAW1240	T1	Shoot	R06I01W03	0.10046		3	1	6		post_inoc_post_stress	True Sample
+KSTRAW1241	T1	Shoot	R07I01W03	0.03203		3	1	7		post_inoc_post_stress	True Sample
+KSTRAW1242	T1	Shoot	R08I01W03	0.16213		3	1	8	P8	post_inoc_post_stress	True Sample
+KSTRAW1244	T1	Shoot	R10I01W03	0.09717		3	1	10		post_inoc_post_stress	True Sample
+KSTRAW1245	T1	Shoot	R11I01W03	0.08215		3	1	11		post_inoc_post_stress	True Sample
+KSTRAW1247	T1	Shoot	R13I01W03	0.08311		3	1	13		post_inoc_post_stress	True Sample
+KSTRAW1248	T1	Shoot	R14I01W03	0.07164		3	1	14		post_inoc_post_stress	True Sample
+KSTRAW1249	T1	Shoot	R01I02W03	0.02411		3	2	1		post_inoc_post_stress	True Sample
+KSTRAW1250	T1	Shoot	R02I02W03	0.073		3	2	2		post_inoc_post_stress	True Sample
+KSTRAW1251	T1	Shoot	R03I02W03	0.0887		3	2	3		post_inoc_post_stress	True Sample
+KSTRAW1252	T1	Shoot	R04I02W03	0.16274		3	2	4	P4	post_inoc_post_stress	True Sample
+KSTRAW1253	T1	Shoot	R05I02W03	0.11731		3	2	5	P5	post_inoc_post_stress	True Sample
+KSTRAW1254	T1	Shoot	R06I02W03	0.13644		3	2	6		post_inoc_post_stress	True Sample
+KSTRAW1255	T1	Shoot	R07I02W03	0.16668		3	2	7		post_inoc_post_stress	True Sample
+KSTRAW1256	T1	Shoot	R08I02W03	0.154		3	2	8		post_inoc_post_stress	True Sample
+KSTRAW1257	T1	Shoot	R09I02W03	0.07258		3	2	9		post_inoc_post_stress	True Sample
+KSTRAW1258	T1	Shoot	R10I02W03	0.03111		3	2	10		post_inoc_post_stress	True Sample
+KSTRAW1259	T1	Shoot	R11I02W03	0.06933		3	2	11		post_inoc_post_stress	True Sample
+KSTRAW1260	T1	Shoot	R12I02W03	0.05783		3	2	12		post_inoc_post_stress	True Sample
+KSTRAW1261	T1	Shoot	R13I02W03	0.09005		3	2	13		post_inoc_post_stress	True Sample
+KSTRAW1262	T1	Shoot	R14I02W03	0.20596		3	2	14		post_inoc_post_stress	True Sample
+KSTRAW1263	T1	Shoot	R01I03W03	0.11679		3	3	1		post_inoc_post_stress	True Sample
+KSTRAW1265	T1	Shoot	R03I03W03	0.21487		3	3	3		post_inoc_post_stress	True Sample
+KSTRAW1266	T1	Shoot	R04I03W03	0.01288		3	3	4		post_inoc_post_stress	True Sample
+KSTRAW1267	T1	Shoot	R05I03W03	0.12219		3	3	5		post_inoc_post_stress	True Sample
+KSTRAW1268	T1	Shoot	R06I03W03	0.0172		3	3	6		post_inoc_post_stress	True Sample
+KSTRAW1269	T1	Shoot	R07I03W03	0.04562		3	3	7		post_inoc_post_stress	True Sample
+KSTRAW1270	T1	Shoot	R08I03W03	0.07766		3	3	8		post_inoc_post_stress	True Sample
+KSTRAW1271	T1	Shoot	R09I03W03	0.09311		3	3	9		post_inoc_post_stress	True Sample
+KSTRAW1272	T1	Shoot	R10I03W03	0.06777		3	3	10		post_inoc_post_stress	True Sample
+KSTRAW1273	T1	Shoot	R11I03W03	0.19038		3	3	11		post_inoc_post_stress	True Sample
+KSTRAW1274	T1	Shoot	R12I03W03	0.10796		3	3	12		post_inoc_post_stress	True Sample
+KSTRAW1275	T1	Shoot	R13I03W03	0.10961		3	3	13		post_inoc_post_stress	True Sample
+KSTRAW1276	T1	Shoot	R14I03W03	0.10435		3	3	14		post_inoc_post_stress	True Sample
+KSTRAW1277	T1	Shoot	R01I04W03	0.0752		3	4	1		post_inoc_post_stress	True Sample
+KSTRAW1279	T1	Shoot	R03I04W03	0.04257		3	4	3		post_inoc_post_stress	True Sample
+KSTRAW1280	T1	Shoot	R04I04W03	0.02241		3	4	4		post_inoc_post_stress	True Sample
+KSTRAW1281	T1	Shoot	R05I04W03	0.20692		3	4	5		post_inoc_post_stress	True Sample
+KSTRAW1282	T1	Shoot	R06I04W03	0.40463		3	4	6	P2	post_inoc_post_stress	True Sample
+KSTRAW1283	T1	Shoot	R07I04W03	0.05313		3	4	7		post_inoc_post_stress	True Sample
+KSTRAW1284	T1	Shoot	R08I04W03	0.12654		3	4	8		post_inoc_post_stress	True Sample
+KSTRAW1285	T1	Shoot	R09I04W03	0.10699		3	4	9		post_inoc_post_stress	True Sample
+KSTRAW1286	T1	Shoot	R10I04W03	0.04806		3	4	10		post_inoc_post_stress	True Sample
+KSTRAW1287	T1	Shoot	R11I04W03	0.28452		3	4	11		post_inoc_post_stress	True Sample
+KSTRAW1288	T1	Shoot	R12I04W03	0.18302		3	4	12		post_inoc_post_stress	True Sample
+KSTRAW1289	T1	Shoot	R13I04W03	0.10494		3	4	13		post_inoc_post_stress	True Sample
+KSTRAW1290	T1	Shoot	R14I04W03	0.1305		3	4	14	P7=P6-2	post_inoc_post_stress	True Sample
+KSTRAW1291	T1	Shoot	R01I05W03	0.18478		3	5	1	P1	post_inoc_post_stress	True Sample
+KSTRAW1292	T1	Shoot	R02I05W03	0.07397		3	5	2		post_inoc_post_stress	True Sample
+KSTRAW1293	T1	Shoot	R03I05W03	0.09857		3	5	3		post_inoc_post_stress	True Sample
+KSTRAW1294	T1	Shoot	R04I05W03	0.07003		3	5	4	P3	post_inoc_post_stress	True Sample
+KSTRAW1296	T1	Shoot	R06I05W03	0.10079		3	5	6		post_inoc_post_stress	True Sample
+KSTRAW1298	T1	Shoot	R08I05W03	0.08127		3	5	8	P9	post_inoc_post_stress	True Sample
+KSTRAW1299	T1	Shoot	R09I05W03	0.06912		3	5	9		post_inoc_post_stress	True Sample
+KSTRAW1300	T1	Shoot	R10I05W03	0.27948		3	5	10	P6	post_inoc_post_stress	True Sample
+KSTRAW1302	T1	Shoot	R12I05W03	0.08504		3	5	12		post_inoc_post_stress	True Sample
+KSTRAW1304	T1	Shoot	R14I05W03	0.11779		3	5	14		post_inoc_post_stress	True Sample
+KSTRAW1305	T1	Shoot	R01I06W03	0.21841		3	6	1		i6	Control
+KSTRAW1306	T1	Shoot	R02I06W03	0.06695		3	6	2		i6	Control
+KSTRAW1307	T1	Shoot	R03I06W03	0.12741		3	6	3		i6	Control
+KSTRAW1308	T1	Shoot	R04I06W03	0.02894		3	6	4		i6	Control
+KSTRAW1309	T1	Shoot	R05I06W03	0.14579		3	6	5		i6	Control
+KSTRAW1311	T1	Shoot	R07I06W03	0.11415		3	6	7		i6	Control
+KSTRAW1312	T1	Shoot	R08I06W03	0.1977		3	6	8		i6	Control
+KSTRAW1314	T1	Shoot	R10I06W03	0.12014	*may be sample 10 from inoc 5/water1	3	6	10		i6	Control
+KSTRAW1315	T1	Shoot	R11I06W03	0.11553		3	6	11		i6	Control
+KSTRAW1316	T1	Shoot	R12I06W03	0.16597		3	6	12		i6	Control
+KSTRAW1317	T1	Shoot	R13I06W03	0.17223		3	6	13		i6	Control
+KSTRAW1318	T1	Shoot	R14I06W03	0.26723		3	6	14		i6	Control
+KSTRAW1320	Control	Inoculum 2	R00I02W00	NA	Inoculum 2-falls rep 1	NA	InitialSource	NA		slurry	True Sample
+KSTRAW1324	Control	Inoculum 6	R00I06W00	NA	Inoculum 6-water from MQ (in lab) rep 1	NA	InitialSource	NA		di_water	Control
+KSTRAW1329	Control	Inoculum 5	R00I05W00	NA	Inoculum 5-ridge rep 2	NA	InitialSource	NA		slurry	True Sample
+KSTRAW1331	T0	Shoot	R01I01W01	NA	Time 0 DNA pooled leaves 10 mg	1	1	1	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1332	T0	Shoot	R02I01W01	NA	Time 0 DNA pooled leaves 10 mg	1	1	2	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1333	T0	Shoot	R03I01W01	NA	Time 0 DNA pooled leaves 10 mg	1	1	3	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1334	T0	Shoot	R04I01W01	NA	Time 0 DNA pooled leaves 10 mg	1	1	4	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1335	T0	Shoot	R05I01W01	NA	Time 0 DNA pooled leaves 10 mg	1	1	5	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1338	T0	Shoot	R01I02W01	NA	Time 0 DNA pooled leaves 10 mg	1	2	1	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1339	T0	Shoot	R02I02W01	NA	Time 0 DNA pooled leaves 10 mg	1	2	2	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1340	T0	Shoot	R03I02W01	NA	Time 0 DNA pooled leaves 10 mg	1	2	3	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1342	T0	Shoot	R05I02W01	NA	Time 0 DNA pooled leaves 10 mg	1	2	5	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1343	T0	Shoot	R06I02W01	NA	Time 0 DNA pooled leaves 10 mg	1	2	6	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1344	T0	Shoot	R07I02W01	NA	Time 0 DNA pooled leaves 10 mg	1	2	7	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1346	T0	Shoot	R02I03W01	NA	Time 0 DNA pooled leaves 10 mg	1	3	2	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1348	T0	Shoot	R04I03W01	NA	Time 0 DNA pooled leaves 10 mg	1	3	4	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1349	T0	Shoot	R05I03W01	NA	Time 0 DNA pooled leaves 10 mg	1	3	5	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1351	T0	Shoot	R07I03W01	NA	Time 0 DNA pooled leaves 10 mg	1	3	7	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1352	T0	Shoot	R01I04W01	NA	Time 0 DNA pooled leaves 10 mg	1	4	1	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1353	T0	Shoot	R02I04W01	NA	Time 0 DNA pooled leaves 10 mg	1	4	2	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1354	T0	Shoot	R03I04W01	NA	Time 0 DNA pooled leaves 10 mg	1	4	3	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1355	T0	Shoot	R04I04W01	NA	Time 0 DNA pooled leaves 10 mg	1	4	4	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1356	T0	Shoot	R05I04W01	NA	Time 0 DNA pooled leaves 10 mg	1	4	5	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1357	T0	Shoot	R06I04W01	NA	Time 0 DNA pooled leaves 10 mg	1	4	6	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1358	T0	Shoot	R07I04W01	NA	Time 0 DNA pooled leaves 10 mg	1	4	7	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1360	T0	Shoot	R02I05W01	NA	Time 0 DNA pooled leaves 10 mg	1	5	2	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1361	T0	Shoot	R03I05W01	NA	Time 0 DNA pooled leaves 10 mg	1	5	3	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1363	T0	Shoot	R05I05W01	NA	Time 0 DNA pooled leaves 10 mg	1	5	5	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1364	T0	Shoot	R06I05W01	NA	Time 0 DNA pooled leaves 10 mg	1	5	6	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1366	T0	Shoot	R01I06W01	NA	Time 0 DNA pooled leaves 10 mg	1	6	1	Pooled plants	i6	Control
+KSTRAW1367	T0	Shoot	R02I06W01	NA	Time 0 DNA pooled leaves 10 mg	1	6	2	Pooled plants	i6	Control
+KSTRAW1368	T0	Shoot	R03I06W01	NA	Time 0 DNA pooled leaves 10 mg	1	6	3	Pooled plants	i6	Control
+KSTRAW1369	T0	Shoot	R04I06W01	NA	Time 0 DNA pooled leaves 10 mg	1	6	4	Pooled plants	i6	Control
+KSTRAW1370	T0	Shoot	R05I06W01	NA	Time 0 DNA pooled leaves 10 mg	1	6	5	Pooled plants	i6	Control
+KSTRAW1371	T0	Shoot	R06I06W01	NA	Time 0 DNA pooled leaves 10 mg	1	6	6	Pooled plants	i6	Control
+KSTRAW1372	T0	Shoot	R07I06W01	NA	Time 0 DNA pooled leaves 10 mg	1	6	7	Pooled plants	i6	Control
+KSTRAW1375	T0	Shoot	R03I01W02	NA	Time 0 DNA pooled leaves 10 mg	2	1	3	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1377	T0	Shoot	R05I01W02	NA	Time 0 DNA pooled leaves 10 mg	2	1	5	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1380	T0	Shoot	R01I02W02	NA	Time 0 DNA pooled leaves 10 mg	2	2	1	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1381	T0	Shoot	R02I02W02	NA	Time 0 DNA pooled leaves 10 mg	2	2	2	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1382	T0	Shoot	R03I02W02	NA	Time 0 DNA pooled leaves 10 mg	2	2	3	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1383	T0	Shoot	R04I02W02	NA	Time 0 DNA pooled leaves 10 mg	2	2	4	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1384	T0	Shoot	R05I02W02	NA	Time 0 DNA pooled leaves 10 mg	2	2	5	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1385	T0	Shoot	R06I02W02	NA	Time 0 DNA pooled leaves 10 mg	2	2	6	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1386	T0	Shoot	R07I02W02	NA	Time 0 DNA pooled leaves 10 mg	2	2	7	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1387	T0	Shoot	R01I03W02	NA	Time 0 DNA pooled leaves 10 mg	2	3	1	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1388	T0	Shoot	R02I03W02	NA	Time 0 DNA pooled leaves 10 mg	2	3	2	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1389	T0	Shoot	R03I03W02	NA	Time 0 DNA pooled leaves 10 mg	2	3	3	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1390	T0	Shoot	R04I03W02	NA	Time 0 DNA pooled leaves 10 mg	2	3	4	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1394	T0	Shoot	R01I04W02	NA	Time 0 DNA pooled leaves 10 mg	2	4	1	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1395	T0	Shoot	R02I04W02	NA	Time 0 DNA pooled leaves 10 mg	2	4	2	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1396	T0	Shoot	R03I04W02	NA	Time 0 DNA pooled leaves 10 mg	2	4	3	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1397	T0	Shoot	R04I04W02	NA	Time 0 DNA pooled leaves 10 mg	2	4	4	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1399	T0	Shoot	R06I04W02	NA	Time 0 DNA pooled leaves 10 mg	2	4	6	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1400	T0	Shoot	R07I04W02	NA	Time 0 DNA pooled leaves 10 mg	2	4	7	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1402	T0	Shoot	R02I05W02	NA	Time 0 DNA pooled leaves 10 mg	2	5	2	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1406	T0	Shoot	R06I05W02	NA	Time 0 DNA pooled leaves 10 mg	2	5	6	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1408	T0	Shoot	R01I06W02	NA	Time 0 DNA pooled leaves 10 mg	2	6	1	Pooled plants	i6	Control
+KSTRAW1411	T0	Shoot	R04I06W02	NA	Time 0 DNA pooled leaves 10 mg	2	6	4	Pooled plants	i6	Control
+KSTRAW1412	T0	Shoot	R05I06W02	NA	Time 0 DNA pooled leaves 10 mg	2	6	5	Pooled plants	i6	Control
+KSTRAW1414	T0	Shoot	R07I06W02	NA	Time 0 DNA pooled leaves 10 mg	2	6	7	Pooled plants	i6	Control
+KSTRAW1415	T0	Shoot	R01I01W03	NA	Time 0 DNA pooled leaves 10 mg	3	1	1	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1416	T0	Shoot	R02I01W03	NA	Time 0 DNA pooled leaves 10 mg	3	1	2	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1417	T0	Shoot	R03I01W03	NA	Time 0 DNA pooled leaves 10 mg	3	1	3	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1418	T0	Shoot	R04I01W03	NA	Time 0 DNA pooled leaves 10 mg	3	1	4	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1419	T0	Shoot	R05I01W03	NA	Time 0 DNA pooled leaves 10 mg	3	1	5	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1420	T0	Shoot	R06I01W03	NA	Time 0 DNA pooled leaves 10 mg	3	1	6	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1421	T0	Shoot	R07I01W03	NA	Time 0 DNA pooled leaves 10 mg	3	1	7	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1422	T0	Shoot	R01I02W03	NA	Time 0 DNA pooled leaves 10 mg	3	2	1	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1423	T0	Shoot	R02I02W03	NA	Time 0 DNA pooled leaves 10 mg	3	2	2	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1424	T0	Shoot	R03I02W03	NA	Time 0 DNA pooled leaves 10 mg	3	2	3	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1425	T0	Shoot	R04I02W03	NA	Time 0 DNA pooled leaves 10 mg	3	2	4	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1426	T0	Shoot	R05I02W03	NA	Time 0 DNA pooled leaves 10 mg	3	2	5	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1427	T0	Shoot	R06I02W03	NA	Time 0 DNA pooled leaves 10 mg	3	2	6	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1428	T0	Shoot	R07I02W03	NA	Time 0 DNA pooled leaves 10 mg	3	2	7	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1429	T0	Shoot	R01I03W03	NA	Time 0 DNA pooled leaves 10 mg	3	3	1	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1430	T0	Shoot	R02I03W03	NA	Time 0 DNA pooled leaves 10 mg	3	3	2	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1432	T0	Shoot	R04I03W03	NA	Time 0 DNA pooled leaves 10 mg	3	3	4	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1433	T0	Shoot	R05I03W03	NA	Time 0 DNA pooled leaves 10 mg	3	3	5	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1434	T0	Shoot	R06I03W03	NA	Time 0 DNA pooled leaves 10 mg	3	3	6	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1435	T0	Shoot	R07I03W03	NA	Time 0 DNA pooled leaves 10 mg	3	3	7	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1436	T0	Shoot	R01I04W03	NA	Time 0 DNA pooled leaves 10 mg	3	4	1	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1437	T0	Shoot	R02I04W03	NA	Time 0 DNA pooled leaves 10 mg	3	4	2	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1438	T0	Shoot	R03I04W03	NA	Time 0 DNA pooled leaves 10 mg	3	4	3	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1439	T0	Shoot	R04I04W03	NA	Time 0 DNA pooled leaves 10 mg	3	4	4	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1440	T0	Shoot	R05I04W03	NA	Time 0 DNA pooled leaves 10 mg	3	4	5	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1442	T0	Shoot	R07I04W03	NA	Time 0 DNA pooled leaves 10 mg	3	4	7	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1443	T0	Shoot	R01I05W03	NA	Time 0 DNA pooled leaves 10 mg	3	5	1	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1444	T0	Shoot	R02I05W03	NA	Time 0 DNA pooled leaves 10 mg	3	5	2	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1446	T0	Shoot	R04I05W03	NA	Time 0 DNA pooled leaves 10 mg	3	5	4	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1447	T0	Shoot	R05I05W03	NA	Time 0 DNA pooled leaves 10 mg	3	5	5	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1449	T0	Shoot	R07I05W03	NA	Time 0 DNA pooled leaves 10 mg	3	5	7	Pooled plants	post_inoc_pre_stress	True Sample
+KSTRAW1450	T0	Shoot	R01I06W03	NA	Time 0 DNA pooled leaves 10 mg	3	6	1	Pooled plants	i6	Control
+KSTRAW1451	T0	Shoot	R02I06W03	NA	Time 0 DNA pooled leaves 10 mg	3	6	2	Pooled plants	i6	Control
+KSTRAW1452	T0	Shoot	R03I06W03	NA	Time 0 DNA pooled leaves 10 mg	3	6	3	Pooled plants	i6	Control
+KSTRAW1453	T0	Shoot	R04I06W03	NA	Time 0 DNA pooled leaves 10 mg	3	6	4	Pooled plants	i6	Control
+KSTRAW1454	T0	Shoot	R05I06W03	NA	Time 0 DNA pooled leaves 10 mg	3	6	5	Pooled plants	i6	Control
+KSTRAW1455	T0	Shoot	R06I06W03	NA	Time 0 DNA pooled leaves 10 mg	3	6	6	Pooled plants	i6	Control
+KSTRAW1456	T0	Shoot	R07I06W03	NA	Time 0 DNA pooled leaves 10 mg	3	6	7	Pooled plants	i6	Control

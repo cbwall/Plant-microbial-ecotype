@@ -1,0 +1,2093 @@
+---
+title: "Strawberries Revamped"
+author: "L Vilonen, CB Wall"
+date: "5/5/2023"
+output:
+  html_document:
+    code_folding: hide
+    toc: yes
+    toc_depth: 4
+    toc_float: yes
+  pdf_document:
+    toc: yes
+    toc_depth: '4'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+ADD root/shoot graph codes here
+
+Root/shoot weight graphs:
+
+First read in the raw data and pair it down to what we're looking for.
+
+```{r, message=FALSE, warning=FALSE, results='hide'}
+# load packages
+if (!require("pacman")) install.packages("pacman") # for rapid install if not in library
+
+# use pacman to load all the packages you are missing!
+pacman::p_load("car", "lme4", "lmerTest", "pbkrtest", "emmeans", "ggplot2", "tidyverse", "dplyr", "grid", "gridExtra", "patchwork")
+
+
+
+#Pair down raw data. I subset everything that was unnecessary.
+shootrootwithcontrol<-read.csv('data/strawberries_raw_full_data.csv',header=TRUE)
+shootrootwithcontrol %>% drop_na()
+shootroot_step1removal<-subset(shootrootwithcontrol,TimePoint!="T0"&TimePoint!="Control"&Type!="Control")
+shootroot_final<-shootroot_step1removal %>% drop_na()
+shootroot_inoc23removed<-subset(shootroot_final,Inoculation!="2"&Inoculation!="3")
+shootroot_inoc23removed$Inoculation<-as.factor(shootroot_inoc23removed$Inoculation)
+shootroot_inoc23removed$Inoculation<-factor(shootroot_inoc23removed$Inoculation,levels=c("Dry Inoculation","Medium Inoculation","Wet Inoculation","No Inoculation"))
+shootroot_inoc23removed$Water<-as.factor(shootroot_inoc23removed$Water)
+shootroot_inoc23removed$Water<-factor(shootroot_inoc23removed$Water,levels=c("Low","Medium","High"))
+shootsonlywithcontrol<-subset(shootroot_inoc23removed,Type!="Root")
+rootsonlywithcontrol<-subset(shootroot_inoc23removed,Type!="Shoot")
+
+```
+
+check data normality: (yikes very very skewed)
+```{r}
+hist(shootroot_inoc23removed$WeightGrams)
+hist(shootsonly$WeightGrams)
+hist(rootsonly$WeightGrams)
+```
+
+check assumptions shoots (qqplot not normal)
+```{r}
+typeIIIModelshoot<-lm(WeightGrams~Inoculation*Water,data=shootsonly)
+plot(typeIIIModelshoot)
+```
+
+check assumptions roots (qqplot not normal)
+```{r}
+typeIIIModelroot<-lm(WeightGrams~Inoculation*Water,data=rootsonly)
+plot(typeIIIModelroot)
+```
+
+boxplot:
+```{r,width=20}
+
+boxplot<-ggplot(shootroot_inoc23removed,aes(Water,WeightGrams,fill=Inoculation)) +
+  facet_wrap(.~Type)+
+  geom_boxplot(position=position_dodge())+
+  
+  ylab("Weight (g)") +
+  scale_fill_manual(values=c("red", "#E69F00", "#56B4E9","green"))+
+  
+  theme(
+    axis.text = element_text(color='black',size=10),
+    axis.title = element_text(color='black',size=12),
+    axis.ticks = element_line(color='black'),
+    legend.title = element_text(size=18),
+    panel.background = element_rect(fill=NA,color='black'),
+    panel.grid = element_blank(),
+    plot.title=element_text(size=20,face="bold",vjust=2))
+
+boxplot
+
+#ggsave(filename = "mainfigstawberries.pdf",
+      #plot = boxplot,
+      #bg = "transparent",
+      #width = 10, height = 6, units = "in",
+      #dpi = 600)
+
+```
+
+
+
+Stats for without proportion:
+
+```{r, results='hide'}
+#subset by roots and shoots
+shootsonly<-subset(shootroot_inoc23removed,Type!="Root")
+rootsonly<-subset(shootroot_inoc23removed,Type!="Shoot")
+#subset each out by water treatment
+shootlow<-subset(shootsonly,Water!="Medium"&Water!="High")
+shootmed<-subset(shootsonly,Water!="Low"&Water!="High")
+shoothigh<-subset(shootsonly,Water!="Medium"&Water!="Low")
+rootlow<-subset(rootsonly,Water!="Medium"&Water!="High")
+rootmed<-subset(rootsonly,Water!="Low"&Water!="High")
+roothigh<-subset(rootsonly,Water!="Medium"&Water!="Low")
+```
+
+First stats without proportions
+
+```{r}
+typeIIIModelshoot<-lm(WeightGrams~Inoculation*Water,data=shootsonly)
+Anova(typeIIIModelshoot,type=3)
+#emmeans(typeIIIModelshoot,pairwise~Water|Inoculation)
+
+typeIIIModelroot<-lm(WeightGrams~Inoculation*Water,data=rootsonly)
+Anova(typeIIIModelroot,type=3)
+#emmeans(typeIIIModelroot,pairwise~Water|Inoculation)
+
+```
+
+making proportion graph
+I believe we need to remake shootsonlywith control. I don't see it in the code above.
+```{r}
+
+#View(shootsonlywithcontrol)
+#View(rootsonlywithcontrol)
+library(dplyr)
+shootsonlywithcontrol <- shootsonlywithcontrol %>% 
+       rename("shoot_weight" = "WeightGrams")
+rootsonlywithcontrol <- rootsonlywithcontrol %>% 
+       rename("root_weight" = "WeightGrams")
+shootsonly_premerge<-subset(shootsonlywithcontrol,select = -c(SampleID,TimePoint,Type,SampleNotes,Water,Inoculation,Replicate,PlantNotes,SampleType,Sample_or_Control))
+rootshoot_merge <- merge(shootsonly_premerge,rootsonlywithcontrol,by="PlantID")
+View(rootshoot_merge)
+rootshoot_merge <-subset(rootshoot_merge, select = -c(Type,SampleNotes,PlantNotes))
+rootshoot_merge$total_weight<-rootshoot_merge$shoot_weight+rootshoot_merge$root_weight
+rootshoot_merge$shoot_prop_weight<-rootshoot_merge$shoot_weight/rootshoot_merge$total_weight
+rootshoot_merge$root_prop_weight<-rootshoot_merge$root_weight/rootshoot_merge$total_weight
+```
+From here with rootshoot_merge, you can redo all the above to see what the data looks like
+
+```{r}
+hist(rootshoot_merge$root_prop_weight)
+hist(rootshoot_merge$shoot_prop_weight)
+```
+
+proportion graph
+```{r,width=20}
+#View(rootshoot_merge)
+longer_data <- rootshoot_merge %>%
+  pivot_longer(shoot_prop_weight:root_prop_weight, names_to = "type", values_to = "response")
+
+boxplot<-ggplot(longer_data,aes(Water,response,fill=Inoculation)) +
+  facet_wrap(.~type)+
+  geom_boxplot(position=position_dodge())+
+  
+  ylab("Percent of total weight") +
+  scale_fill_manual(values=c("red", "#E69F00", "#56B4E9","green"))+
+  
+  theme(
+    axis.text = element_text(color='black',size=10),
+    axis.title = element_text(color='black',size=12),
+    axis.ticks = element_line(color='black'),
+    legend.title = element_text(size=18),
+    panel.background = element_rect(fill=NA,color='black'),
+    panel.grid = element_blank(),
+    plot.title=element_text(size=20,face="bold",vjust=2))
+
+boxplot
+
+#ggsave(filename = "mainfigstawberries.pdf",
+      #plot = boxplot,
+      #bg = "transparent",
+      #width = 10, height = 6, units = "in",
+      #dpi = 600)
+
+```
+
+typeIIImodel proportion
+```{r}
+typeIIIModelshootprop<-lm(shoot_prop_weight~Inoculation*Water,data=rootshoot_merge)
+Anova(typeIIIModelshootprop,type=3)
+typeIIIModelshootpropem<-emmeans(typeIIIModelshootprop,pairwise~Inoculation|Water)
+typeIIIModelshootpropem
+
+
+typeIIIModelrootprop<-lm(root_prop_weight~Inoculation*Water,data=rootshoot_merge)
+Anova(typeIIIModelrootprop,type=3)
+typeIIIModelrootpropem<-emmeans(typeIIIModelrootprop,pairwise~Inoculation|Water)
+typeIIIModelrootpropem
+```
+
+
+mortality graph:
+```{r,results='hide',echo=FALSE}
+mortality.sheet<-read.csv("data/mortality graph.csv",header=TRUE)
+mortality.sheet<-subset(mortality.sheet,Inoculation!="2"&Inoculation!="3")
+mortality.sheet$Inoculation=as.factor(mortality.sheet$Inoculation)
+mortality.sheet$Water=as.factor(mortality.sheet$Water)
+
+mortality.sheet.binary<-read.csv("data/mortality_graph_binary.csv",header=TRUE)
+mortality.sheet.binary<-subset(mortality.sheet.binary,Inoculation!="2"&Inoculation!="3")
+mortality.sheet.binary.low<-subset(mortality.sheet.binary,Water!="Medium"&Water!="High")
+mortality.sheet.binary.medium<-subset(mortality.sheet.binary,Water!="Low"&Water!="High")
+mortality.sheet.binary.high<-subset(mortality.sheet.binary,Water!="Medium"&Water!="Low")
+
+glm.mortality.low<-glm(mortality ~ Inoculation, family=binomial,data=mortality.sheet.binary.low)
+summary(glm.mortality.low)
+em.low <- emmeans(glm.mortality.low, "Inoculation")
+contrast(em.low, "pairwise", adjust = "Tukey")
+
+glm.mortality.medium<-glm(mortality ~ Inoculation, family=binomial,data=mortality.sheet.binary.medium)
+summary(glm.mortality.medium)
+em.medium <- emmeans(glm.mortality.medium, "Inoculation")
+contrast(em.medium, "pairwise", adjust = "Tukey")
+
+glm.mortality.high<-glm(mortality ~ Inoculation, family=binomial,data=mortality.sheet.binary.high)
+summary(glm.mortality.medium)
+em.medium <- emmeans(glm.mortality.medium, "Inoculation")
+contrast(em.medium, "pairwise", adjust = "Tukey")
+
+
+mortality_prop_data<-mortality.sheet %>%
+  group_by(Water, Inoculation) %>% 
+  summarize(prop = sum(mortality=="alive") / n())
+mortality_prop_data$Water<-factor(mortality_prop_data$Water,levels=c("Low","Medium","High"))
+mortality_prop_data$Inoculation<-factor(mortality_prop_data$Inoculation,levels=c("Dry","Medium","Wet","None"))
+```
+
+# Mortality Graph
+```{r}
+library(ggplot2)
+mortality<-ggplot(mortality_prop_data,aes(Inoculation,prop,fill=Inoculation))+
+  geom_bar(stat="identity")+
+  facet_wrap(.~Water)+
+  ylab("% Alive") +
+  scale_fill_manual(values=c("red", "#E69F00", "#56B4E9","green"))+ 
+  theme(
+    axis.text = element_text(color='black',size=10),
+    axis.title = element_text(color='black',size=12),
+    axis.ticks = element_line(color='black'),
+    legend.title = element_text(size=18),
+    panel.background = element_rect(fill=NA,color='black'),
+    panel.grid = element_blank(),
+    plot.title=element_text(size=20,face="bold",vjust=2))
+mortality
+
+ggsave(filename = "mortality.pdf",
+      plot = mortality,
+      bg = "transparent",
+      width = 10, height = 6, units = "in",
+      dpi = 600)
+
+```
+
+Fix ASV table and taxonomy for mctoolsr into one dataframe. Strawberries
+Map is already made.
+
+```{r, eval=FALSE}
+#setwd("~/Desktop/Strawberries/Data for microbiome analysis/")
+#ASV_table<-read.csv('asv_table.csv',header=FALSE)
+#ASV_table_transpose<-t(ASV_table)
+#library(janitor)
+#ASV_table_transpose<-janitor::row_to_names(ASV_table_transpose,row_number = 1)
+#taxonomy<-read.csv('taxonomy_table.csv',header=TRUE)
+#library(dplyr)
+#taxonomy <- taxonomy %>% 
+       #rename("#OTU ID" = "X")
+#taxonomy <- subset(taxonomy,select=-c(X.1,X.2))
+
+#library(tidyr)
+#taxonomy<-unite(taxonomy, col='taxonomy', c('Kingdom', 'Phylum', 'Class', 'Order', 'Family', 'Genus', 'Species'), sep=';')
+#ASV_table_mctoolsr <- merge(ASV_table_transpose,taxonomy,by="#OTU ID")
+#write.csv(ASV_table_mctoolsr,'ASV_table_mctoolsr.csv')
+```
+
+Make sure to change the csv file to a .txt file. I think it's easier to
+just do in excel, but you can also save out the file as a .txt file. I
+also like to check the formatting there too to make sure it all worked
+out.
+
+Next, input the data in mctoolsr. Kacie already decontamed, so no need
+to that. But we will need to remove low abundance ASVs and samples.
+
+```{r}
+#library(mctoolsr)
+#library(vegan)
+#library(car)
+#library(metacoder)
+#library(emmeans)
+#library(multcompView)
+#library(dplyr)
+
+#inputraw <- load_taxa_table("ASV_table_mctoolsr.txt", "strawb_miseq_map.txt")
+```
+
+```{r}
+#remove low abundance ASVs 
+#asvsums <- rowSums(input$data_loaded)
+#summary(asvsums)
+#sum(asvsums==0)
+#sort(asvsums)[sum(asvsums==1)]
+#sum(asvsums==1)
+#tail(sort(asvsums),5)
+#head(sort(asvsums),5)
+```
+
+```{r, message=FALSE}
+#remove low abundance Samples 
+#sampsums <- colSums(input$data_loaded)
+#summary(sampsums)
+#sum(sampsums==0)
+#tail(sort(sampsums),5)
+#sum(sampsums<max(sampsums)/10)
+#newmax <- tail(sort(sampsums))[2]
+#sum(sampsums<newmax/10)
+#sum(sampsums<1000)
+#sort(sampsums<1000)
+```
+
+From this, let's remove ASV1964, ASV1965, ASV1966, and ASV 1968. Then
+let's remove the 88 samples with less than 1000 reads.
+
+```{r}
+#input$data_loaded<-input$data_loaded[c(1:1957),]
+#transformed<-t(input$data_loaded)
+#transformedremoved<-subset(transformed,rowSums(transformed)>1000)
+#input$data_loaded<-t(transformedremoved)
+#input$map_loaded<-subset(input$map_loaded,rowSums(transformed)>1000)
+#input$taxonomy_loaded<-input$taxonomy_loaded[c(1:1957),]
+```
+
+For some reason, once you mess with the dataframe, you can't go back. So
+we need to download these as csvs, change them to .txt and then re-merge
+them and download the dataframe again. Very annoying, but hopefully it
+will be easy to folow:
+
+```{r, eval=FALSE}
+#write.csv(input$data_loaded,'output/data_loaded_strawberries.csv')
+#write.csv(input$map_loaded,'output/map_loaded_strawberries.csv')
+#write.csv(input$taxonomy_loaded,'output/taxonomy_loaded_strawberries.csv')
+```
+
+Read in data and taxonomy
+
+```{r, eval=FALSE}
+#table<-read.csv('data_loaded_strawberries.csv', header=TRUE)
+#taxonomy<-read.csv('taxonomy_loaded_strawberries.csv', header=TRUE)
+#library(tidyr)
+#taxonomy<-unite(taxonomy, col='taxonomy', c('taxonomy1', 'taxonomy2', 'taxonomy3', 'taxonomy4', 'taxonomy5', 'taxonomy6', 'taxonomy7'), sep=';')
+#ASV_table_postfiltering <- merge(table,taxonomy,by="X.OTU.ID")
+#write.csv(ASV_table_postfiltering,'ASV_table_postfiltering.csv')
+```
+
+On your computer turn both the map and ASV table with taxonomy into text
+files. Make sure to rename as "#OTU ID". Re input these and then we are
+good to go.
+
+```{r, message=FALSE, warning=FALSE, results='hide'}
+library(mctoolsr)
+library(vegan)
+library(car)
+library(metacoder)
+library(emmeans)
+library(multcompView)
+library(dplyr)
+
+input <- load_taxa_table("ASV_table_postfiltering.txt", "map_loaded_strawberries.txt")
+```
+
+Then let's start with just looking at the basic NMDS plot between the
+inoculations after the stress. Let's do a lot of filtering first.
+
+```{r, message=FALSE, warning=FALSE, results='hide'}
+#keep only time point1
+inputtimepoint1only = filter_data(input, 'TimePoint', keep_vals = 'T1')
+#remove inoculum that we're not using
+inputstep2 =filter_data(inputtimepoint1only, 'Inoculation', filter_vals = '2')
+inputstep3 =filter_data(inputstep2, 'Inoculation', filter_vals = '3')
+#Let's separate into roots and shoots
+roots_post_stress = filter_data(inputstep3, 'Type', keep_vals = 'Root')
+shoots_post_stress = filter_data(inputstep3, 'Type', keep_vals = 'Shoot')
+```
+
+Hellinger Transformation only works after you've filterd the samples you
+want (not sure why!). But be sure to filter first and then do the
+transformation
+
+```{r,results='hide', message=FALSE, warning=FALSE}
+library(labdsv)
+otuTAB<-roots_post_stress$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+#View(hell)
+roots_post_stress$data_loaded<-t(hell)
+otuTAB<-shoots_post_stress$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+#View(hell)
+shoots_post_stress$data_loaded<-t(hell)
+```
+
+Finally it is NMDS time yay! Permanova first
+
+```{r}
+#shoots first
+#you need to first load the data and make it a data frame. Then transpose the data frame. Add the map loaded too
+otuTAB<-shoots_post_stress$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+mta<-shoots_post_stress$map_loaded
+#do as factor
+mta$Water <- as.factor(mta$Water)
+mta$Inoculation <- as.factor(mta$Inoculation)
+
+library(vegan)
+#make the model
+model1<-adonis2(otuTABtranspose~Water*Inoculation,data=mta,permutations=999,method="bray")
+model1
+
+mtapairwise<-unite(mta,c='water_inoculation',c('Water','Inoculation'),sep='-')
+library(pairwiseAdonis)
+
+pair.mod<-pairwise.adonis(otuTABtranspose,factors=mtapairwise$water_inoculation)
+pair.mod
+
+
+#roots second
+#you need to first load the data and make it a data frame. Then transpose the data frame. Add the map loaded too
+otuTAB<-roots_post_stress$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+mta<-roots_post_stress$map_loaded
+#do as factor
+mta$Water <- as.factor(mta$Water)
+mta$Inoculation <- as.factor(mta$Inoculation)
+
+#make the model
+model1<-adonis2(otuTABtranspose~Water*Inoculation,data=mta,permutations=999,method="bray")
+model1
+
+mtapairwise<-unite(mta,c='water_inoculation',c('Water','Inoculation'),sep='-')
+pair.mod<-pairwise.adonis(otuTABtranspose,factors=mtapairwise$water_inoculation)
+pair.mod
+```
+
+Everything is significant including pairwise adonis.
+
+Let's make the plot:
+
+```{r, results='hide', message=FALSE, warning=FALSE}
+shoot.mds<-metaMDS(t(shoots_post_stress$data_loaded))
+shoot<-scores(shoot.mds)
+data.scoresshoot <- as.data.frame(shoot$sites) 
+data.scoresshoot$Water <- shoots_post_stress$map_loaded$Water
+data.scoresshoot$Inoculation <- shoots_post_stress$map_loaded$Inoculation
+
+
+root.mds<-metaMDS(t(roots_post_stress$data_loaded))
+root<-scores(root.mds)
+data.scoresroot <- as.data.frame(root$sites) 
+data.scoresroot$Water <- roots_post_stress$map_loaded$Water
+data.scoresroot$Inoculation <- roots_post_stress$map_loaded$Inoculation
+
+```
+
+```{r, fig.height=5, fig.width=10, message=FALSE, warning=FALSE}
+library(ggplot2)
+
+b<-ggplot(data=data.scoresshoot,aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=factor(Inoculation))) + 
+  scale_color_manual(values=c("red", "#E69F00", "#56B4E9","green"))+ 
+  ggtitle("Shoots")+
+  geom_point(data=data.scoresshoot,aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=factor(Inoculation))) + # add the point markers
+
+  
+  theme(
+    axis.text = element_text(color='black',size=10),
+    axis.title = element_text(color='black',size=12),
+    axis.ticks = element_line(color='black'),
+    legend.title = element_text(size=8),
+    panel.background = element_rect(fill=NA,color='black'),
+    panel.grid = element_blank(),
+    
+    plot.title=element_text(size=20,face="bold",vjust=2))
+
+library(patchwork)
+
+
+
+a<-ggplot(data=data.scoresroot,aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=factor(Inoculation))) + 
+  scale_color_manual(values=c("red", "#E69F00", "#56B4E9","green"))+ 
+  ggtitle("Roots")+
+  geom_point(data=data.scoresroot,aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=factor(Inoculation))) + # add the point markers
+
+  
+  theme(
+    axis.text = element_text(color='black',size=10),
+    axis.title = element_text(color='black',size=12),
+    axis.ticks = element_line(color='black'),
+    legend.title = element_text(size=8),
+    panel.background = element_rect(fill=NA,color='black'),
+    panel.grid = element_blank(),
+    legend.position = "none",
+    plot.title=element_text(size=20,face="bold",vjust=2))
+
+both_plots<-a+b
+both_plots
+
+ggsave(filename = "both_plots.pdf",
+      plot = both_plots,
+      bg = "transparent",
+      width = 12, height = 6, units = "in",
+      dpi = 600)
+
+```
+
+Refilter time.
+
+```{r, results='hide'}
+#Let's view the original input map first
+#View(input$map_loaded)
+#Start by removing all roots. We can only do a time one with shoots
+inputshootsonly = filter_data(input, 'Type', keep_vals = 'Shoot')
+inputshootsonlyminus2 =filter_data(inputshootsonly, 'Inoculation', filter_vals = '2')
+inputshootsonlyminus3 =filter_data(inputshootsonlyminus2, 'Inoculation', filter_vals = '3')
+finalNMDSmovement = filter_data(inputshootsonlyminus3, 'TimePoint', filter_vals = 'Control')
+```
+
+Then, let's set up the data for the NMDS plot:
+
+```{r, results='hide', message=FALSE, warning=FALSE}
+#View(finalNMDSmovement$map_loaded)
+time.mds<-metaMDS(t(finalNMDSmovement$data_loaded))
+data.time <- as.data.frame(scores(time.mds)$sites) 
+data.time$Water <- finalNMDSmovement$map_loaded$Water
+data.time$Inoculation <- finalNMDSmovement$map_loaded$Inoculation
+data.time$TimePoint <- finalNMDSmovement$map_loaded$TimePoint
+data.time$PlantID <- finalNMDSmovement$map_loaded$PlantID
+#envfit
+finalNMDSmovement$map_loaded<-subset(finalNMDSmovement$map_loaded, select = -c(WeightGrams,SampleNotes, PlantNotes))
+finalNMDSmovement$map_loaded$Water<-as.factor(finalNMDSmovement$map_loaded$Water)
+finalNMDSmovement$map_loaded$Inoculation<-as.factor(finalNMDSmovement$map_loaded$Inoculation)
+finalNMDSmovement$map_loaded$TimeWater <- paste(finalNMDSmovement$map_loaded$TimePoint,finalNMDSmovement$map_loaded$Water)
+finalNMDSmovement$map_loaded$TimeInoculation <- paste(finalNMDSmovement$map_loaded$TimePoint,finalNMDSmovement$map_loaded$Inoculation)
+
+waterfinalvf <- envfit(time.mds~TimeWater, data=finalNMDSmovement$map_loaded, perm = 999)
+water.scrs.final <- as.data.frame(scores(waterfinalvf, display = "factors"))
+
+inocfinalvf <- envfit(time.mds~TimeInoculation, data=finalNMDSmovement$map_loaded, perm = 999)
+inoc.scrs.final <- as.data.frame(scores(inocfinalvf, display = "factors"))
+```
+
+```{r fig.height=5, fig.width=10}
+timewater<-ggplot(data=data.time,aes(x=NMDS1,y=NMDS2,color=factor(Water),shape=factor(TimePoint))) + 
+  ggtitle("Water Treatment")+
+  geom_point(data=data.time,aes(x=NMDS1,y=NMDS2,color=factor(Water),shape=factor(TimePoint))) +
+  geom_segment(aes(x = 0.3578361, xend = 0.0426045, y = -0.15348765, yend = -0.05051959),arrow = arrow(length = unit(0.25, "cm")), colour = "red") +
+  geom_segment(aes(x = 0.4132936, xend = -0.1758032, y = -0.10041272, yend = 0.17751674),arrow = arrow(length = unit(0.25, "cm")), colour = "green") +
+  geom_segment(aes(x = 0.2591112, xend = -0.2842585, y = -0.19631161, yend = 0.06303771),arrow = arrow(length = unit(0.25, "cm")), colour = "blue") +
+ 
+  theme(
+    axis.text = element_text(color='black',size=10),
+    axis.title = element_text(color='black',size=12),
+    axis.ticks = element_line(color='black'),
+    legend.title = element_text(size=8),
+    panel.background = element_rect(fill=NA,color='black'),
+    panel.grid = element_blank(),
+    
+    plot.title=element_text(size=20,face="bold",vjust=2))
+
+
+timeinoculation<-ggplot(data=data.time,aes(x=NMDS1,y=NMDS2,color=factor(Inoculation),shape=factor(TimePoint))) + 
+  scale_color_manual(values=c("red", "#E69F00", "#56B4E9","green"))+ 
+  ggtitle("Inoculation")+
+  geom_point(data=data.time,aes(x=NMDS1,y=NMDS2,color=factor(Inoculation),shape=factor(TimePoint))) + # add the point markers
+  geom_segment(aes(x = 0.27865686, xend = -0.35505773, y = -0.1568050, yend = -0.3410676),arrow = arrow(length = unit(0.25, "cm")), colour = "red") +
+  geom_segment(aes(x = 0.30840321, xend = -0.42205696, y = -0.1520957, yend = 0.1885330),arrow = arrow(length = unit(0.25, "cm")), colour = "#E69F00") +
+  geom_segment(aes(x = 0.34866122, xend = 0.09727238, y = -0.2057844, yend = 0.3355051),arrow = arrow(length = unit(0.25, "cm")), colour = "#56B4E9") +
+  geom_segment(aes(x = 0.38322169, xend = 0.13228889, y = -0.1386149, yend = 0.1352431),arrow = arrow(length = unit(0.25, "cm")), colour = "green") +
+  theme(
+    axis.text = element_text(color='black',size=10),
+    axis.title = element_text(color='black',size=12),
+    axis.ticks = element_line(color='black'),
+    legend.title = element_text(size=8),
+    panel.background = element_rect(fill=NA,color='black'),
+    panel.grid = element_blank(),
+    
+    plot.title=element_text(size=20,face="bold",vjust=2))
+library(patchwork)
+both_plots_move<-timewater+timeinoculation
+both_plots_move
+
+ggsave(filename = "timeinoculation.pdf",
+      plot = timeinoculation,
+      bg = "transparent",
+      width = 8, height = 6, units = "in",
+      dpi = 600)
+#geom_path(aes(color=Trt), show.legend = F)
+
+```
+
+Let's see if these are significant:
+
+```{r}
+#shoots first
+#you need to first load the data and make it a data frame. Then transpose the data frame. Add the map loaded too
+otuTAB<-finalNMDSmovement$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+mta<-finalNMDSmovement$map_loaded
+#do as factor
+mta$Water <- as.factor(mta$Water)
+mta$Inoculation <- as.factor(mta$Inoculation)
+mta$TimePoint <- as.factor(mta$TimePoint)
+
+#make the model
+model1<-adonis2(otuTABtranspose~Water*TimePoint,data=mta,permutations=999,method="bray")
+model1
+
+model2<-adonis2(otuTABtranspose~Inoculation*TimePoint,data=mta,permutations=999,method="bray")
+model2
+
+
+```
+
+Let's look at T0 only
+```{r, results='hide',echo=FALSE}
+#Let's view the original input map first
+#View(input$map_loaded)
+#Start by removing all roots. We can only do a time one with shoots
+inputshootsonly = filter_data(input, 'Type', keep_vals = 'Shoot')
+inputshootsonlyminus2 =filter_data(inputshootsonly, 'Inoculation', filter_vals = '2')
+inputshootsonlyminus3 =filter_data(inputshootsonlyminus2, 'Inoculation', filter_vals = '3')
+finalNMDSmovement = filter_data(inputshootsonlyminus3, 'TimePoint', keep_vals = 'T0')
+```
+
+```{r,results='hide', message=FALSE, warning=FALSE,echo=FALSE}
+library(labdsv)
+otuTAB<-finalNMDSmovement$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+#View(hell)
+finalNMDSmovement$data_loaded<-t(hell)
+```
+
+```{r, results='hide',echo=FALSE}
+time.mds<-metaMDS(t(finalNMDSmovement$data_loaded))
+data.time <- as.data.frame(scores(time.mds)$sites) 
+data.time$Water <- finalNMDSmovement$map_loaded$Water
+data.time$Inoculation <- finalNMDSmovement$map_loaded$Inoculation
+data.time$Water<-as.factor(data.time$Water)
+data.time$Inoculation<-as.factor(data.time$Inoculation)
+```
+
+# T0 Graph Only
+```{r, message=FALSE, warning=FALSE}
+library(ggplot2)
+ggplot(data=data.time,aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=factor(Inoculation))) + 
+  
+  ggtitle("T0 Shoots")+
+  geom_point(data=data.time,aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=factor(Inoculation))) + # add the point markers
+  stat_ellipse(data=data.time,aes(x=NMDS1,y=NMDS2,shape=factor(Inoculation),color=factor(Inoculation)))+
+  
+  theme(
+    axis.text = element_text(color='black',size=10),
+    axis.title = element_text(color='black',size=12),
+    axis.ticks = element_line(color='black'),
+    legend.title = element_text(size=8),
+    panel.background = element_rect(fill=NA,color='black'),
+    panel.grid = element_blank(),
+    
+    plot.title=element_text(size=20,face="bold",vjust=2))
+
+
+```
+
+```{r}
+library(vegan)
+#make the model
+otuTAB<-finalNMDSmovement$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+mta<-finalNMDSmovement$map_loaded
+#do as factor
+mta$Water <- as.factor(mta$Water)
+mta$Inoculation <- as.factor(mta$Inoculation)
+
+
+model1<-adonis2(otuTABtranspose~Water*Inoculation,data=mta,permutations=999,method="bray")
+model1
+```
+
+re-filter
+```{r, results='hide',echo=FALSE}
+inputshootsonly = filter_data(input, 'Type', keep_vals = 'Shoot')
+inputshootsonlyminus2 =filter_data(inputshootsonly, 'Inoculation', filter_vals = '2')
+inputshootsonlyminus3 =filter_data(inputshootsonlyminus2, 'Inoculation', filter_vals = '3')
+inocNMDSmovement = filter_data(inputshootsonlyminus3, 'TimePoint', filter_vals = 'Control')
+inoc1NMDSmovement =filter_data(inocNMDSmovement, 'Inoculation', keep_vals = '1')
+inoc4NMDSmovement =filter_data(inocNMDSmovement, 'Inoculation', keep_vals = '4')
+inoc5NMDSmovement =filter_data(inocNMDSmovement, 'Inoculation', keep_vals = '5')
+inoc6NMDSmovement =filter_data(inocNMDSmovement, 'Inoculation', keep_vals = '6')
+```
+
+```{r,results='hide',echo=FALSE}
+otuTAB<-inoc1NMDSmovement$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+inoc1NMDSmovement$data_loaded<-t(hell)
+
+otuTAB<-inoc4NMDSmovement$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+inoc4NMDSmovement$data_loaded<-t(hell)
+
+otuTAB<-inoc5NMDSmovement$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+inoc5NMDSmovement$data_loaded<-t(hell)
+
+otuTAB<-inoc6NMDSmovement$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+inoc6NMDSmovement$data_loaded<-t(hell)
+```
+
+```{r, results='hide',echo=FALSE}
+inoc1.mds<-metaMDS(t(inoc1NMDSmovement$data_loaded))
+inoc1<-scores(inoc1.mds)
+data.scoresinoc1 <- as.data.frame(inoc1$sites) 
+data.scoresinoc1$Water <- inoc1NMDSmovement$map_loaded$Water
+data.scoresinoc1$Inoculation <- inoc1NMDSmovement$map_loaded$Inoculation
+data.scoresinoc1$TimePoint <- inoc1NMDSmovement$map_loaded$TimePoint
+data.scoresinoc1$PlantID <- inoc1NMDSmovement$map_loaded$PlantID
+inoc1NMDSmovement$map_loaded$TimeWater <- paste(inoc1NMDSmovement$map_loaded$TimePoint,inoc1NMDSmovement$map_loaded$Water)
+inoc1vf <- envfit(inoc1.mds~TimeWater, data=inoc1NMDSmovement$map_loaded, perm = 999)
+inoc1.scrs <- as.data.frame(scores(inoc1vf, display = "factors"))
+
+inoc4.mds<-metaMDS(t(inoc4NMDSmovement$data_loaded))
+inoc4<-scores(inoc4.mds)
+data.scoresinoc4 <- as.data.frame(inoc4$sites) 
+data.scoresinoc4$Water <- inoc4NMDSmovement$map_loaded$Water
+data.scoresinoc4$Inoculation <- inoc4NMDSmovement$map_loaded$Inoculation
+data.scoresinoc4$TimePoint <- inoc4NMDSmovement$map_loaded$TimePoint
+data.scoresinoc4$PlantID <- inoc4NMDSmovement$map_loaded$PlantID
+inoc4NMDSmovement$map_loaded$TimeWater <- paste(inoc4NMDSmovement$map_loaded$TimePoint,inoc4NMDSmovement$map_loaded$Water)
+inoc4vf <- envfit(inoc4.mds~TimeWater, data=inoc4NMDSmovement$map_loaded, perm = 999)
+inoc4.scrs <- as.data.frame(scores(inoc4vf, display = "factors"))
+
+inoc5.mds<-metaMDS(t(inoc5NMDSmovement$data_loaded))
+inoc5<-scores(inoc5.mds)
+data.scoresinoc5 <- as.data.frame(inoc5$sites) 
+data.scoresinoc5$Water <- inoc5NMDSmovement$map_loaded$Water
+data.scoresinoc5$Inoculation <- inoc5NMDSmovement$map_loaded$Inoculation
+data.scoresinoc5$TimePoint <- inoc5NMDSmovement$map_loaded$TimePoint
+data.scoresinoc5$PlantID <- inoc5NMDSmovement$map_loaded$PlantID
+inoc5NMDSmovement$map_loaded$TimeWater <- paste(inoc5NMDSmovement$map_loaded$TimePoint,inoc5NMDSmovement$map_loaded$Water)
+inoc5vf <- envfit(inoc5.mds~TimeWater, data=inoc5NMDSmovement$map_loaded, perm = 999)
+inoc5.scrs <- as.data.frame(scores(inoc5vf, display = "factors"))
+
+inoc6.mds<-metaMDS(t(inoc6NMDSmovement$data_loaded))
+inoc6<-scores(inoc6.mds)
+data.scoresinoc6 <- as.data.frame(inoc6$sites) 
+data.scoresinoc6$Water <- inoc6NMDSmovement$map_loaded$Water
+data.scoresinoc6$Inoculation <- inoc6NMDSmovement$map_loaded$Inoculation
+data.scoresinoc6$TimePoint <- inoc6NMDSmovement$map_loaded$TimePoint
+data.scoresinoc6$PlantID <- inoc6NMDSmovement$map_loaded$PlantID
+inoc6NMDSmovement$map_loaded$TimeWater <- paste(inoc6NMDSmovement$map_loaded$TimePoint,inoc6NMDSmovement$map_loaded$Water)
+inoc6vf <- envfit(inoc6.mds~TimeWater, data=inoc6NMDSmovement$map_loaded, perm = 999)
+inoc6.scrs <- as.data.frame(scores(inoc6vf, display = "factors"))
+```
+
+
+```{r fig.height=15, fig.width=15, message=FALSE, warning=FALSE}
+data.scoresinoc1$TimePoint<-factor(data.scoresinoc1$TimePoint,levels=c("T1","T0"))
+data.scoresinoc4$TimePoint<-factor(data.scoresinoc4$TimePoint,levels=c("T1","T0"))
+data.scoresinoc5$TimePoint<-factor(data.scoresinoc5$TimePoint,levels=c("T1","T0"))
+data.scoresinoc6$TimePoint<-factor(data.scoresinoc6$TimePoint,levels=c("T1","T0"))
+a<-ggplot(data=data.scoresinoc1,aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water))) + 
+  ggtitle("Inoculation 1")+
+  geom_point(data=data.scoresinoc1,aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water))) + 
+  stat_ellipse(data=data.scoresinoc1,aes(x=NMDS1,y=NMDS2,color=factor(Water),linetype=factor(TimePoint)))+
+  scale_color_manual(values=c("red", "#E69F00", "#56B4E9"))+ 
+  geom_segment(aes(x = 1.0748196, xend = -0.2792946, y = -0.129579748, yend = 0.206168365),arrow = arrow(), colour = "red") +
+  geom_segment(aes(x = 0.8359716, xend = 0.2345195, y = -0.007819216, yend = 0.300057000),arrow = arrow(), colour = "#E69F00") +
+  geom_segment(aes(x = 0.7974356, xend = -0.4957090, y = -0.211029418, yend = -0.370015554),arrow = arrow(), colour = "#56B4E9") +
+  theme(
+    axis.text = element_text(color='black',size=10),
+    axis.title = element_text(color='black',size=12),
+    axis.ticks = element_line(color='black'),
+    legend.title = element_text(size=8),
+    panel.background = element_rect(fill=NA,color='black'),
+    panel.grid = element_blank(),
+    legend.position = "none",
+    plot.title=element_text(size=20,face="bold",vjust=2))
+
+data.scoresinoc4$TimePoint<-factor(data.scoresinoc4$TimePoint,levels=c("T1","T0"))
+b<-ggplot(data=data.scoresinoc4,aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water))) + 
+  ggtitle("Inoculation 4")+
+  geom_point(data=data.scoresinoc4,aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water))) + 
+  stat_ellipse(data=data.scoresinoc4,aes(x=NMDS1,y=NMDS2,color=factor(Water),linetype=factor(TimePoint)))+
+  scale_color_manual(values=c("red", "#E69F00", "#56B4E9"))+ 
+  geom_segment(aes(x = -0.8064349, xend = -0.3221243, y = 0.1072066, yend = -0.4555394),arrow = arrow(), colour = "red") +
+  geom_segment(aes(x = -0.8296081, xend = 0.8910620, y = 0.2153826, yend = 0.3326888),arrow = arrow(), colour = "#E69F00") +
+  geom_segment(aes(x = -0.7438051, xend = 0.4923720, y = 0.1831681, yend = -0.2589884),arrow = arrow(), colour = "#56B4E9") +
+  theme(
+    axis.text = element_text(color='black',size=10),
+    axis.title = element_text(color='black',size=12),
+    axis.ticks = element_line(color='black'),
+    legend.title = element_text(size=8),
+    panel.background = element_rect(fill=NA,color='black'),
+    panel.grid = element_blank(),
+   
+    plot.title=element_text(size=20,face="bold",vjust=2))
+
+data.scoresinoc5$TimePoint<-factor(data.scoresinoc5$TimePoint,levels=c("T1","T0"))
+c<-ggplot(data=data.scoresinoc5,aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water))) + 
+  ggtitle("Inoculation 5")+
+  geom_point(data=data.scoresinoc5,aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water))) + 
+  stat_ellipse(data=data.scoresinoc5,aes(x=NMDS1,y=NMDS2,color=factor(Water),linetype=factor(TimePoint)))+
+  scale_color_manual(values=c("red", "#E69F00", "#56B4E9"))+ 
+  geom_segment(aes(x = 0.8798274, xend = 0.1156044, y = 0.012396957, yend = -0.191885618),arrow = arrow(), colour = "red") +
+  geom_segment(aes(x = 1.0058536, xend = -0.5117177, y = 0.186918089, yend = 0.096629614),arrow = arrow(), colour = "#E69F00") +
+  geom_segment(aes(x = 0.9322398, xend = -0.4299817, y = 0.050863641, yend = 0.008018499),arrow = arrow(), colour = "#56B4E9") +
+  theme(
+    axis.text = element_text(color='black',size=10),
+    axis.title = element_text(color='black',size=12),
+    axis.ticks = element_line(color='black'),
+    legend.title = element_text(size=8),
+    panel.background = element_rect(fill=NA,color='black'),
+    panel.grid = element_blank(),
+    legend.position = "none",
+    plot.title=element_text(size=20,face="bold",vjust=2))
+
+data.scoresinoc6$TimePoint<-factor(data.scoresinoc6$TimePoint,levels=c("T1","T0"))
+d<-ggplot(data=data.scoresinoc6,aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water))) + 
+  ggtitle("Inoculation 6")+
+  geom_point(data=data.scoresinoc6,aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water))) + 
+  stat_ellipse(data=data.scoresinoc6,aes(x=NMDS1,y=NMDS2,color=factor(Water),linetype=factor(TimePoint)))+
+  scale_color_manual(values=c("red", "#E69F00", "#56B4E9"))+ 
+  geom_segment(aes(x = -0.7826861, xend = 0.0963381, y = 0.116332603, yend = -0.012561138),arrow = arrow(), colour = "red") +
+  geom_segment(aes(x = -0.7975986, xend = 0.5303918, y = -0.044149099, yend = 0.226943871),arrow = arrow(), colour = "#E69F00") +
+  geom_segment(aes(x = -0.6673381, xend = 0.5452394, y = 0.009773014, yend = -0.256409510),arrow = arrow(), colour = "#56B4E9") +
+  theme(
+    axis.text = element_text(color='black',size=10),
+    axis.title = element_text(color='black',size=12),
+    axis.ticks = element_line(color='black'),
+    legend.title = element_text(size=8),
+    panel.background = element_rect(fill=NA,color='black'),
+    panel.grid = element_blank(),
+    legend.position = "none",
+    plot.title=element_text(size=20,face="bold",vjust=2))
+
+
+library(patchwork)
+inocalone<-(a+b)/(c+d)
+inocalone
+
+
+ggsave(filename = "timebyinoc.pdf",
+      plot = inocalone,
+      bg = "transparent",
+      width = 10, height = 8, units = "in",
+      dpi = 600)
+
+```
+
+
+beta dispersion:
+```{r}
+inoc1.dataframe <- as.data.frame(t(inoc1NMDSmovement$data_loaded))
+groups <- inoc1NMDSmovement$map_loaded$TimePoint
+disinoc1 <- vegdist(inoc1.dataframe,method="bray")
+bdinoc1<-betadisper(disinoc1,groups)
+anova(bdinoc1)
+pairwise.beta.disper.results.inoc1 <- permutest(bdinoc1, pairwise = TRUE, iter=9999)
+pairwise.beta.disper.results.inoc1
+
+inoc4.dataframe <- as.data.frame(t(inoc4NMDSmovement$data_loaded))
+groups <- inoc4NMDSmovement$map_loaded$TimePoint
+disinoc4 <- vegdist(inoc4.dataframe,method="bray")
+bdinoc4<-betadisper(disinoc4,groups)
+anova(bdinoc4)
+pairwise.beta.disper.results.inoc4 <- permutest(bdinoc4, pairwise = TRUE, iter=9999)
+pairwise.beta.disper.results.inoc4
+
+inoc5.dataframe <- as.data.frame(t(inoc5NMDSmovement$data_loaded))
+groups <- inoc5NMDSmovement$map_loaded$TimePoint
+disinoc5 <- vegdist(inoc5.dataframe,method="bray")
+bdinoc5<-betadisper(disinoc5,groups)
+anova(bdinoc5)
+pairwise.beta.disper.results.inoc5 <- permutest(bdinoc5, pairwise = TRUE, iter=9999)
+pairwise.beta.disper.results.inoc5
+
+bdinoc1
+bdinoc4
+bdinoc5
+```
+
+
+beta dispersion and mantel test. Let's do this with shoots and roots:
+
+```{r, message=FALSE, warning=FALSE, results='hide',echo=FALSE}
+
+library(labdsv)
+
+#keep only time point1
+inputtimepoint1only = filter_data(input, 'TimePoint', keep_vals = 'T1')
+#remove inoculum that we're not using
+inputstep2 =filter_data(inputtimepoint1only, 'Inoculation', filter_vals = '2')
+inputstep3 =filter_data(inputstep2, 'Inoculation', filter_vals = '3')
+#Let's separate into roots and shoots
+roots_post_stress = filter_data(inputstep3, 'Type', keep_vals = 'Root')
+shoots_post_stress = filter_data(inputstep3, 'Type', keep_vals = 'Shoot')
+
+
+otuTAB<-roots_post_stress$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+#View(hell)
+roots_post_stress$data_loaded<-t(hell)
+
+otuTAB<-shoots_post_stress$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+#View(hell)
+shoots_post_stress$data_loaded<-t(hell)
+```
+
+
+
+mantel test: (significant across inoculum, but not water treatment)
+```{r}
+roots.dataframe<-as.data.frame(t(roots_post_stress$data_loaded))
+dist.abund.root = vegdist(roots.dataframe, method = "bray")
+inoc <- roots_post_stress$map_loaded$Inoculation
+water <- roots_post_stress$map_loaded$Water
+dist.inoc = dist(inoc, method = "euclidean")
+dist.water = dist(water, method = "euclidean")
+abund_inoc = mantel(dist.abund.root, dist.inoc, method = "spearman", permutations = 9999, na.rm = TRUE)
+abund_inoc
+abund_water = mantel(dist.abund.root, dist.water, method = "spearman", permutations = 9999, na.rm = TRUE)
+abund_water
+
+
+```
+
+```{r}
+shoots.dataframe<-as.data.frame(t(shoots_post_stress$data_loaded))
+dist.abund.shoot = vegdist(shoots.dataframe, method = "bray")
+inoc <- shoots_post_stress$map_loaded$Inoculation
+water <- shoots_post_stress$map_loaded$Water
+dist.inoc = dist(inoc, method = "euclidean")
+dist.water = dist(water, method = "euclidean")
+abund_inoc = mantel(dist.abund.shoot, dist.inoc, method = "spearman", permutations = 9999, na.rm = TRUE)
+abund_inoc
+abund_water = mantel(dist.abund.shoot, dist.water, method = "spearman", permutations = 9999, na.rm = TRUE)
+abund_water
+
+
+```
+
+Let's make the shannon's diversity plots next: I have the slurry in the
+asv_mctools r one, but for some reason it was gone when we did the
+filtering. So we will take from that to grab the slurry samples.
+
+```{r,results='hide'}
+#inputraw has the slurry data so let's take that first. Then we will need to transform it too. 
+setwd("/Users/leenavilonen/Desktop/Strawberries/Data for microbiome analysis")
+inputraw <- load_taxa_table("ASV_table_mctoolsr.txt", "strawb_miseq_map.txt")
+slurryonly = filter_data(inputraw, 'SampleType', keep_vals = 'slurry')
+slurryinoc1 = filter_data(inputraw, 'Type', keep_vals = 'Inoculum 1')
+slurryinoc4 = filter_data(inputraw, 'Type', keep_vals = 'Inoculum 4')
+slurryinoc5 = filter_data(inputraw, 'Type', keep_vals = 'Inoculum 5')
+
+#Now that we have all three ready, let's transform them to match our other data:
+otuTAB<-slurryinoc1$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+#View(hell)
+slurryinoc1$data_loaded<-t(hell)
+otuTAB<-slurryinoc4$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+#View(hell)
+slurryinoc4$data_loaded<-t(hell)
+otuTAB<-slurryinoc5$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+#View(hell)
+slurryinoc5$data_loaded<-t(hell)
+#View(input$map_loaded)
+#Pair down the other data. We will have to hellinger transform this data too
+input <- load_taxa_table("ASV_table_postfiltering.txt", "map_loaded_strawberries.txt")
+inputstep5 = filter_data(input, 'TimePoint', keep_vals = 'T1')
+water1 = filter_data(inputstep5, 'Water', keep_vals = '1')
+water1inoc1 = filter_data(water1, 'Inoculation', keep_vals = '1')
+water1inoc4 = filter_data(water1, 'Inoculation', keep_vals = '4')
+water1inoc5 = filter_data(water1, 'Inoculation', keep_vals = '5')
+water2 = filter_data(inputstep5, 'Water', keep_vals = '2')
+water2inoc1 = filter_data(water2, 'Inoculation', keep_vals = '1')
+water2inoc4 = filter_data(water2, 'Inoculation', keep_vals = '4')
+water2inoc5 = filter_data(water2, 'Inoculation', keep_vals = '5')
+water3 = filter_data(inputstep5, 'Water', keep_vals = '3')
+water3inoc1 = filter_data(water3, 'Inoculation', keep_vals = '1')
+water3inoc4 = filter_data(water3, 'Inoculation', keep_vals = '4')
+water3inoc5 = filter_data(water3, 'Inoculation', keep_vals = '5')
+
+#transformation
+otuTAB<-water1inoc1$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+water1inoc1$data_loaded<-t(hell)
+otuTAB<-water1inoc4$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+water1inoc4$data_loaded<-t(hell)
+otuTAB<-water1inoc5$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+water1inoc5$data_loaded<-t(hell)
+
+otuTAB<-water2inoc1$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+water2inoc1$data_loaded<-t(hell)
+otuTAB<-water2inoc4$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+water2inoc4$data_loaded<-t(hell)
+otuTAB<-water2inoc5$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+water2inoc5$data_loaded<-t(hell)
+
+otuTAB<-water3inoc1$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+water3inoc1$data_loaded<-t(hell)
+otuTAB<-water3inoc4$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+water3inoc4$data_loaded<-t(hell)
+otuTAB<-water3inoc5$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+water3inoc5$data_loaded<-t(hell)
+
+```
+
+Now that we have the data, we can do shannon's diversity:
+
+```{r,results='hide'}
+#all shannon's diversity
+slurryinoc1shan<-diversity(t(slurryinoc1$data_loaded), index = "shannon")
+slurryinoc4shan<-diversity(t(slurryinoc4$data_loaded), index = "shannon")
+slurryinoc5shan<-diversity(t(slurryinoc5$data_loaded), index = "shannon")
+water1inoc1shan<-diversity(t(water1inoc1$data_loaded), index = "shannon")
+water1inoc4shan<-diversity(t(water1inoc4$data_loaded), index = "shannon")
+water1inoc5shan<-diversity(t(water1inoc5$data_loaded), index = "shannon")
+water2inoc1shan<-diversity(t(water2inoc1$data_loaded), index = "shannon")
+water2inoc4shan<-diversity(t(water2inoc4$data_loaded), index = "shannon")
+water2inoc5shan<-diversity(t(water2inoc5$data_loaded), index = "shannon")
+water3inoc1shan<-diversity(t(water3inoc1$data_loaded), index = "shannon")
+water3inoc4shan<-diversity(t(water3inoc4$data_loaded), index = "shannon")
+water3inoc5shan<-diversity(t(water3inoc5$data_loaded), index = "shannon")
+#species richness
+slurryinoc1rich<-specnumber(t(slurryinoc1$data_loaded))
+slurryinoc4rich<-specnumber(t(slurryinoc4$data_loaded))
+slurryinoc5rich<-specnumber(t(slurryinoc5$data_loaded))
+water1inoc1rich<-specnumber(t(water1inoc1$data_loaded))
+water1inoc4rich<-specnumber(t(water1inoc4$data_loaded))
+water1inoc5rich<-specnumber(t(water1inoc5$data_loaded))
+water2inoc1rich<-specnumber(t(water2inoc1$data_loaded))
+water2inoc4rich<-specnumber(t(water2inoc4$data_loaded))
+water2inoc5rich<-specnumber(t(water2inoc5$data_loaded))
+water3inoc1rich<-specnumber(t(water3inoc1$data_loaded))
+water3inoc4rich<-specnumber(t(water3inoc4$data_loaded))
+water3inoc5rich<-specnumber(t(water3inoc5$data_loaded))
+```
+
+Next, lets make the dataframe for the ggplot - shannon's (violin plot).
+We need to make sure we can panel it out too.
+
+```{r,results='hide'}
+#slurry1
+slurryinoc1shandf<-as.data.frame(slurryinoc1shan)
+colnames(slurryinoc1shandf)[1] ="shannon"
+treatment=c('slurry1','slurry1')
+type=c('slurry','slurry')
+slurryinoc1shandffinal<-cbind(slurryinoc1shandf,treatment,type)
+#slurry4
+slurryinoc4shandf<-as.data.frame(slurryinoc4shan)
+colnames(slurryinoc4shandf)[1] ="shannon"
+treatment=c('slurry4','slurry4')
+type=c('slurry','slurry')
+slurryinoc4shandffinal<-cbind(slurryinoc4shandf,treatment,type)
+#slurry5
+slurryinoc5shandf<-as.data.frame(slurryinoc5shan)
+colnames(slurryinoc5shandf)[1] ="shannon"
+treatment=c('slurry5','slurry5')
+type=c('slurry','slurry')
+slurryinoc5shandffinal<-cbind(slurryinoc5shandf,treatment,type)
+#water1inoc1
+water1inoc1shandf<-as.data.frame(water1inoc1shan)
+colnames(water1inoc1shandf)[1] ="shannon"
+treatment=c('water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1')
+type=c('water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1')
+water1inoc1shandffinal<-cbind(water1inoc1shandf,treatment,type)
+#water1inoc4
+water1inoc4shandf<-as.data.frame(water1inoc4shan)
+colnames(water1inoc4shandf)[1] ="shannon"
+treatment=c('water1inoc4','water1inoc4','water1inoc4','water1inoc4','water1inoc4','water1inoc4','water1inoc4','water1inoc4','water1inoc4','water1inoc4','water1inoc4','water1inoc4','water1inoc4','water1inoc4','water1inoc4','water1inoc4','water1inoc4','water1inoc4')
+type=c('water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1')
+water1inoc4shandffinal<-cbind(water1inoc4shandf,treatment,type)
+#water1inoc5
+water1inoc5shandf<-as.data.frame(water1inoc5shan)
+colnames(water1inoc5shandf)[1] ="shannon"
+treatment=c('water1inoc5','water1inoc5','water1inoc5','water1inoc5','water1inoc5','water1inoc5','water1inoc5','water1inoc5','water1inoc5','water1inoc5','water1inoc5','water1inoc5','water1inoc5','water1inoc5','water1inoc5','water1inoc5','water1inoc5','water1inoc5','water1inoc5','water1inoc5','water1inoc5')
+type=c('water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1')
+water1inoc5shandffinal<-cbind(water1inoc5shandf,treatment,type)
+#water2inoc1
+water2inoc1shandf<-as.data.frame(water2inoc1shan)
+colnames(water2inoc1shandf)[1] ="shannon"
+treatment=c('water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1')
+type=c('water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2')
+water2inoc1shandffinal<-cbind(water2inoc1shandf,treatment,type)
+#water2inoc4
+water2inoc4shandf<-as.data.frame(water2inoc4shan)
+colnames(water2inoc4shandf)[1] ="shannon"
+treatment=c('water2inoc4','water2inoc4','water2inoc4','water2inoc4','water2inoc4','water2inoc4','water2inoc4','water2inoc4','water2inoc4','water2inoc4','water2inoc4','water2inoc4','water2inoc4','water2inoc4','water2inoc4','water2inoc4','water2inoc4','water2inoc4','water2inoc4','water2inoc4','water2inoc4','water2inoc4','water2inoc4','water2inoc4','water2inoc4')
+type=c('water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2')
+water2inoc4shandffinal<-cbind(water2inoc4shandf,treatment,type)
+#water2inoc5
+water2inoc5shandf<-as.data.frame(water2inoc5shan)
+colnames(water2inoc5shandf)[1] ="shannon"
+treatment=c('water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5')
+type=c('water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2')
+water2inoc5shandffinal<-cbind(water2inoc5shandf,treatment,type)
+#water3inoc1
+water3inoc1shandf<-as.data.frame(water3inoc1shan)
+colnames(water3inoc1shandf)[1] ="shannon"
+treatment=c('water3inoc1','water3inoc1','water3inoc1','water3inoc1','water3inoc1','water3inoc1','water3inoc1','water3inoc1','water3inoc1','water3inoc1','water3inoc1','water3inoc1','water3inoc1','water3inoc1','water3inoc1','water3inoc1','water3inoc1','water3inoc1','water3inoc1','water3inoc1','water3inoc1','water3inoc1','water3inoc1','water3inoc1','water3inoc1')
+type=c('water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3')
+water3inoc1shandffinal<-cbind(water3inoc1shandf,treatment,type)
+#water3inoc4
+water3inoc4shandf<-as.data.frame(water3inoc4shan)
+colnames(water3inoc4shandf)[1] ="shannon"
+treatment=c('water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4')
+type=c('water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3')
+water3inoc4shandffinal<-cbind(water3inoc4shandf,treatment,type)
+#water3inoc4
+water3inoc5shandf<-as.data.frame(water3inoc5shan)
+colnames(water3inoc5shandf)[1] ="shannon"
+treatment=c('water3inoc5','water3inoc5','water3inoc5','water3inoc5','water3inoc5','water3inoc5','water3inoc5','water3inoc5','water3inoc5','water3inoc5','water3inoc5','water3inoc5','water3inoc5','water3inoc5','water3inoc5','water3inoc5','water3inoc5','water3inoc5','water3inoc5','water3inoc5','water3inoc5')
+type=c('water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3')
+water3inoc5shandffinal<-cbind(water3inoc5shandf,treatment,type)
+
+#now rbind them together
+shanfinalbind<-do.call("rbind",list(slurryinoc1shandffinal,slurryinoc4shandffinal,slurryinoc5shandffinal,water1inoc1shandffinal,water1inoc4shandffinal,water1inoc5shandffinal,water2inoc1shandffinal,water2inoc4shandffinal,water2inoc5shandffinal,water3inoc1shandffinal,water3inoc4shandffinal,water3inoc5shandffinal))
+```
+
+Next, lets make the dataframe for the ggplot - richness (violin plot).
+We need to make sure we can panel it out too.
+
+```{r,results='hide'}
+#slurry1
+slurryinoc1richdf<-as.data.frame(slurryinoc1rich)
+colnames(slurryinoc1richdf)[1] ="rich"
+treatment=c('slurry1','slurry1')
+type=c('slurry','slurry')
+slurryinoc1richdffinal<-cbind(slurryinoc1richdf,treatment,type)
+#slurry4
+slurryinoc4richdf<-as.data.frame(slurryinoc4rich)
+colnames(slurryinoc4richdf)[1] ="rich"
+treatment=c('slurry4','slurry4')
+type=c('slurry','slurry')
+slurryinoc4richdffinal<-cbind(slurryinoc4richdf,treatment,type)
+#slurry5
+slurryinoc5richdf<-as.data.frame(slurryinoc5rich)
+colnames(slurryinoc5richdf)[1] ="rich"
+treatment=c('slurry5','slurry5')
+type=c('slurry','slurry')
+slurryinoc5richdffinal<-cbind(slurryinoc5richdf,treatment,type)
+#water1inoc1
+water1inoc1richdf<-as.data.frame(water1inoc1rich)
+colnames(water1inoc1richdf)[1] ="rich"
+treatment=c('water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1','water1inoc1')
+type=c('water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1')
+water1inoc1richdffinal<-cbind(water1inoc1richdf,treatment,type)
+#water1inoc4
+water1inoc4richdf<-as.data.frame(water1inoc4rich)
+colnames(water1inoc4richdf)[1] ="rich"
+treatment=c('water1inoc4','water1inoc4','water1inoc4','water1inoc4','water1inoc4','water1inoc4','water1inoc4','water1inoc4','water1inoc4','water1inoc4','water1inoc4','water1inoc4','water1inoc4','water1inoc4','water1inoc4','water1inoc4','water1inoc4','water1inoc4')
+type=c('water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1')
+water1inoc4richdffinal<-cbind(water1inoc4richdf,treatment,type)
+#water1inoc5
+water1inoc5richdf<-as.data.frame(water1inoc5rich)
+colnames(water1inoc5richdf)[1] ="rich"
+treatment=c('water1inoc5','water1inoc5','water1inoc5','water1inoc5','water1inoc5','water1inoc5','water1inoc5','water1inoc5','water1inoc5','water1inoc5','water1inoc5','water1inoc5','water1inoc5','water1inoc5','water1inoc5','water1inoc5','water1inoc5','water1inoc5','water1inoc5','water1inoc5','water1inoc5')
+type=c('water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1','water1')
+water1inoc5richdffinal<-cbind(water1inoc5richdf,treatment,type)
+#water2inoc1
+water2inoc1richdf<-as.data.frame(water2inoc1rich)
+colnames(water2inoc1richdf)[1] ="rich"
+treatment=c('water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1','water2inoc1')
+type=c('water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2')
+water2inoc1richdffinal<-cbind(water2inoc1richdf,treatment,type)
+#water2inoc4
+water2inoc4richdf<-as.data.frame(water2inoc4rich)
+colnames(water2inoc4richdf)[1] ="rich"
+treatment=c('water2inoc4','water2inoc4','water2inoc4','water2inoc4','water2inoc4','water2inoc4','water2inoc4','water2inoc4','water2inoc4','water2inoc4','water2inoc4','water2inoc4','water2inoc4','water2inoc4','water2inoc4','water2inoc4','water2inoc4','water2inoc4','water2inoc4','water2inoc4','water2inoc4','water2inoc4','water2inoc4','water2inoc4','water2inoc4')
+type=c('water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2')
+water2inoc4richdffinal<-cbind(water2inoc4richdf,treatment,type)
+#water2inoc5
+water2inoc5richdf<-as.data.frame(water2inoc5rich)
+colnames(water2inoc5richdf)[1] ="rich"
+treatment=c('water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5','water2inoc5')
+type=c('water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2','water2')
+water2inoc5richdffinal<-cbind(water2inoc5richdf,treatment,type)
+#water3inoc1
+water3inoc1richdf<-as.data.frame(water3inoc1rich)
+colnames(water3inoc1richdf)[1] ="rich"
+treatment=c('water3inoc1','water3inoc1','water3inoc1','water3inoc1','water3inoc1','water3inoc1','water3inoc1','water3inoc1','water3inoc1','water3inoc1','water3inoc1','water3inoc1','water3inoc1','water3inoc1','water3inoc1','water3inoc1','water3inoc1','water3inoc1','water3inoc1','water3inoc1','water3inoc1','water3inoc1','water3inoc1','water3inoc1','water3inoc1')
+type=c('water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3')
+water3inoc1richdffinal<-cbind(water3inoc1richdf,treatment,type)
+#water3inoc4
+water3inoc4richdf<-as.data.frame(water3inoc4rich)
+colnames(water3inoc4richdf)[1] ="rich"
+treatment=c('water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4','water3inoc4')
+type=c('water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3')
+water3inoc4richdffinal<-cbind(water3inoc4richdf,treatment,type)
+#water3inoc4
+water3inoc5richdf<-as.data.frame(water3inoc5rich)
+colnames(water3inoc5richdf)[1] ="rich"
+treatment=c('water3inoc5','water3inoc5','water3inoc5','water3inoc5','water3inoc5','water3inoc5','water3inoc5','water3inoc5','water3inoc5','water3inoc5','water3inoc5','water3inoc5','water3inoc5','water3inoc5','water3inoc5','water3inoc5','water3inoc5','water3inoc5','water3inoc5','water3inoc5','water3inoc5')
+type=c('water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3','water3')
+water3inoc5richdffinal<-cbind(water3inoc5richdf,treatment,type)
+
+#now rbind them together
+richfinalbind<-do.call("rbind",list(slurryinoc1richdffinal,slurryinoc4richdffinal,slurryinoc5richdffinal,water1inoc1richdffinal,water1inoc4richdffinal,water1inoc5richdffinal,water2inoc1richdffinal,water2inoc4richdffinal,water2inoc5richdffinal,water3inoc1richdffinal,water3inoc4richdffinal,water3inoc5richdffinal))
+```
+
+Let's make the Shannon graph first and then the richness one just in
+case:
+
+```{r}
+shannonviolin<-ggplot(shanfinalbind,aes(x=treatment,y=shannon,color=factor(treatment))) + 
+  ggtitle("Water Treatment")+
+  geom_violin()+
+  facet_grid(.~type,scales ="free",space="free")+
+  theme(
+    axis.text = element_text(color='black',size=10),
+    axis.title = element_text(color='black',size=12),
+    axis.ticks = element_line(color='black'),
+    legend.title = element_text(size=8),
+    panel.background = element_rect(fill=NA,color='black'),
+    panel.grid = element_blank(),
+    plot.title=element_text(size=20,face="bold",vjust=2))
+
+shannonviolin
+
+ggsave(filename = "shannonviolin.pdf",
+      plot = shannonviolin,
+      bg = "transparent",
+      width = 12, height = 6, units = "in",
+      dpi = 600)
+```
+
+richnessgraph
+
+```{r}
+rich<-ggplot(richfinalbind,aes(x=treatment,y=rich,color=factor(treatment))) + 
+  ggtitle("Water Treatment")+
+  geom_violin()+
+  geom_point()+
+  facet_grid(.~type,scales ="free",space="free")+
+  theme(
+    axis.text = element_text(color='black',size=10),
+    axis.title = element_text(color='black',size=12),
+    axis.ticks = element_line(color='black'),
+    legend.title = element_text(size=8),
+    panel.background = element_rect(fill=NA,color='black'),
+    panel.grid = element_blank(),
+    plot.title=element_text(size=20,face="bold",vjust=2))
+rich
+ggsave(filename = "richviolin.pdf",
+      plot = rich,
+      bg = "transparent",
+      width = 12, height = 6, units = "in",
+      dpi = 600)
+
+```
+
+Let's make some stacked bar plots too:
+
+```{r,results='hide'}
+#let's refilter again just in case but include the control too
+#Pair down the other data. We will have to hellinger transform this data too
+input <- load_taxa_table("ASV_table_postfiltering.txt", "map_loaded_strawberries.txt")
+inputstep5 = filter_data(input, 'TimePoint', keep_vals = 'T1')
+water1 = filter_data(inputstep5, 'Water', keep_vals = '1')
+water1inoc1 = filter_data(water1, 'Inoculation', keep_vals = '1')
+water1inoc4 = filter_data(water1, 'Inoculation', keep_vals = '4')
+water1inoc5 = filter_data(water1, 'Inoculation', keep_vals = '5')
+water1inoc6 = filter_data(water1, 'Inoculation', keep_vals = '6')
+water2 = filter_data(inputstep5, 'Water', keep_vals = '2')
+water2inoc1 = filter_data(water2, 'Inoculation', keep_vals = '1')
+water2inoc4 = filter_data(water2, 'Inoculation', keep_vals = '4')
+water2inoc5 = filter_data(water2, 'Inoculation', keep_vals = '5')
+water2inoc6 = filter_data(water2, 'Inoculation', keep_vals = '6')
+
+water3 = filter_data(inputstep5, 'Water', keep_vals = '3')
+water3inoc1 = filter_data(water3, 'Inoculation', keep_vals = '1')
+water3inoc4 = filter_data(water3, 'Inoculation', keep_vals = '4')
+water3inoc5 = filter_data(water3, 'Inoculation', keep_vals = '5')
+water3inoc6 = filter_data(water3, 'Inoculation', keep_vals = '6')
+
+#transformation
+otuTAB<-water1inoc1$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+water1inoc1$data_loaded<-t(hell)
+otuTAB<-water1inoc4$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+water1inoc4$data_loaded<-t(hell)
+otuTAB<-water1inoc5$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+water1inoc5$data_loaded<-t(hell)
+otuTAB<-water1inoc6$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+water1inoc6$data_loaded<-t(hell)
+
+otuTAB<-water2inoc1$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+water2inoc1$data_loaded<-t(hell)
+otuTAB<-water2inoc4$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+water2inoc4$data_loaded<-t(hell)
+otuTAB<-water2inoc5$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+water2inoc5$data_loaded<-t(hell)
+otuTAB<-water2inoc6$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+water2inoc6$data_loaded<-t(hell)
+
+otuTAB<-water3inoc1$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+water3inoc1$data_loaded<-t(hell)
+otuTAB<-water3inoc4$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+water3inoc4$data_loaded<-t(hell)
+otuTAB<-water3inoc5$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+water3inoc5$data_loaded<-t(hell)
+otuTAB<-water3inoc6$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+water3inoc6$data_loaded<-t(hell)
+
+```
+
+We will need to make a large dataframe here. View after melting to see
+how many columns to make. This will be phylum and then we can do class
+and order
+
+```{r,results='hide'}
+library(reshape2)
+water1inoc1_tax_sum_phylum = summarize_taxonomy(water1inoc1, level = 2, report_higher_tax = FALSE)
+water1inoc1_tax_sum_phylum$Phylum <-row.names(water1inoc1_tax_sum_phylum)
+water1inoc1_melt<- melt(water1inoc1_tax_sum_phylum, id.var="Phylum")
+nrow(water1inoc1_melt)
+inoculation<-rep("inoc1",times=nrow(water1inoc1_melt))
+water<-rep("water1",times=nrow(water1inoc1_melt))
+water1inoc1_melt<-cbind(water1inoc1_melt,inoculation,water)
+
+water1inoc4_tax_sum_phylum = summarize_taxonomy(water1inoc4, level = 2, report_higher_tax = FALSE)
+water1inoc4_tax_sum_phylum$Phylum <-row.names(water1inoc4_tax_sum_phylum)
+water1inoc4_melt<- melt(water1inoc4_tax_sum_phylum, id.var="Phylum")
+nrow(water1inoc4_melt)
+inoculation<-rep("inoc4",times=nrow(water1inoc4_melt))
+water<-rep("water1",times=nrow(water1inoc4_melt))
+water1inoc4_melt<-cbind(water1inoc4_melt,inoculation,water)
+
+water1inoc5_tax_sum_phylum = summarize_taxonomy(water1inoc5, level = 2, report_higher_tax = FALSE)
+water1inoc5_tax_sum_phylum$Phylum <-row.names(water1inoc5_tax_sum_phylum)
+water1inoc5_melt<- melt(water1inoc5_tax_sum_phylum, id.var="Phylum")
+nrow(water1inoc5_melt)
+inoculation<-rep("inoc5",times=nrow(water1inoc5_melt))
+water<-rep("water1",times=nrow(water1inoc5_melt))
+water1inoc5_melt<-cbind(water1inoc5_melt,inoculation,water)
+
+water1inoc6_tax_sum_phylum = summarize_taxonomy(water1inoc6, level = 2, report_higher_tax = FALSE)
+water1inoc6_tax_sum_phylum$Phylum <-row.names(water1inoc6_tax_sum_phylum)
+water1inoc6_melt<- melt(water1inoc6_tax_sum_phylum, id.var="Phylum")
+nrow(water1inoc6_melt)
+inoculation<-rep("inoc6",times=nrow(water1inoc6_melt))
+water<-rep("water1",times=nrow(water1inoc6_melt))
+water1inoc6_melt<-cbind(water1inoc6_melt,inoculation,water)
+
+water2inoc1_tax_sum_phylum = summarize_taxonomy(water2inoc1, level = 2, report_higher_tax = FALSE)
+water2inoc1_tax_sum_phylum$Phylum <-row.names(water2inoc1_tax_sum_phylum)
+water2inoc1_melt<- melt(water2inoc1_tax_sum_phylum, id.var="Phylum")
+nrow(water2inoc1_melt)
+inoculation<-rep("inoc1",times=nrow(water2inoc1_melt))
+water<-rep("water2",times=nrow(water2inoc1_melt))
+water2inoc1_melt<-cbind(water2inoc1_melt,inoculation,water)
+
+water2inoc4_tax_sum_phylum = summarize_taxonomy(water2inoc4, level = 2, report_higher_tax = FALSE)
+water2inoc4_tax_sum_phylum$Phylum <-row.names(water2inoc4_tax_sum_phylum)
+water2inoc4_melt<- melt(water2inoc4_tax_sum_phylum, id.var="Phylum")
+nrow(water2inoc4_melt)
+inoculation<-rep("inoc4",times=nrow(water2inoc4_melt))
+water<-rep("water2",times=nrow(water2inoc4_melt))
+water2inoc4_melt<-cbind(water2inoc4_melt,inoculation,water)
+
+water2inoc5_tax_sum_phylum = summarize_taxonomy(water2inoc5, level = 2, report_higher_tax = FALSE)
+water2inoc5_tax_sum_phylum$Phylum <-row.names(water2inoc5_tax_sum_phylum)
+water2inoc5_melt<- melt(water2inoc5_tax_sum_phylum, id.var="Phylum")
+nrow(water2inoc5_melt)
+inoculation<-rep("inoc5",times=nrow(water2inoc5_melt))
+water<-rep("water2",times=nrow(water2inoc5_melt))
+water2inoc5_melt<-cbind(water2inoc5_melt,inoculation,water)
+
+water2inoc6_tax_sum_phylum = summarize_taxonomy(water2inoc6, level = 2, report_higher_tax = FALSE)
+water2inoc6_tax_sum_phylum$Phylum <-row.names(water2inoc6_tax_sum_phylum)
+water2inoc6_melt<- melt(water2inoc6_tax_sum_phylum, id.var="Phylum")
+nrow(water2inoc6_melt)
+inoculation<-rep("inoc6",times=nrow(water2inoc6_melt))
+water<-rep("water2",times=nrow(water2inoc6_melt))
+water2inoc6_melt<-cbind(water2inoc6_melt,inoculation,water)
+
+water3inoc1_tax_sum_phylum = summarize_taxonomy(water3inoc1, level = 2, report_higher_tax = FALSE)
+water3inoc1_tax_sum_phylum$Phylum <-row.names(water3inoc1_tax_sum_phylum)
+water3inoc1_melt<- melt(water3inoc1_tax_sum_phylum, id.var="Phylum")
+nrow(water3inoc1_melt)
+inoculation<-rep("inoc1",times=nrow(water3inoc1_melt))
+water<-rep("water3",times=nrow(water3inoc1_melt))
+water3inoc1_melt<-cbind(water3inoc1_melt,inoculation,water)
+
+water3inoc4_tax_sum_phylum = summarize_taxonomy(water3inoc4, level = 2, report_higher_tax = FALSE)
+water3inoc4_tax_sum_phylum$Phylum <-row.names(water3inoc4_tax_sum_phylum)
+water3inoc4_melt<- melt(water3inoc4_tax_sum_phylum, id.var="Phylum")
+nrow(water3inoc4_melt)
+inoculation<-rep("inoc4",times=nrow(water3inoc4_melt))
+water<-rep("water3",times=nrow(water3inoc4_melt))
+water3inoc4_melt<-cbind(water3inoc4_melt,inoculation,water)
+
+water3inoc5_tax_sum_phylum = summarize_taxonomy(water3inoc5, level = 2, report_higher_tax = FALSE)
+water3inoc5_tax_sum_phylum$Phylum <-row.names(water3inoc5_tax_sum_phylum)
+water3inoc5_melt<- melt(water3inoc5_tax_sum_phylum, id.var="Phylum")
+nrow(water3inoc5_melt)
+inoculation<-rep("inoc5",times=nrow(water3inoc5_melt))
+water<-rep("water3",times=nrow(water3inoc5_melt))
+water3inoc5_melt<-cbind(water3inoc5_melt,inoculation,water)
+
+water3inoc6_tax_sum_phylum = summarize_taxonomy(water3inoc6, level = 2, report_higher_tax = FALSE)
+water3inoc6_tax_sum_phylum$Phylum <-row.names(water3inoc6_tax_sum_phylum)
+water3inoc6_melt<- melt(water3inoc6_tax_sum_phylum, id.var="Phylum")
+nrow(water3inoc6_melt)
+inoculation<-rep("inoc6",times=nrow(water3inoc6_melt))
+water<-rep("water3",times=nrow(water3inoc6_melt))
+water3inoc6_melt<-cbind(water3inoc6_melt,inoculation,water)
+
+phylumfinalbind<-do.call("rbind",list(water1inoc1_melt,water1inoc4_melt,water1inoc5_melt,water1inoc6_melt,water2inoc1_melt,water2inoc4_melt,water2inoc5_melt,water2inoc6_melt,water3inoc1_melt,water3inoc4_melt,water3inoc5_melt,water3inoc6_melt))
+```
+
+Class. just switch to level =3.
+
+```{r, results='hide'}
+water1inoc1_tax_sum_phylum = summarize_taxonomy(water1inoc1, level = 3, report_higher_tax = FALSE)
+water1inoc1_tax_sum_phylum$Phylum <-row.names(water1inoc1_tax_sum_phylum)
+water1inoc1_melt<- melt(water1inoc1_tax_sum_phylum, id.var="Phylum")
+nrow(water1inoc1_melt)
+inoculation<-rep("inoc1",times=nrow(water1inoc1_melt))
+water<-rep("water1",times=nrow(water1inoc1_melt))
+water1inoc1_melt<-cbind(water1inoc1_melt,inoculation,water)
+
+water1inoc4_tax_sum_phylum = summarize_taxonomy(water1inoc4, level = 3, report_higher_tax = FALSE)
+water1inoc4_tax_sum_phylum$Phylum <-row.names(water1inoc4_tax_sum_phylum)
+water1inoc4_melt<- melt(water1inoc4_tax_sum_phylum, id.var="Phylum")
+nrow(water1inoc4_melt)
+inoculation<-rep("inoc4",times=nrow(water1inoc4_melt))
+water<-rep("water1",times=nrow(water1inoc4_melt))
+water1inoc4_melt<-cbind(water1inoc4_melt,inoculation,water)
+
+water1inoc5_tax_sum_phylum = summarize_taxonomy(water1inoc5, level = 3, report_higher_tax = FALSE)
+water1inoc5_tax_sum_phylum$Phylum <-row.names(water1inoc5_tax_sum_phylum)
+water1inoc5_melt<- melt(water1inoc5_tax_sum_phylum, id.var="Phylum")
+nrow(water1inoc5_melt)
+inoculation<-rep("inoc5",times=nrow(water1inoc5_melt))
+water<-rep("water1",times=nrow(water1inoc5_melt))
+water1inoc5_melt<-cbind(water1inoc5_melt,inoculation,water)
+
+water1inoc6_tax_sum_phylum = summarize_taxonomy(water1inoc6, level = 3, report_higher_tax = FALSE)
+water1inoc6_tax_sum_phylum$Phylum <-row.names(water1inoc6_tax_sum_phylum)
+water1inoc6_melt<- melt(water1inoc6_tax_sum_phylum, id.var="Phylum")
+nrow(water1inoc6_melt)
+inoculation<-rep("inoc6",times=nrow(water1inoc6_melt))
+water<-rep("water1",times=nrow(water1inoc6_melt))
+water1inoc6_melt<-cbind(water1inoc6_melt,inoculation,water)
+
+water2inoc1_tax_sum_phylum = summarize_taxonomy(water2inoc1, level = 3, report_higher_tax = FALSE)
+water2inoc1_tax_sum_phylum$Phylum <-row.names(water2inoc1_tax_sum_phylum)
+water2inoc1_melt<- melt(water2inoc1_tax_sum_phylum, id.var="Phylum")
+nrow(water2inoc1_melt)
+inoculation<-rep("inoc1",times=nrow(water2inoc1_melt))
+water<-rep("water2",times=nrow(water2inoc1_melt))
+water2inoc1_melt<-cbind(water2inoc1_melt,inoculation,water)
+
+water2inoc4_tax_sum_phylum = summarize_taxonomy(water2inoc4, level = 3, report_higher_tax = FALSE)
+water2inoc4_tax_sum_phylum$Phylum <-row.names(water2inoc4_tax_sum_phylum)
+water2inoc4_melt<- melt(water2inoc4_tax_sum_phylum, id.var="Phylum")
+nrow(water2inoc4_melt)
+inoculation<-rep("inoc4",times=nrow(water2inoc4_melt))
+water<-rep("water2",times=nrow(water2inoc4_melt))
+water2inoc4_melt<-cbind(water2inoc4_melt,inoculation,water)
+
+water2inoc5_tax_sum_phylum = summarize_taxonomy(water2inoc5, level = 3, report_higher_tax = FALSE)
+water2inoc5_tax_sum_phylum$Phylum <-row.names(water2inoc5_tax_sum_phylum)
+water2inoc5_melt<- melt(water2inoc5_tax_sum_phylum, id.var="Phylum")
+nrow(water2inoc5_melt)
+inoculation<-rep("inoc5",times=nrow(water2inoc5_melt))
+water<-rep("water2",times=nrow(water2inoc5_melt))
+water2inoc5_melt<-cbind(water2inoc5_melt,inoculation,water)
+
+water2inoc6_tax_sum_phylum = summarize_taxonomy(water2inoc6, level = 3, report_higher_tax = FALSE)
+water2inoc6_tax_sum_phylum$Phylum <-row.names(water2inoc6_tax_sum_phylum)
+water2inoc6_melt<- melt(water2inoc6_tax_sum_phylum, id.var="Phylum")
+nrow(water2inoc6_melt)
+inoculation<-rep("inoc6",times=nrow(water2inoc6_melt))
+water<-rep("water2",times=nrow(water2inoc6_melt))
+water2inoc6_melt<-cbind(water2inoc6_melt,inoculation,water)
+
+water3inoc1_tax_sum_phylum = summarize_taxonomy(water3inoc1, level = 3, report_higher_tax = FALSE)
+water3inoc1_tax_sum_phylum$Phylum <-row.names(water3inoc1_tax_sum_phylum)
+water3inoc1_melt<- melt(water3inoc1_tax_sum_phylum, id.var="Phylum")
+nrow(water3inoc1_melt)
+inoculation<-rep("inoc1",times=nrow(water3inoc1_melt))
+water<-rep("water3",times=nrow(water3inoc1_melt))
+water3inoc1_melt<-cbind(water3inoc1_melt,inoculation,water)
+
+water3inoc4_tax_sum_phylum = summarize_taxonomy(water3inoc4, level = 3, report_higher_tax = FALSE)
+water3inoc4_tax_sum_phylum$Phylum <-row.names(water3inoc4_tax_sum_phylum)
+water3inoc4_melt<- melt(water3inoc4_tax_sum_phylum, id.var="Phylum")
+nrow(water3inoc4_melt)
+inoculation<-rep("inoc4",times=nrow(water3inoc4_melt))
+water<-rep("water3",times=nrow(water3inoc4_melt))
+water3inoc4_melt<-cbind(water3inoc4_melt,inoculation,water)
+
+water3inoc5_tax_sum_phylum = summarize_taxonomy(water3inoc5, level = 3, report_higher_tax = FALSE)
+water3inoc5_tax_sum_phylum$Phylum <-row.names(water3inoc5_tax_sum_phylum)
+water3inoc5_melt<- melt(water3inoc5_tax_sum_phylum, id.var="Phylum")
+nrow(water3inoc5_melt)
+inoculation<-rep("inoc5",times=nrow(water3inoc5_melt))
+water<-rep("water3",times=nrow(water3inoc5_melt))
+water3inoc5_melt<-cbind(water3inoc5_melt,inoculation,water)
+
+water3inoc6_tax_sum_phylum = summarize_taxonomy(water3inoc6, level = 3, report_higher_tax = FALSE)
+water3inoc6_tax_sum_phylum$Phylum <-row.names(water3inoc6_tax_sum_phylum)
+water3inoc6_melt<- melt(water3inoc6_tax_sum_phylum, id.var="Phylum")
+nrow(water3inoc6_melt)
+inoculation<-rep("inoc6",times=nrow(water3inoc6_melt))
+water<-rep("water3",times=nrow(water3inoc6_melt))
+water3inoc6_melt<-cbind(water3inoc6_melt,inoculation,water)
+
+classfinalbind<-do.call("rbind",list(water1inoc1_melt,water1inoc4_melt,water1inoc5_melt,water1inoc6_melt,water2inoc1_melt,water2inoc4_melt,water2inoc5_melt,water2inoc6_melt,water3inoc1_melt,water3inoc4_melt,water3inoc5_melt,water3inoc6_melt))
+```
+
+Order. just switch to level =4.
+
+```{r, results='hide'}
+water1inoc1_tax_sum_phylum = summarize_taxonomy(water1inoc1, level = 4, report_higher_tax = FALSE)
+water1inoc1_tax_sum_phylum$Phylum <-row.names(water1inoc1_tax_sum_phylum)
+water1inoc1_melt<- melt(water1inoc1_tax_sum_phylum, id.var="Phylum")
+nrow(water1inoc1_melt)
+inoculation<-rep("inoc1",times=nrow(water1inoc1_melt))
+water<-rep("water1",times=nrow(water1inoc1_melt))
+water1inoc1_melt<-cbind(water1inoc1_melt,inoculation,water)
+
+water1inoc4_tax_sum_phylum = summarize_taxonomy(water1inoc4, level = 4, report_higher_tax = FALSE)
+water1inoc4_tax_sum_phylum$Phylum <-row.names(water1inoc4_tax_sum_phylum)
+water1inoc4_melt<- melt(water1inoc4_tax_sum_phylum, id.var="Phylum")
+nrow(water1inoc4_melt)
+inoculation<-rep("inoc4",times=nrow(water1inoc4_melt))
+water<-rep("water1",times=nrow(water1inoc4_melt))
+water1inoc4_melt<-cbind(water1inoc4_melt,inoculation,water)
+
+water1inoc5_tax_sum_phylum = summarize_taxonomy(water1inoc5, level = 4, report_higher_tax = FALSE)
+water1inoc5_tax_sum_phylum$Phylum <-row.names(water1inoc5_tax_sum_phylum)
+water1inoc5_melt<- melt(water1inoc5_tax_sum_phylum, id.var="Phylum")
+nrow(water1inoc5_melt)
+inoculation<-rep("inoc5",times=nrow(water1inoc5_melt))
+water<-rep("water1",times=nrow(water1inoc5_melt))
+water1inoc5_melt<-cbind(water1inoc5_melt,inoculation,water)
+
+water1inoc6_tax_sum_phylum = summarize_taxonomy(water1inoc6, level = 4, report_higher_tax = FALSE)
+water1inoc6_tax_sum_phylum$Phylum <-row.names(water1inoc6_tax_sum_phylum)
+water1inoc6_melt<- melt(water1inoc6_tax_sum_phylum, id.var="Phylum")
+nrow(water1inoc6_melt)
+inoculation<-rep("inoc6",times=nrow(water1inoc6_melt))
+water<-rep("water1",times=nrow(water1inoc6_melt))
+water1inoc6_melt<-cbind(water1inoc6_melt,inoculation,water)
+
+water2inoc1_tax_sum_phylum = summarize_taxonomy(water2inoc1, level = 4, report_higher_tax = FALSE)
+water2inoc1_tax_sum_phylum$Phylum <-row.names(water2inoc1_tax_sum_phylum)
+water2inoc1_melt<- melt(water2inoc1_tax_sum_phylum, id.var="Phylum")
+nrow(water2inoc1_melt)
+inoculation<-rep("inoc1",times=nrow(water2inoc1_melt))
+water<-rep("water2",times=nrow(water2inoc1_melt))
+water2inoc1_melt<-cbind(water2inoc1_melt,inoculation,water)
+
+water2inoc4_tax_sum_phylum = summarize_taxonomy(water2inoc4, level = 4, report_higher_tax = FALSE)
+water2inoc4_tax_sum_phylum$Phylum <-row.names(water2inoc4_tax_sum_phylum)
+water2inoc4_melt<- melt(water2inoc4_tax_sum_phylum, id.var="Phylum")
+nrow(water2inoc4_melt)
+inoculation<-rep("inoc4",times=nrow(water2inoc4_melt))
+water<-rep("water2",times=nrow(water2inoc4_melt))
+water2inoc4_melt<-cbind(water2inoc4_melt,inoculation,water)
+
+water2inoc5_tax_sum_phylum = summarize_taxonomy(water2inoc5, level = 4, report_higher_tax = FALSE)
+water2inoc5_tax_sum_phylum$Phylum <-row.names(water2inoc5_tax_sum_phylum)
+water2inoc5_melt<- melt(water2inoc5_tax_sum_phylum, id.var="Phylum")
+nrow(water2inoc5_melt)
+inoculation<-rep("inoc5",times=nrow(water2inoc5_melt))
+water<-rep("water2",times=nrow(water2inoc5_melt))
+water2inoc5_melt<-cbind(water2inoc5_melt,inoculation,water)
+
+water2inoc6_tax_sum_phylum = summarize_taxonomy(water2inoc6, level = 4, report_higher_tax = FALSE)
+water2inoc6_tax_sum_phylum$Phylum <-row.names(water2inoc6_tax_sum_phylum)
+water2inoc6_melt<- melt(water2inoc6_tax_sum_phylum, id.var="Phylum")
+nrow(water2inoc6_melt)
+inoculation<-rep("inoc6",times=nrow(water2inoc6_melt))
+water<-rep("water2",times=nrow(water2inoc6_melt))
+water2inoc6_melt<-cbind(water2inoc6_melt,inoculation,water)
+
+water3inoc1_tax_sum_phylum = summarize_taxonomy(water3inoc1, level = 4, report_higher_tax = FALSE)
+water3inoc1_tax_sum_phylum$Phylum <-row.names(water3inoc1_tax_sum_phylum)
+water3inoc1_melt<- melt(water3inoc1_tax_sum_phylum, id.var="Phylum")
+nrow(water3inoc1_melt)
+inoculation<-rep("inoc1",times=nrow(water3inoc1_melt))
+water<-rep("water3",times=nrow(water3inoc1_melt))
+water3inoc1_melt<-cbind(water3inoc1_melt,inoculation,water)
+
+water3inoc4_tax_sum_phylum = summarize_taxonomy(water3inoc4, level = 4, report_higher_tax = FALSE)
+water3inoc4_tax_sum_phylum$Phylum <-row.names(water3inoc4_tax_sum_phylum)
+water3inoc4_melt<- melt(water3inoc4_tax_sum_phylum, id.var="Phylum")
+nrow(water3inoc4_melt)
+inoculation<-rep("inoc4",times=nrow(water3inoc4_melt))
+water<-rep("water3",times=nrow(water3inoc4_melt))
+water3inoc4_melt<-cbind(water3inoc4_melt,inoculation,water)
+
+water3inoc5_tax_sum_phylum = summarize_taxonomy(water3inoc5, level = 4, report_higher_tax = FALSE)
+water3inoc5_tax_sum_phylum$Phylum <-row.names(water3inoc5_tax_sum_phylum)
+water3inoc5_melt<- melt(water3inoc5_tax_sum_phylum, id.var="Phylum")
+nrow(water3inoc5_melt)
+inoculation<-rep("inoc5",times=nrow(water3inoc5_melt))
+water<-rep("water3",times=nrow(water3inoc5_melt))
+water3inoc5_melt<-cbind(water3inoc5_melt,inoculation,water)
+
+water3inoc6_tax_sum_phylum = summarize_taxonomy(water3inoc6, level = 4, report_higher_tax = FALSE)
+water3inoc6_tax_sum_phylum$Phylum <-row.names(water3inoc6_tax_sum_phylum)
+water3inoc6_melt<- melt(water3inoc6_tax_sum_phylum, id.var="Phylum")
+nrow(water3inoc6_melt)
+inoculation<-rep("inoc6",times=nrow(water3inoc6_melt))
+water<-rep("water3",times=nrow(water3inoc6_melt))
+water3inoc6_melt<-cbind(water3inoc6_melt,inoculation,water)
+
+orderfinalbind<-do.call("rbind",list(water1inoc1_melt,water1inoc4_melt,water1inoc5_melt,water1inoc6_melt,water2inoc1_melt,water2inoc4_melt,water2inoc5_melt,water2inoc6_melt,water3inoc1_melt,water3inoc4_melt,water3inoc5_melt,water3inoc6_melt))
+```
+
+phylum graph
+
+```{r}
+library(ggthemes)
+ggplot(phylumfinalbind, aes(x = inoculation, y = value, fill = Phylum)) + 
+  geom_bar(stat="identity",position = "fill") + 
+  scale_y_continuous(labels = scales::percent) +
+  scale_fill_manual(values = colorRampPalette(solarized_pal()(8))(7)) + 
+  ggtitle("Phylum Graphs")+
+  facet_grid(.~water,scales ="free",space="free")+
+  theme(
+    axis.text = element_text(color='black',size=10),
+    axis.title.y= element_blank(),
+    axis.title.x= element_blank(),
+    axis.title = element_text(color='black',size=12),
+    axis.ticks = element_line(color='black'),
+    legend.title = element_text(size=18),
+    panel.background = element_rect(fill=NA,color='black'),
+    panel.grid = element_blank(),
+    plot.title=element_text(size=20,face="bold",vjust=2))
+
+
+```
+
+class graph
+
+```{r fig.height=6, fig.width=12}
+
+ggplot(classfinalbind, aes(x = inoculation, y = value, fill = Phylum)) + 
+  geom_bar(stat="identity",position = "fill") + 
+  scale_y_continuous(labels = scales::percent) +
+  scale_fill_manual(values = colorRampPalette(solarized_pal()(8))(18)) + 
+  ggtitle("Class Graphs")+
+  facet_grid(.~water,scales ="free",space="free")+
+  theme(
+    axis.text = element_text(color='black',size=10),
+    axis.title.y= element_blank(),
+    axis.title.x= element_blank(),
+    axis.title = element_text(color='black',size=12),
+    axis.ticks = element_line(color='black'),
+    legend.title = element_text(size=18),
+    panel.background = element_rect(fill=NA,color='black'),
+    panel.grid = element_blank(),
+    plot.title=element_text(size=20,face="bold",vjust=2))
+
+
+```
+
+order graph
+
+```{r}
+
+ggplot(orderfinalbind, aes(x = inoculation, y = value, fill = Phylum)) + 
+  geom_bar(stat="identity",position = "fill") + 
+  scale_y_continuous(labels = scales::percent) +
+  scale_fill_manual(values = colorRampPalette(solarized_pal()(8))(50)) + 
+  ggtitle("Order Graphs")+
+  facet_grid(.~water,scales ="free",space="free")+
+  theme(
+    axis.text = element_text(color='black',size=10),
+    axis.title.y= element_blank(),
+    axis.title.x= element_blank(),
+    axis.title = element_text(color='black',size=12),
+    axis.ticks = element_line(color='black'),
+    legend.title = element_text(size=8),
+     legend.key.size = unit(0.5, 'mm'),
+    legend.text = element_text(size=5),
+    panel.background = element_rect(fill=NA,color='black'),
+    panel.grid = element_blank(),
+    plot.title=element_text(size=20,face="bold",vjust=2))
+
+```
+
+Let's start with the raw data. The venn diagram we want is split into
+the three water groups. Then we need original inoculum, leaves post-inoc
+post stress, leaves post-inoc pre stress, roots post inoc post stress
+
+Now we need to pair down the data. Then do nrows. Then merge by the rows
+and then do nrows. Then we can make the euler diagrams
+
+First let's split into inoculation 1, 2 and 3
+
+Inoculation 1
+
+```{r,results='hide'}
+input <- load_taxa_table("ASV_table_postfiltering.txt", "map_loaded_strawberries.txt")
+#inoc1
+inputinoc1only = filter_data(input, 'Inoculation', keep_vals = '1')
+#leaves post-inoc post stress
+inputinoc1onlyshoot = filter_data(inputinoc1only, 'Type', keep_vals = 'Shoot')
+inoc1shootpostinocpoststress = filter_data(inputinoc1onlyshoot, 'SampleType', keep_vals = 'post_inoc_post_stress')
+i1spips<-as.data.frame(inoc1shootpostinocpoststress$data_loaded)
+i1spips$ASV <-row.names(i1spips)
+#roots post-inoc post-stress
+inputinoc1onlyroot = filter_data(inputinoc1only, 'Type', keep_vals = 'Root')
+inoc1rootpostinocpoststress = filter_data(inputinoc1onlyroot, 'SampleType', keep_vals = 'post_inoc_post_stress')
+i1rpips<-as.data.frame(inoc1rootpostinocpoststress$data_loaded)
+i1rpips$ASV <-row.names(i1rpips)
+#leaves post-inoc pre-stress
+inoc1shootpostinocprestress = filter_data(inputinoc1onlyshoot, 'SampleType', keep_vals = 'post_inoc_pre_stress')
+i1spiprs<-as.data.frame(inoc1shootpostinocprestress$data_loaded)
+i1spiprs$ASV <-row.names(i1spiprs)
+#Then let's grab original inoculum. We will need to grab the original data frame again.
+inputraw <- load_taxa_table("ASV_table_mctoolsr.txt", "strawb_miseq_map.txt")
+slurryonly = filter_data(inputraw, 'SampleType', keep_vals = 'slurry')
+slurryonlyinoc1 = filter_data(slurryonly, 'Type', keep_vals = 'Inoculum 1')
+slurryinoc1<-as.data.frame(slurryonlyinoc1$data_loaded)
+slurryinoc1$ASV <-row.names(slurryinoc1)
+
+```
+
+Let's count the number of rows:
+
+```{r}
+nrow(i1spips)
+nrow(i1rpips)
+nrow(i1spiprs)
+nrow(slurryinoc1)
+```
+
+Let's see how these all overlap:
+
+```{r, results='hide'}
+i1spips_i1rpips <- inner_join(i1spips, i1rpips, 
+                       c("ASV"))
+nrow(i1spips_i1rpips)
+i1spips_i1spiprs <- inner_join(i1spips, i1spiprs, 
+                       c("ASV"))
+nrow(i1spips_i1spiprs)
+i1spips_slurry <- inner_join(i1spips, slurryinoc1, 
+                       c("ASV"))
+nrow(i1spips_slurry)
+i1rpips_i1spiprs <- inner_join(i1spiprs, i1rpips, 
+                       c("ASV"))
+nrow(i1rpips_i1spiprs)
+i1rpips_slurry <- inner_join(slurryinoc1, i1rpips, 
+                       c("ASV"))
+nrow(i1rpips_slurry)
+i1spiprs_slurry <- inner_join(slurryinoc1, i1spiprs, 
+                       c("ASV"))
+nrow(i1spiprs_slurry)
+all <- inner_join(i1spiprs_slurry, i1spips_i1rpips, 
+                       c("ASV"))
+nrow(all)
+ABC <- inner_join(i1spips_i1rpips, i1spiprs, 
+                       c("ASV"))
+nrow(ABC)
+ABD <- inner_join(i1spips_i1rpips, slurryinoc1, 
+                       c("ASV"))
+nrow(ABD)
+BCD <- inner_join(i1spiprs_slurry, i1rpips, 
+                       c("ASV"))
+nrow(BCD)
+```
+
+i1spips = 308 = A i1rpips = 537 = B i1spiprs = 89 = C slurry = 20 = D
+
+i1spips & i1rpips = 211 = A&B i1spips & i1spiprs = 63 = A&C i1spips &
+slurry = 13 = A&D i1rpips & i1spiprs = 64 = B&C i1rpips & slurry = 12 =
+B&D i1spiprs & slurry = 11 = C&D i1spips & i1rpips & i1spiprs & slurry =
+10 = A&B&C&D i1spips & i1rpips & i1spiprs = = A&B&C = 58 i1spips &
+i1rpips & slurry = = A&B&D = 12 i1rpips & i1spiprs & slurry = 10 = B&C&D
+
+Inoculation 1 graph
+
+```{r}
+library(eulerr)
+inoc1 <-c("Shoot Post-Inoc Post-Stress" = 308, "Root Post-Inoc Post-Stress" = 537, "Shoot Post-Inoc Pre-Stress" = 89, "Slurry" = 20, 
+                    "Shoot Post-Inoc Post-Stress&Root Post-Inoc Post-Stress" = 211, "Shoot Post-Inoc Post-Stress&Shoot Post-Inoc Pre-Stress" = 63, "Shoot Post-Inoc Post-Stress&Slurry" = 13, "Root Post-Inoc Post-Stress&Shoot Post-Inoc Pre-Stress" = 64,"Root Post-Inoc Post-Stress&Slurry" = 12,
+                    "Shoot Post-Inoc Pre-Stress&Slurry" = 11, "Shoot Post-Inoc Post-Stress&Root Post-Inoc Post-Stress&Shoot Post-Inoc Pre-Stress&Slurry" = 10, "Shoot Post-Inoc Post-Stress&Root Post-Inoc Post-Stress&Shoot Post-Inoc Pre-Stress" = 58, "Shoot Post-Inoc Post-Stress&Root Post-Inoc Post-Stress&Slurry" = 12,
+                    "Root Post-Inoc Post-Stress&Shoot Post-Inoc Pre-Stress&Slurry" = 10)
+fitinoc1 <- euler(inoc1,shape="ellipse")
+pdf(file="inoc1venn",
+    width=8,
+    height=8)
+plot(fitinoc1, main="Inoculation 1",quantities = TRUE)
+dev.off()
+```
+
+Inoculation 4
+
+```{r,results='hide'}
+input <- load_taxa_table("ASV_table_postfiltering.txt", "map_loaded_strawberries.txt")
+#inoc4
+inputinoc4only = filter_data(input, 'Inoculation', keep_vals = '4')
+#leaves post-inoc post stress
+inputinoc4onlyshoot = filter_data(inputinoc4only, 'Type', keep_vals = 'Shoot')
+inoc4shootpostinocpoststress = filter_data(inputinoc4onlyshoot, 'SampleType', keep_vals = 'post_inoc_post_stress')
+i4spips<-as.data.frame(inoc4shootpostinocpoststress$data_loaded)
+i4spips$ASV <-row.names(i4spips)
+#roots post-inoc post-stress
+inputinoc4onlyroot = filter_data(inputinoc4only, 'Type', keep_vals = 'Root')
+inoc4rootpostinocpoststress = filter_data(inputinoc4onlyroot, 'SampleType', keep_vals = 'post_inoc_post_stress')
+i4rpips<-as.data.frame(inoc4rootpostinocpoststress$data_loaded)
+i4rpips$ASV <-row.names(i4rpips)
+#leaves post-inoc pre-stress
+inoc4shootpostinocprestress = filter_data(inputinoc4onlyshoot, 'SampleType', keep_vals = 'post_inoc_pre_stress')
+i4spiprs<-as.data.frame(inoc4shootpostinocprestress$data_loaded)
+i4spiprs$ASV <-row.names(i4spiprs)
+#Then let's grab original inoculum. We will need to grab the original data frame again.
+inputraw <- load_taxa_table("ASV_table_mctoolsr.txt", "strawb_miseq_map.txt")
+slurryonly = filter_data(inputraw, 'SampleType', keep_vals = 'slurry')
+slurryonlyinoc4 = filter_data(slurryonly, 'Type', keep_vals = 'Inoculum 4')
+slurryinoc4<-as.data.frame(slurryonlyinoc4$data_loaded)
+slurryinoc4$ASV <-row.names(slurryinoc4)
+
+```
+
+Let's count the number of rows:
+
+```{r}
+nrow(i4spips)
+nrow(i4rpips)
+nrow(i4spiprs)
+nrow(slurryinoc4)
+```
+
+Let's see how these all overlap:
+
+```{r,results='hide'}
+i4spips_i4rpips <- inner_join(i4spips, i4rpips, 
+                       c("ASV"))
+nrow(i4spips_i4rpips)
+i4spips_i4spiprs <- inner_join(i4spips, i4spiprs, 
+                       c("ASV"))
+nrow(i4spips_i4spiprs)
+i4spips_slurry <- inner_join(i4spips, slurryinoc4, 
+                       c("ASV"))
+nrow(i4spips_slurry)
+i4rpips_i4spiprs <- inner_join(i4spiprs, i4rpips, 
+                       c("ASV"))
+nrow(i4rpips_i4spiprs)
+i4rpips_slurry <- inner_join(slurryinoc4, i4rpips, 
+                       c("ASV"))
+nrow(i4rpips_slurry)
+i4spiprs_slurry <- inner_join(slurryinoc4, i4spiprs, 
+                       c("ASV"))
+nrow(i4spiprs_slurry)
+all <- inner_join(i4spiprs_slurry, i4spips_i4rpips, 
+                       c("ASV"))
+nrow(all)
+ABC <- inner_join(i4spips_i4rpips, i4spiprs, 
+                       c("ASV"))
+nrow(ABC)
+ABD <- inner_join(i4spips_i4rpips, slurryinoc4, 
+                       c("ASV"))
+nrow(ABD)
+BCD <- inner_join(i4spiprs_slurry, i4rpips, 
+                       c("ASV"))
+nrow(BCD)
+```
+
+i4spips = 290 = A i4rpips = 519 = B i4spiprs = 108 = C slurry = 9 = D
+
+i4spips & i4rpips = 187 = A&B i4spips & i4spiprs = 67 = A&C i4spips &
+slurry = 5 = A&D i4rpips & i4spiprs = 71 = B&C i4rpips & slurry = 5 =
+B&D i4spiprs & slurry = 2 = C&D i4spips & i4rpips & i4spiprs & slurry =
+2 = A&B&C&D i4spips & i4rpips & i4spiprs = = A&B&C = 60 i4spips &
+i4rpips & slurry = = A&B&D = 4 i4rpips & i4spiprs & slurry = 2 = B&C&D
+
+Inoculation 4 graph
+
+```{r}
+
+inoc4 <-c("Shoot Post-Inoc Post-Stress" = 290, "Root Post-Inoc Post-Stress" = 519, "Shoot Post-Inoc Pre-Stress" = 108, "Slurry" = 9, 
+                    "Shoot Post-Inoc Post-Stress&Root Post-Inoc Post-Stress" = 187, "Shoot Post-Inoc Post-Stress&Shoot Post-Inoc Pre-Stress" = 67, "Shoot Post-Inoc Post-Stress&Slurry" = 5, "Root Post-Inoc Post-Stress&Shoot Post-Inoc Pre-Stress" = 71,"Root Post-Inoc Post-Stress&Slurry" = 5,
+                    "Shoot Post-Inoc Pre-Stress&Slurry" = 2, "Shoot Post-Inoc Post-Stress&Root Post-Inoc Post-Stress&Shoot Post-Inoc Pre-Stress&Slurry" = 2, "Shoot Post-Inoc Post-Stress&Root Post-Inoc Post-Stress&Shoot Post-Inoc Pre-Stress" = 60, "Shoot Post-Inoc Post-Stress&Root Post-Inoc Post-Stress&Slurry" = 4,
+                    "Root Post-Inoc Post-Stress&Shoot Post-Inoc Pre-Stress&Slurry" = 2)
+fitinoc4 <- euler(inoc4,shape="ellipse")
+pdf(file="inoc4venn",
+    width=8,
+    height=8)
+plot(fitinoc4, main="Inoculation 4",quantities = TRUE)
+dev.off()
+```
+
+Inoculation 5
+
+```{r,results='hide'}
+input <- load_taxa_table("ASV_table_postfiltering.txt", "map_loaded_strawberries.txt")
+#inoc5
+inputinoc5only = filter_data(input, 'Inoculation', keep_vals = '5')
+#leaves post-inoc post stress
+inputinoc5onlyshoot = filter_data(inputinoc5only, 'Type', keep_vals = 'Shoot')
+inoc5shootpostinocpoststress = filter_data(inputinoc5onlyshoot, 'SampleType', keep_vals = 'post_inoc_post_stress')
+i5spips<-as.data.frame(inoc5shootpostinocpoststress$data_loaded)
+i5spips$ASV <-row.names(i5spips)
+#roots post-inoc post-stress
+inputinoc5onlyroot = filter_data(inputinoc5only, 'Type', keep_vals = 'Root')
+inoc5rootpostinocpoststress = filter_data(inputinoc5onlyroot, 'SampleType', keep_vals = 'post_inoc_post_stress')
+i5rpips<-as.data.frame(inoc5rootpostinocpoststress$data_loaded)
+i5rpips$ASV <-row.names(i5rpips)
+#leaves post-inoc pre-stress
+inoc5shootpostinocprestress = filter_data(inputinoc5onlyshoot, 'SampleType', keep_vals = 'post_inoc_pre_stress')
+i5spiprs<-as.data.frame(inoc5shootpostinocprestress$data_loaded)
+i5spiprs$ASV <-row.names(i5spiprs)
+#Then let's grab original inoculum. We will need to grab the original data frame again.
+inputraw <- load_taxa_table("ASV_table_mctoolsr.txt", "strawb_miseq_map.txt")
+slurryonly = filter_data(inputraw, 'SampleType', keep_vals = 'slurry')
+slurryonlyinoc5 = filter_data(slurryonly, 'Type', keep_vals = 'Inoculum 5')
+slurryinoc5<-as.data.frame(slurryonlyinoc5$data_loaded)
+slurryinoc5$ASV <-row.names(slurryinoc5)
+
+```
+
+Let's count the number of rows:
+
+```{r}
+nrow(i5spips)
+nrow(i5rpips)
+nrow(i5spiprs)
+nrow(slurryinoc5)
+```
+
+Let's see how these all overlap:
+
+```{r,results='hide'}
+i5spips_i5rpips <- inner_join(i5spips, i5rpips, 
+                       c("ASV"))
+nrow(i5spips_i5rpips)
+i5spips_i5spiprs <- inner_join(i5spips, i5spiprs, 
+                       c("ASV"))
+nrow(i5spips_i5spiprs)
+i5spips_slurry <- inner_join(i5spips, slurryinoc5, 
+                       c("ASV"))
+nrow(i5spips_slurry)
+i5rpips_i5spiprs <- inner_join(i5spiprs, i5rpips, 
+                       c("ASV"))
+nrow(i5rpips_i5spiprs)
+i5rpips_slurry <- inner_join(slurryinoc5, i5rpips, 
+                       c("ASV"))
+nrow(i5rpips_slurry)
+i5spiprs_slurry <- inner_join(slurryinoc5, i5spiprs, 
+                       c("ASV"))
+nrow(i5spiprs_slurry)
+all <- inner_join(i5spiprs_slurry, i5spips_i5rpips, 
+                       c("ASV"))
+nrow(all)
+ABC <- inner_join(i5spips_i5rpips, i5spiprs, 
+                       c("ASV"))
+nrow(ABC)
+ABD <- inner_join(i5spips_i5rpips, slurryinoc5, 
+                       c("ASV"))
+nrow(ABD)
+BCD <- inner_join(i5spiprs_slurry, i5rpips, 
+                       c("ASV"))
+nrow(BCD)
+```
+
+i5spips = 174 = A i5rpips = 263 = B i5spiprs = 64 = C slurry = 50 = D
+
+i5spips & i5rpips = 115 = A&B i5spips & i5spiprs = 43 = A&C i5spips &
+slurry = 12 = A&D i5rpips & i5spiprs = 49 = B&C i5rpips & slurry = 12 =
+B&D i5spiprs & slurry = 10 = C&D i5spips & i5rpips & i5spiprs & slurry =
+10 = A&B&C&D i5spips & i5rpips & i5spiprs = A&B&C = 39 i5spips & i5rpips
+& slurry = A&B&D = 12 i5rpips & i5spiprs & slurry = 10 = B&C&D
+
+Inoculation 5 graph
+
+```{r}
+
+inoc5 <-c("Shoot Post-Inoc Post-Stress" = 174, "Root Post-Inoc Post-Stress" = 263, "Shoot Post-Inoc Pre-Stress" = 64, "Slurry" = 50, 
+                    "Shoot Post-Inoc Post-Stress&Root Post-Inoc Post-Stress" = 115, "Shoot Post-Inoc Post-Stress&Shoot Post-Inoc Pre-Stress" = 43, "Shoot Post-Inoc Post-Stress&Slurry" = 12, "Root Post-Inoc Post-Stress&Shoot Post-Inoc Pre-Stress" = 49,"Root Post-Inoc Post-Stress&Slurry" = 12,
+                    "Shoot Post-Inoc Pre-Stress&Slurry" = 10, "Shoot Post-Inoc Post-Stress&Root Post-Inoc Post-Stress&Shoot Post-Inoc Pre-Stress&Slurry" = 10, "Shoot Post-Inoc Post-Stress&Root Post-Inoc Post-Stress&Shoot Post-Inoc Pre-Stress" = 39, "Shoot Post-Inoc Post-Stress&Root Post-Inoc Post-Stress&Slurry" = 12,
+                    "Root Post-Inoc Post-Stress&Shoot Post-Inoc Pre-Stress&Slurry" = 10)
+fitinoc5 <- euler(inoc5,shape="ellipse")
+pdf(file="inoc5venn",
+    width=8,
+    height=8)
+plot(fitinoc5, main="Inoculation 5",quantities = TRUE)
+dev.off()
+```
