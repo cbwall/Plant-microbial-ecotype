@@ -12,29 +12,43 @@ output:
     toc: yes
     toc_depth: '4'
 ---
+## Project overview
+  
+Our project tested the influence of microbial communities on plant performance and how "home advantages" and environmental pressures alter plant-microbe interactions across a resource gradient (dry, intermediate, wet soils). We used a natural elevation and precipitation gradient in a factorial design experiment where we collected soil inoculum  across three sites of a watershed that increased in precipitation and elevation (henceforth called low, middle, and high elevation/precipitation sites).   
 
-```{r setup, include=FALSE}
+We used axenically cloned model plant system (strawberry, *Fragaria virginiana*) grown in sterile soil, inoculated with soil slurries from each of those sites, and subjected to reciprocal water treatments imposed at three levels of watering (dry, intermediate, wet) based on the average precipitation of the inoculum home environment.   
+
+<center>  
+  
+![**Figure 1**. Inoculated strawberries in incubators](figures/Keck_strawberry_plants.jpg){width=50%}
+
+</center>
+
+We hypothesized that plants inoculated with soil microbes would outperform non-inoculated plants across all treatments and microbes from the low elevation site would be the most beneficial for plant growth under all water conditions. In testing the “home advantage” hypothesis, we expected plants from each inoculum treatment would perform best in their familiar water environment (e.g., low-inoculum plants would grow best under dry-water conditions, high-inoculum plants would grow best under wet-water conditions).
+
+```{r setup chunk, include=FALSE, cache=FALSE, message=FALSE, warning=FALSE, collapse=TRUE}
 knitr::opts_chunk$set(echo = TRUE)
-```
 
-ADD root/shoot graph codes here
-
-Root/shoot weight graphs:
-
-First read in the raw data and pair it down to what we're looking for.
-
-```{r, message=FALSE, warning=FALSE, results='hide'}
 # load packages
 if (!require("pacman")) install.packages("pacman") # for rapid install if not in library
 
 # use pacman to load all the packages you are missing!
-pacman::p_load("car", "lme4", "lmerTest", "pbkrtest", "emmeans", "ggplot2", "tidyverse", "dplyr", "grid", "gridExtra", "patchwork")
+pacman::p_load("car", "lme4", "lmerTest", "pbkrtest", "emmeans", "ggplot2", "tidyverse", "dplyr", "labdsv", "grid", "gridExtra", "patchwork", "plyr", "mctoolsr", "vegan", "car", "metacoder", "multcompView", "patchwork", "pairwiseAdonis", "labdsv", "eulerr", "ggthemes", "remotes", "mctoolsr")
+```
 
+### Plant Biomass
+* ADD root/shoot graph codes here
+* Make root/shoot weight graphs:  
+* Read in the raw data and pair it down to what we're looking for.  
 
-
-#Pair down raw data. I subset everything that was unnecessary.
+```{r plant biomass load, message=FALSE, warning=FALSE, results='hide'}
+### Pair down raw data 
+# raw data import
 shootrootwithcontrol<-read.csv('data/strawberries_raw_full_data.csv',header=TRUE)
 shootrootwithcontrol %>% drop_na()
+
+#### # subset everything unnecessary
+
 shootroot_step1removal<-subset(shootrootwithcontrol,TimePoint!="T0"&TimePoint!="Control"&Type!="Control")
 shootroot_final<-shootroot_step1removal %>% drop_na()
 shootroot_inoc23removed<-subset(shootroot_final,Inoculation!="2"&Inoculation!="3")
@@ -45,50 +59,56 @@ shootroot_inoc23removed$Water<-factor(shootroot_inoc23removed$Water,levels=c("Lo
 shootsonlywithcontrol<-subset(shootroot_inoc23removed,Type!="Root")
 rootsonlywithcontrol<-subset(shootroot_inoc23removed,Type!="Shoot")
 
+# export the final subset data
+write.csv(shootsonlywithcontrol, "output/shootsonlywithcontrol.csv")
+write.csv(rootsonlywithcontrol, "output/rootsonlywithcontrol.csv")
 ```
 
-check data normality: (yikes very very skewed)
-```{r}
+```{r, collapse=TRUE}
+### check data normality: (yikes very very skewed)
+
 hist(shootroot_inoc23removed$WeightGrams)
 hist(shootsonly$WeightGrams)
 hist(rootsonly$WeightGrams)
-```
 
-check assumptions shoots (qqplot not normal)
-```{r}
+### check assumptions shoots (qqplot not normal)
+
 typeIIIModelshoot<-lm(WeightGrams~Inoculation*Water,data=shootsonly)
 plot(typeIIIModelshoot)
 ```
 
-check assumptions roots (qqplot not normal)
-```{r}
+```{r, collapse=TRUE}
+### check assumptions roots (qqplot not normal)
+
 typeIIIModelroot<-lm(WeightGrams~Inoculation*Water,data=rootsonly)
 plot(typeIIIModelroot)
 ```
 
-boxplot:
-```{r,width=20}
+Boxplot of above and belowground total biomass. This is the raw, non-normalized data for absolute dry-weight biomass in the roots and shoots. 
+```{r above below biomass, width=20}
 
-boxplot<-ggplot(shootroot_inoc23removed,aes(Water,WeightGrams,fill=Inoculation)) +
+root.shoot.biomass<-ggplot(shootroot_inoc23removed,aes(Water,WeightGrams,fill=Inoculation)) +
   facet_wrap(.~Type)+
   geom_boxplot(position=position_dodge())+
   
   ylab("Weight (g)") +
-  scale_fill_manual(values=c("red", "#E69F00", "#56B4E9","green"))+
+  scale_fill_manual(values=c("coral2", "#E69F00", "#56B4E9","darkseagreen3"))+
   
   theme(
     axis.text = element_text(color='black',size=10),
     axis.title = element_text(color='black',size=12),
     axis.ticks = element_line(color='black'),
     legend.title = element_text(size=18),
+    legend.key = element_rect(fill=NA),
     panel.background = element_rect(fill=NA,color='black'),
     panel.grid = element_blank(),
     plot.title=element_text(size=20,face="bold",vjust=2))
 
-boxplot
+root.shoot.biomass
+ggsave("figures/root.shoot.biomass.pdf", height=6, width=10)
 
 #ggsave(filename = "mainfigstawberries.pdf",
-      #plot = boxplot,
+      #plot = root.shoot.biomass,
       #bg = "transparent",
       #width = 10, height = 6, units = "in",
       #dpi = 600)
@@ -96,13 +116,15 @@ boxplot
 ```
 
 
-
-Stats for without proportion:
-
-```{r, results='hide'}
+Stats for on the raw data for above and belowground plant biomass (not proportion).
+Run models linear models (Type III SS) for *total root or shoot biomass*  
+* First we will run the linear model as `lm(mass ~ Inoculation * Water)`
+* Then run post-hoc contrasts through `emmeans` (if significant effects observed)
+```{r, results='hide', collapse=TRUE}
 #subset by roots and shoots
 shootsonly<-subset(shootroot_inoc23removed,Type!="Root")
 rootsonly<-subset(shootroot_inoc23removed,Type!="Shoot")
+
 #subset each out by water treatment
 shootlow<-subset(shootsonly,Water!="Medium"&Water!="High")
 shootmed<-subset(shootsonly,Water!="Low"&Water!="High")
@@ -111,58 +133,67 @@ rootlow<-subset(rootsonly,Water!="Medium"&Water!="High")
 rootmed<-subset(rootsonly,Water!="Low"&Water!="High")
 roothigh<-subset(rootsonly,Water!="Medium"&Water!="Low")
 ```
-
-First stats without proportions
-
-```{r}
+  
+**Table. Model for inoculation and water effects on *total shoot* biomass**  
+* no signifcant effects  
+```{r shoot biomass}
+### SHOOTS stats without proportions
 typeIIIModelshoot<-lm(WeightGrams~Inoculation*Water,data=shootsonly)
 Anova(typeIIIModelshoot,type=3)
 #emmeans(typeIIIModelshoot,pairwise~Water|Inoculation)
-
+```
+  
+**Table. Model for inoculation and water effects on *total roots* biomass**
+* no signifcant effects  
+```{r root biomass}
+### ROOTS stats without proportions
 typeIIIModelroot<-lm(WeightGrams~Inoculation*Water,data=rootsonly)
 Anova(typeIIIModelroot,type=3)
 #emmeans(typeIIIModelroot,pairwise~Water|Inoculation)
-
 ```
 
-making proportion graph
-I believe we need to remake shootsonlywith control. I don't see it in the code above.
-```{r}
+### Biomass proportion  
+I believe we need to remake shootsonlywithcontrol. I don't see it in the code above.
+```{r proportion graph p1, fig.show='hide'}
 
 #View(shootsonlywithcontrol)
 #View(rootsonlywithcontrol)
-library(dplyr)
+
 shootsonlywithcontrol <- shootsonlywithcontrol %>% 
        rename("shoot_weight" = "WeightGrams")
 rootsonlywithcontrol <- rootsonlywithcontrol %>% 
        rename("root_weight" = "WeightGrams")
 shootsonly_premerge<-subset(shootsonlywithcontrol,select = -c(SampleID,TimePoint,Type,SampleNotes,Water,Inoculation,Replicate,PlantNotes,SampleType,Sample_or_Control))
 rootshoot_merge <- merge(shootsonly_premerge,rootsonlywithcontrol,by="PlantID")
-View(rootshoot_merge)
+
+#View(rootshoot_merge)
 rootshoot_merge <-subset(rootshoot_merge, select = -c(Type,SampleNotes,PlantNotes))
 rootshoot_merge$total_weight<-rootshoot_merge$shoot_weight+rootshoot_merge$root_weight
 rootshoot_merge$shoot_prop_weight<-rootshoot_merge$shoot_weight/rootshoot_merge$total_weight
 rootshoot_merge$root_prop_weight<-rootshoot_merge$root_weight/rootshoot_merge$total_weight
-```
-From here with rootshoot_merge, you can redo all the above to see what the data looks like
 
-```{r}
+#########
+### From here with rootshoot_merge, you can redo all the above to see what the data looks like
+
 hist(rootshoot_merge$root_prop_weight)
 hist(rootshoot_merge$shoot_prop_weight)
 ```
 
-proportion graph
-```{r,width=20}
+Make a graph of the proportion of root and shoot biomass. 
+* For shoots : `shoot biomass (mg) / total biomass (mg)`
+* For roots : `root biomass (mg) / total biomass (mg)` 
+```{r proportion graph p2, width=20}
+
 #View(rootshoot_merge)
 longer_data <- rootshoot_merge %>%
   pivot_longer(shoot_prop_weight:root_prop_weight, names_to = "type", values_to = "response")
 
-boxplot<-ggplot(longer_data,aes(Water,response,fill=Inoculation)) +
+prop.biomass.plot<-ggplot(longer_data,aes(Water,response,fill=Inoculation)) +
   facet_wrap(.~type)+
   geom_boxplot(position=position_dodge())+
   
   ylab("Percent of total weight") +
-  scale_fill_manual(values=c("red", "#E69F00", "#56B4E9","green"))+
+  scale_fill_manual(values=c("coral2", "#E69F00", "#56B4E9","darkseagreen3"))+
   
   theme(
     axis.text = element_text(color='black',size=10),
@@ -170,36 +201,52 @@ boxplot<-ggplot(longer_data,aes(Water,response,fill=Inoculation)) +
     axis.ticks = element_line(color='black'),
     legend.title = element_text(size=18),
     panel.background = element_rect(fill=NA,color='black'),
+    legend.key = element_rect(fill=NA),
     panel.grid = element_blank(),
     plot.title=element_text(size=20,face="bold",vjust=2))
 
-boxplot
+prop.biomass.plot
+ggsave("figures/prop.biomass.plot.pdf", height=6, width=10)
 
 #ggsave(filename = "mainfigstawberries.pdf",
-      #plot = boxplot,
+      #plot = prop.biomass.plot,
       #bg = "transparent",
       #width = 10, height = 6, units = "in",
       #dpi = 600)
 
 ```
 
-typeIIImodel proportion
-```{r}
+Run models linear models (Type III SS) for proportion of total biomass as shoots and roots
+* First we will run the linear model as `lm(prop mass ~ Inoculation * Water)`
+* Then run post-hoc contrasts through `emmeans`
+
+**Table. Model and post-hocs for inoculation and water effects on proportion of *shoot* biomass**  
+* Effect of inoculation and water
+```{r prop shoots}
 typeIIIModelshootprop<-lm(shoot_prop_weight~Inoculation*Water,data=rootshoot_merge)
 Anova(typeIIIModelshootprop,type=3)
 typeIIIModelshootpropem<-emmeans(typeIIIModelshootprop,pairwise~Inoculation|Water)
-typeIIIModelshootpropem
 
-
+#posthoc with letters
+multcomp::cld(typeIIIModelshootpropem, Letters=letters)
+```
+  
+**Table. Model and post-hocs for inoculation and water effects on proportion of *root* biomass**  
+* Effect of inoculation and water
+```{r prop roots}
 typeIIIModelrootprop<-lm(root_prop_weight~Inoculation*Water,data=rootshoot_merge)
 Anova(typeIIIModelrootprop,type=3)
 typeIIIModelrootpropem<-emmeans(typeIIIModelrootprop,pairwise~Inoculation|Water)
-typeIIIModelrootpropem
+
+#posthoc with letters
+multcomp::cld(typeIIIModelrootpropem, Letters=letters)
 ```
 
 
-mortality graph:
-```{r,results='hide',echo=FALSE}
+### Plant mortality
+```{r mortality import and subset, results='hide',echo=FALSE}
+library(dplyr) # may need to unload-reload if get an error here, plyr and dplyr don't play well
+
 mortality.sheet<-read.csv("data/mortality graph.csv",header=TRUE)
 mortality.sheet<-subset(mortality.sheet,Inoculation!="2"&Inoculation!="3")
 mortality.sheet$Inoculation=as.factor(mortality.sheet$Inoculation)
@@ -225,38 +272,46 @@ glm.mortality.high<-glm(mortality ~ Inoculation, family=binomial,data=mortality.
 summary(glm.mortality.medium)
 em.medium <- emmeans(glm.mortality.medium, "Inoculation")
 contrast(em.medium, "pairwise", adjust = "Tukey")
+```
 
-
+Make a plot of mortality data.
+```{r mortality prop data, results='hide'}
+### final mortality data here
 mortality_prop_data<-mortality.sheet %>%
   group_by(Water, Inoculation) %>% 
   summarize(prop = sum(mortality=="alive") / n())
-mortality_prop_data$Water<-factor(mortality_prop_data$Water,levels=c("Low","Medium","High"))
-mortality_prop_data$Inoculation<-factor(mortality_prop_data$Inoculation,levels=c("Dry","Medium","Wet","None"))
-```
 
-# Mortality Graph
-```{r}
-library(ggplot2)
+mortality_prop_data$Water<-factor(mortality_prop_data$Water,levels=c("Low","Medium","High"))
+
+mortality_prop_data$Inoculation<-factor(mortality_prop_data$Inoculation,levels=c("Dry","Medium","Wet","None"))
+
+# write the final file
+write.csv(mortality_prop_data, "output/mortality_prop_data.csv")
+
+### plot it
 mortality<-ggplot(mortality_prop_data,aes(Inoculation,prop,fill=Inoculation))+
   geom_bar(stat="identity")+
   facet_wrap(.~Water)+
-  ylab("% Alive") +
-  scale_fill_manual(values=c("red", "#E69F00", "#56B4E9","green"))+ 
+  ylab("% Survival") +
+  scale_fill_manual(values=c("coral2", "#E69F00", "#56B4E9","darkseagreen3"))+ 
   theme(
     axis.text = element_text(color='black',size=10),
     axis.title = element_text(color='black',size=12),
     axis.ticks = element_line(color='black'),
     legend.title = element_text(size=18),
+    legend.key = element_rect(fill=NA),
     panel.background = element_rect(fill=NA,color='black'),
     panel.grid = element_blank(),
     plot.title=element_text(size=20,face="bold",vjust=2))
-mortality
 
-ggsave(filename = "mortality.pdf",
-      plot = mortality,
-      bg = "transparent",
-      width = 10, height = 6, units = "in",
-      dpi = 600)
+mortality
+ggsave("figures/mortality.pdf", height=6, width=10)
+
+#ggsave(filename = "mortality.pdf",
+      #plot = mortality,
+      #bg = "transparent",
+      #width = 10, height = 6, units = "in",
+      #dpi = 600)
 
 ```
 
@@ -289,19 +344,11 @@ out.
 Next, input the data in mctoolsr. Kacie already decontamed, so no need
 to that. But we will need to remove low abundance ASVs and samples.
 
-```{r}
-#library(mctoolsr)
-#library(vegan)
-#library(car)
-#library(metacoder)
-#library(emmeans)
-#library(multcompView)
-#library(dplyr)
-
+```{r, eval=FALSE}
 #inputraw <- load_taxa_table("ASV_table_mctoolsr.txt", "strawb_miseq_map.txt")
 ```
 
-```{r}
+```{r, eval=FALSE}
 #remove low abundance ASVs 
 #asvsums <- rowSums(input$data_loaded)
 #summary(asvsums)
@@ -312,7 +359,7 @@ to that. But we will need to remove low abundance ASVs and samples.
 #head(sort(asvsums),5)
 ```
 
-```{r, message=FALSE}
+```{r, eval=FALSE, message=FALSE}
 #remove low abundance Samples 
 #sampsums <- colSums(input$data_loaded)
 #summary(sampsums)
@@ -327,8 +374,7 @@ to that. But we will need to remove low abundance ASVs and samples.
 
 From this, let's remove ASV1964, ASV1965, ASV1966, and ASV 1968. Then
 let's remove the 88 samples with less than 1000 reads.
-
-```{r}
+```{r, eval=FALSE}
 #input$data_loaded<-input$data_loaded[c(1:1957),]
 #transformed<-t(input$data_loaded)
 #transformedremoved<-subset(transformed,rowSums(transformed)>1000)
@@ -341,7 +387,6 @@ For some reason, once you mess with the dataframe, you can't go back. So
 we need to download these as csvs, change them to .txt and then re-merge
 them and download the dataframe again. Very annoying, but hopefully it
 will be easy to folow:
-
 ```{r, eval=FALSE}
 #write.csv(input$data_loaded,'output/data_loaded_strawberries.csv')
 #write.csv(input$map_loaded,'output/map_loaded_strawberries.csv')
@@ -349,7 +394,6 @@ will be easy to folow:
 ```
 
 Read in data and taxonomy
-
 ```{r, eval=FALSE}
 #table<-read.csv('data_loaded_strawberries.csv', header=TRUE)
 #taxonomy<-read.csv('taxonomy_loaded_strawberries.csv', header=TRUE)
@@ -364,15 +408,8 @@ files. Make sure to rename as "#OTU ID". Re input these and then we are
 good to go.
 
 ```{r, message=FALSE, warning=FALSE, results='hide'}
-library(mctoolsr)
-library(vegan)
-library(car)
-library(metacoder)
-library(emmeans)
-library(multcompView)
-library(dplyr)
 
-input <- load_taxa_table("ASV_table_postfiltering.txt", "map_loaded_strawberries.txt")
+input <- load_taxa_table("data/ASV_table_postfiltering.txt", "map_loaded_strawberries.txt")
 ```
 
 Then let's start with just looking at the basic NMDS plot between the
@@ -394,18 +431,21 @@ want (not sure why!). But be sure to filter first and then do the
 transformation
 
 ```{r,results='hide', message=FALSE, warning=FALSE}
-library(labdsv)
+#using pack: labdsv
+
 otuTAB<-roots_post_stress$data_loaded
 otuTAB <- as.data.frame (otuTAB)
 otuTABtranspose<-t(otuTAB)
 hell<-hellinger(otuTABtranspose)
 #View(hell)
+
 roots_post_stress$data_loaded<-t(hell)
 otuTAB<-shoots_post_stress$data_loaded
 otuTAB <- as.data.frame (otuTAB)
 otuTABtranspose<-t(otuTAB)
 hell<-hellinger(otuTABtranspose)
 #View(hell)
+
 shoots_post_stress$data_loaded<-t(hell)
 ```
 
@@ -422,13 +462,13 @@ mta<-shoots_post_stress$map_loaded
 mta$Water <- as.factor(mta$Water)
 mta$Inoculation <- as.factor(mta$Inoculation)
 
-library(vegan)
+## using vegan
 #make the model
 model1<-adonis2(otuTABtranspose~Water*Inoculation,data=mta,permutations=999,method="bray")
 model1
 
 mtapairwise<-unite(mta,c='water_inoculation',c('Water','Inoculation'),sep='-')
-library(pairwiseAdonis)
+#use pack pairwiseAdonis
 
 pair.mod<-pairwise.adonis(otuTABtranspose,factors=mtapairwise$water_inoculation)
 pair.mod
@@ -474,10 +514,9 @@ data.scoresroot$Inoculation <- roots_post_stress$map_loaded$Inoculation
 ```
 
 ```{r, fig.height=5, fig.width=10, message=FALSE, warning=FALSE}
-library(ggplot2)
 
 b<-ggplot(data=data.scoresshoot,aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=factor(Inoculation))) + 
-  scale_color_manual(values=c("red", "#E69F00", "#56B4E9","green"))+ 
+  scale_color_manual(values=c("coral2", "#E69F00", "#56B4E9","darkseagreen3"))+ 
   ggtitle("Shoots")+
   geom_point(data=data.scoresshoot,aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=factor(Inoculation))) + # add the point markers
 
@@ -487,17 +526,15 @@ b<-ggplot(data=data.scoresshoot,aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=fa
     axis.title = element_text(color='black',size=12),
     axis.ticks = element_line(color='black'),
     legend.title = element_text(size=8),
+    legend.key = element_rect(fill=NA),
     panel.background = element_rect(fill=NA,color='black'),
     panel.grid = element_blank(),
     
     plot.title=element_text(size=20,face="bold",vjust=2))
 
-library(patchwork)
-
-
 
 a<-ggplot(data=data.scoresroot,aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=factor(Inoculation))) + 
-  scale_color_manual(values=c("red", "#E69F00", "#56B4E9","green"))+ 
+  scale_color_manual(values=c("coral2", "#E69F00", "#56B4E9","darkseagreen3"))+ 
   ggtitle("Roots")+
   geom_point(data=data.scoresroot,aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=factor(Inoculation))) + # add the point markers
 
@@ -515,11 +552,13 @@ a<-ggplot(data=data.scoresroot,aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=fac
 both_plots<-a+b
 both_plots
 
-ggsave(filename = "both_plots.pdf",
-      plot = both_plots,
-      bg = "transparent",
-      width = 12, height = 6, units = "in",
-      dpi = 600)
+ggsave("figures/both_plots.pdf", height=6, width=12)
+
+#ggsave(filename = "both_plots.pdf",
+      #plot = both_plots,
+      #bg = "transparent",
+      #width = 12, height = 6, units = "in",
+      #dpi = 600)
 
 ```
 
@@ -579,13 +618,13 @@ timewater<-ggplot(data=data.time,aes(x=NMDS1,y=NMDS2,color=factor(Water),shape=f
 
 
 timeinoculation<-ggplot(data=data.time,aes(x=NMDS1,y=NMDS2,color=factor(Inoculation),shape=factor(TimePoint))) + 
-  scale_color_manual(values=c("red", "#E69F00", "#56B4E9","green"))+ 
+  scale_color_manual(values=c("coral2", "#E69F00", "#56B4E9","darkseagreen3"))+ 
   ggtitle("Inoculation")+
   geom_point(data=data.time,aes(x=NMDS1,y=NMDS2,color=factor(Inoculation),shape=factor(TimePoint))) + # add the point markers
-  geom_segment(aes(x = 0.27865686, xend = -0.35505773, y = -0.1568050, yend = -0.3410676),arrow = arrow(length = unit(0.25, "cm")), colour = "red") +
+  geom_segment(aes(x = 0.27865686, xend = -0.35505773, y = -0.1568050, yend = -0.3410676),arrow = arrow(length = unit(0.25, "cm")), colour = "coral2") +
   geom_segment(aes(x = 0.30840321, xend = -0.42205696, y = -0.1520957, yend = 0.1885330),arrow = arrow(length = unit(0.25, "cm")), colour = "#E69F00") +
   geom_segment(aes(x = 0.34866122, xend = 0.09727238, y = -0.2057844, yend = 0.3355051),arrow = arrow(length = unit(0.25, "cm")), colour = "#56B4E9") +
-  geom_segment(aes(x = 0.38322169, xend = 0.13228889, y = -0.1386149, yend = 0.1352431),arrow = arrow(length = unit(0.25, "cm")), colour = "green") +
+  geom_segment(aes(x = 0.38322169, xend = 0.13228889, y = -0.1386149, yend = 0.1352431),arrow = arrow(length = unit(0.25, "cm")), colour = "darkseagreen3") +
   theme(
     axis.text = element_text(color='black',size=10),
     axis.title = element_text(color='black',size=12),
@@ -595,15 +634,19 @@ timeinoculation<-ggplot(data=data.time,aes(x=NMDS1,y=NMDS2,color=factor(Inoculat
     panel.grid = element_blank(),
     
     plot.title=element_text(size=20,face="bold",vjust=2))
-library(patchwork)
+
+# use packages patchwork
 both_plots_move<-timewater+timeinoculation
 both_plots_move
 
-ggsave(filename = "timeinoculation.pdf",
-      plot = timeinoculation,
-      bg = "transparent",
-      width = 8, height = 6, units = "in",
-      dpi = 600)
+ggsave("figures/timeinoculation.pdf", height=6, width=8)
+
+
+#ggsave(filename = "timeinoculation.pdf",
+      #plot = timeinoculation,
+      #bg = "transparent",
+      #width = 8, height = 6, units = "in",
+      #dpi = 600)
 #geom_path(aes(color=Trt), show.legend = F)
 
 ```
@@ -644,11 +687,12 @@ finalNMDSmovement = filter_data(inputshootsonlyminus3, 'TimePoint', keep_vals = 
 ```
 
 ```{r,results='hide', message=FALSE, warning=FALSE,echo=FALSE}
-library(labdsv)
+#use package labdsv
 otuTAB<-finalNMDSmovement$data_loaded
 otuTAB <- as.data.frame (otuTAB)
 otuTABtranspose<-t(otuTAB)
 hell<-hellinger(otuTABtranspose)
+
 #View(hell)
 finalNMDSmovement$data_loaded<-t(hell)
 ```
@@ -1722,7 +1766,7 @@ orderfinalbind<-do.call("rbind",list(water1inoc1_melt,water1inoc4_melt,water1ino
 phylum graph
 
 ```{r}
-library(ggthemes)
+# use package ggthemes
 ggplot(phylumfinalbind, aes(x = inoculation, y = value, fill = Phylum)) + 
   geom_bar(stat="identity",position = "fill") + 
   scale_y_continuous(labels = scales::percent) +
@@ -1736,6 +1780,7 @@ ggplot(phylumfinalbind, aes(x = inoculation, y = value, fill = Phylum)) +
     axis.title = element_text(color='black',size=12),
     axis.ticks = element_line(color='black'),
     legend.title = element_text(size=18),
+    legend.key = element_rect(fill=NA),
     panel.background = element_rect(fill=NA,color='black'),
     panel.grid = element_blank(),
     plot.title=element_text(size=20,face="bold",vjust=2))
@@ -1760,6 +1805,7 @@ ggplot(classfinalbind, aes(x = inoculation, y = value, fill = Phylum)) +
     axis.title = element_text(color='black',size=12),
     axis.ticks = element_line(color='black'),
     legend.title = element_text(size=18),
+    legend.key = element_rect(fill=NA),
     panel.background = element_rect(fill=NA,color='black'),
     panel.grid = element_blank(),
     plot.title=element_text(size=20,face="bold",vjust=2))
@@ -1784,7 +1830,8 @@ ggplot(orderfinalbind, aes(x = inoculation, y = value, fill = Phylum)) +
     axis.title = element_text(color='black',size=12),
     axis.ticks = element_line(color='black'),
     legend.title = element_text(size=8),
-     legend.key.size = unit(0.5, 'mm'),
+    legend.key = element_rect(fill=NA),
+    legend.key.size = unit(0.5, 'mm'),
     legend.text = element_text(size=5),
     panel.background = element_rect(fill=NA,color='black'),
     panel.grid = element_blank(),
@@ -1885,7 +1932,8 @@ i1rpips & slurry = = A&B&D = 12 i1rpips & i1spiprs & slurry = 10 = B&C&D
 Inoculation 1 graph
 
 ```{r}
-library(eulerr)
+# use eulerr
+
 inoc1 <-c("Shoot Post-Inoc Post-Stress" = 308, "Root Post-Inoc Post-Stress" = 537, "Shoot Post-Inoc Pre-Stress" = 89, "Slurry" = 20, 
                     "Shoot Post-Inoc Post-Stress&Root Post-Inoc Post-Stress" = 211, "Shoot Post-Inoc Post-Stress&Shoot Post-Inoc Pre-Stress" = 63, "Shoot Post-Inoc Post-Stress&Slurry" = 13, "Root Post-Inoc Post-Stress&Shoot Post-Inoc Pre-Stress" = 64,"Root Post-Inoc Post-Stress&Slurry" = 12,
                     "Shoot Post-Inoc Pre-Stress&Slurry" = 11, "Shoot Post-Inoc Post-Stress&Root Post-Inoc Post-Stress&Shoot Post-Inoc Pre-Stress&Slurry" = 10, "Shoot Post-Inoc Post-Stress&Root Post-Inoc Post-Stress&Shoot Post-Inoc Pre-Stress" = 58, "Shoot Post-Inoc Post-Stress&Root Post-Inoc Post-Stress&Slurry" = 12,
