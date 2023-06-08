@@ -668,11 +668,13 @@ mta$TimePoint <- as.factor(mta$TimePoint)
 #make the model
 model1<-adonis2(otuTABtranspose~Water*TimePoint,data=mta,permutations=999,method="bray")
 model1
+model3<-adonis2(otuTABtranspose~Water*TimePoint,data=mta,permutations=999,method="jaccard")
+model3
 
 model2<-adonis2(otuTABtranspose~Inoculation*TimePoint,data=mta,permutations=999,method="bray")
 model2
-
-
+model4<-adonis2(otuTABtranspose~Inoculation*TimePoint,data=mta,permutations=999,method="jaccard")
+model4
 ```
 
 Let's look at T0 only
@@ -1124,9 +1126,6 @@ Now that we have the data, we can do shannon's diversity:
 
 ```{r,results='hide'}
 #all shannon's diversity
-slurryinoc1shan<-diversity(t(slurryinoc1$data_loaded), index = "shannon")
-slurryinoc4shan<-diversity(t(slurryinoc4$data_loaded), index = "shannon")
-slurryinoc5shan<-diversity(t(slurryinoc5$data_loaded), index = "shannon")
 water1inoc1shan<-diversity(t(water1inoc1$data_loaded), index = "shannon")
 water1inoc4shan<-diversity(t(water1inoc4$data_loaded), index = "shannon")
 water1inoc5shan<-diversity(t(water1inoc5$data_loaded), index = "shannon")
@@ -1137,9 +1136,6 @@ water3inoc1shan<-diversity(t(water3inoc1$data_loaded), index = "shannon")
 water3inoc4shan<-diversity(t(water3inoc4$data_loaded), index = "shannon")
 water3inoc5shan<-diversity(t(water3inoc5$data_loaded), index = "shannon")
 #species richness
-slurryinoc1rich<-specnumber(t(slurryinoc1$data_loaded))
-slurryinoc4rich<-specnumber(t(slurryinoc4$data_loaded))
-slurryinoc5rich<-specnumber(t(slurryinoc5$data_loaded))
 water1inoc1rich<-specnumber(t(water1inoc1$data_loaded))
 water1inoc4rich<-specnumber(t(water1inoc4$data_loaded))
 water1inoc5rich<-specnumber(t(water1inoc5$data_loaded))
@@ -1155,24 +1151,7 @@ Next, lets make the dataframe for the ggplot - shannon's (violin plot).
 We need to make sure we can panel it out too.
 
 ```{r,results='hide'}
-#slurry1
-slurryinoc1shandf<-as.data.frame(slurryinoc1shan)
-colnames(slurryinoc1shandf)[1] ="shannon"
-treatment=c('slurry1','slurry1')
-type=c('slurry','slurry')
-slurryinoc1shandffinal<-cbind(slurryinoc1shandf,treatment,type)
-#slurry4
-slurryinoc4shandf<-as.data.frame(slurryinoc4shan)
-colnames(slurryinoc4shandf)[1] ="shannon"
-treatment=c('slurry4','slurry4')
-type=c('slurry','slurry')
-slurryinoc4shandffinal<-cbind(slurryinoc4shandf,treatment,type)
-#slurry5
-slurryinoc5shandf<-as.data.frame(slurryinoc5shan)
-colnames(slurryinoc5shandf)[1] ="shannon"
-treatment=c('slurry5','slurry5')
-type=c('slurry','slurry')
-slurryinoc5shandffinal<-cbind(slurryinoc5shandf,treatment,type)
+
 #water1inoc1
 water1inoc1shandf<-as.data.frame(water1inoc1shan)
 colnames(water1inoc1shandf)[1] ="shannon"
@@ -1236,24 +1215,6 @@ Next, lets make the dataframe for the ggplot - richness (violin plot).
 We need to make sure we can panel it out too.
 
 ```{r,results='hide'}
-#slurry1
-slurryinoc1richdf<-as.data.frame(slurryinoc1rich)
-colnames(slurryinoc1richdf)[1] ="rich"
-treatment=c('slurry1','slurry1')
-type=c('slurry','slurry')
-slurryinoc1richdffinal<-cbind(slurryinoc1richdf,treatment,type)
-#slurry4
-slurryinoc4richdf<-as.data.frame(slurryinoc4rich)
-colnames(slurryinoc4richdf)[1] ="rich"
-treatment=c('slurry4','slurry4')
-type=c('slurry','slurry')
-slurryinoc4richdffinal<-cbind(slurryinoc4richdf,treatment,type)
-#slurry5
-slurryinoc5richdf<-as.data.frame(slurryinoc5rich)
-colnames(slurryinoc5richdf)[1] ="rich"
-treatment=c('slurry5','slurry5')
-type=c('slurry','slurry')
-slurryinoc5richdffinal<-cbind(slurryinoc5richdf,treatment,type)
 #water1inoc1
 water1inoc1richdf<-as.data.frame(water1inoc1rich)
 colnames(water1inoc1richdf)[1] ="rich"
