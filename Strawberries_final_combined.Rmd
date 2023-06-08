@@ -64,6 +64,7 @@ write.csv(shootsonlywithcontrol, "output/shootsonlywithcontrol.csv")
 write.csv(rootsonlywithcontrol, "output/rootsonlywithcontrol.csv")
 ```
 
+
 ```{r, collapse=TRUE}
 ### check data normality: (yikes very very skewed)
 
