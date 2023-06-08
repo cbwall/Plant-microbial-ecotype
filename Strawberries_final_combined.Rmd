@@ -1283,6 +1283,7 @@ case:
 shannonviolin<-ggplot(shanfinalbind,aes(x=treatment,y=shannon,color=factor(treatment))) + 
   ggtitle("Water Treatment")+
   geom_violin()+
+  geom_point()+
   facet_grid(.~type,scales ="free",space="free")+
   theme(
     axis.text = element_text(color='black',size=10),
