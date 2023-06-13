@@ -1283,6 +1283,7 @@ case:
 shannonviolin<-ggplot(shanfinalbind,aes(x=treatment,y=shannon,color=factor(treatment))) + 
   ggtitle("Water Treatment")+
   geom_violin()+
+  geom_point()+
   facet_grid(.~type,scales ="free",space="free")+
   theme(
     axis.text = element_text(color='black',size=10),
@@ -1330,11 +1331,173 @@ ggsave(filename = "richviolin.pdf",
 Let's make some stacked bar plots too:
 
 ```{r,results='hide'}
-#let's refilter again just in case but include the control too
+#let's refilter again to just root t1, shoot t1, and shoot t0
 #Pair down the other data. We will have to hellinger transform this data too
 input <- load_taxa_table("ASV_table_postfiltering.txt", "map_loaded_strawberries.txt")
 inputstep5 = filter_data(input, 'TimePoint', keep_vals = 'T1')
-water1 = filter_data(inputstep5, 'Water', keep_vals = '1')
+roott1 = filter_data(inputstep5, 'Type', keep_vals = 'Root')
+roott1 = filter_data(roott1, 'Inoculation', filter_vals = '2')
+roott1 = filter_data(roott1, 'Inoculation', filter_vals = '3')
+shoott1 = filter_data(inputstep5, 'Type', keep_vals = 'Shoot')
+shoott1 = filter_data(shoott1, 'Inoculation', filter_vals = '2')
+shoott1 = filter_data(shoott1, 'Inoculation', filter_vals = '3')
+time0 = filter_data(input,'TimePoint',keep_vals = 'T0')
+shoott0 = filter_data(time0, 'Type', keep_vals = 'Shoot')
+shoott0 = filter_data(shoott0, 'Inoculation', filter_vals = '2')
+shoott0 = filter_data(shoott0, 'Inoculation', filter_vals = '3')
+
+#transformation
+library(labdsv)
+otuTAB<-shoott1$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+shoott1$data_loaded<-t(hell)
+
+otuTAB<-roott1$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+roott1$data_loaded<-t(hell)
+
+otuTAB<-shoott0$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+shoott0$data_loaded<-t(hell)
+```
+
+We will need to make a large dataframe here. View after melting to see
+how many columns to make. This will be family level
+
+```{r,results='hide'}
+library(reshape2)
+#level=5 is family. 
+shoott1_tax_sum_family = summarize_taxonomy(shoott1, level = 5, report_higher_tax = FALSE)
+shoott1_tax_sum_family$family <-row.names(shoott1_tax_sum_family)
+shoott1_melt<- melt(shoott1_tax_sum_family, id.var="family")
+nrow(shoott1_melt)
+treatment<-rep("shoot_t1",times=nrow(shoott1_melt))
+shoott1_melt<-cbind(shoott1_melt,treatment)
+
+roott1_tax_sum_family = summarize_taxonomy(roott1, level = 5, report_higher_tax = FALSE)
+roott1_tax_sum_family$family <-row.names(roott1_tax_sum_family)
+roott1_melt<- melt(roott1_tax_sum_family, id.var="family")
+nrow(roott1_melt)
+treatment<-rep("root_t1",times=nrow(roott1_melt))
+roott1_melt<-cbind(roott1_melt,treatment)
+
+shoott0_tax_sum_family = summarize_taxonomy(shoott0, level = 5, report_higher_tax = FALSE)
+shoott0_tax_sum_family$family <-row.names(shoott0_tax_sum_family)
+shoott0_melt<- melt(shoott0_tax_sum_family, id.var="family")
+nrow(shoott0_melt)
+treatment<-rep("shoot_t0",times=nrow(shoott0_melt))
+shoott0_melt<-cbind(shoott0_melt,treatment)
+
+familyfinalbind<-do.call("rbind",list(shoott1_melt,roott1_melt,shoott0_melt))
+```
+
+family graph
+
+```{r}
+library(ggthemes)
+library(ggplot2)
+familygraph<-ggplot(familyfinalbind, aes(x = treatment, y = value, fill = family)) + 
+  geom_bar(stat="identity",position = "fill") + 
+  scale_y_continuous(labels = scales::percent) +
+  scale_fill_manual(values = colorRampPalette(solarized_pal()(8))(92)) + 
+  ggtitle("Family Graphs")+
+
+  theme(
+    axis.text = element_text(color='black',size=10),
+    axis.title.y= element_blank(),
+    axis.title.x= element_blank(),
+    axis.title = element_text(color='black',size=12),
+    axis.ticks = element_line(color='black'),
+    legend.title = element_text(size=18),
+    panel.background = element_rect(fill=NA,color='black'),
+    panel.grid = element_blank(),
+    legend.key.size = unit(0.1, 'mm'),
+    plot.title=element_text(size=20,face="bold",vjust=2))
+familygraph
+
+ggsave(filename = "familygraph.pdf",
+       plot = familygraph,
+       bg = "transparent",
+       width = 17, height = 8, units = "in",
+       dpi = 600)
+```
+
+
+Let's try class
+```{r,results='hide'}
+library(reshape2)
+#level=4 is class. 
+shoott1_tax_sum_class = summarize_taxonomy(shoott1, level = 4, report_higher_tax = FALSE)
+shoott1_tax_sum_class$class <-row.names(shoott1_tax_sum_class)
+shoott1_melt<- melt(shoott1_tax_sum_class, id.var="class")
+nrow(shoott1_melt)
+treatment<-rep("shoot_t1",times=nrow(shoott1_melt))
+shoott1_melt<-cbind(shoott1_melt,treatment)
+
+roott1_tax_sum_class = summarize_taxonomy(roott1, level = 4, report_higher_tax = FALSE)
+roott1_tax_sum_class$class <-row.names(roott1_tax_sum_class)
+roott1_melt<- melt(roott1_tax_sum_class, id.var="class")
+nrow(roott1_melt)
+treatment<-rep("root_t1",times=nrow(roott1_melt))
+roott1_melt<-cbind(roott1_melt,treatment)
+
+shoott0_tax_sum_class = summarize_taxonomy(shoott0, level = 4, report_higher_tax = FALSE)
+shoott0_tax_sum_class$class <-row.names(shoott0_tax_sum_class)
+shoott0_melt<- melt(shoott0_tax_sum_class, id.var="class")
+nrow(shoott0_melt)
+treatment<-rep("shoot_t0",times=nrow(shoott0_melt))
+shoott0_melt<-cbind(shoott0_melt,treatment)
+
+classfinalbind<-do.call("rbind",list(shoott1_melt,roott1_melt,shoott0_melt))
+```
+
+class graph
+
+```{r}
+library(ggthemes)
+library(ggplot2)
+classgraph<-ggplot(classfinalbind, aes(x = treatment, y = value, fill = class)) + 
+  geom_bar(stat="identity",position = "fill") + 
+  scale_y_continuous(labels = scales::percent) +
+  scale_fill_manual(values = colorRampPalette(solarized_pal()(8))(51)) + 
+  ggtitle("class Graphs")+
+
+  theme(
+    axis.text = element_text(color='black',size=10),
+    axis.title.y= element_blank(),
+    axis.title.x= element_blank(),
+    axis.title = element_text(color='black',size=12),
+    axis.ticks = element_line(color='black'),
+    legend.title = element_text(size=18),
+    panel.background = element_rect(fill=NA,color='black'),
+    panel.grid = element_blank(),
+    legend.key.size = unit(0.5, 'mm'),
+    plot.title=element_text(size=20,face="bold",vjust=2))
+classgraph
+
+ggsave(filename = "classgraph.pdf",
+       plot = classgraph,
+       bg = "transparent",
+       width = 10, height = 6, units = "in",
+       dpi = 600)
+```
+
+Now we can make t1 shoots by inoculation and water treatment
+```{r,results='hide'}
+#let's refilter again just in case but include the control too
+#Pair down the other data. We will have to hellinger transform this data too
+library(mctoolsr)
+library(ggplot2)
+library(labdsv)
+inputstep5 = filter_data(input, 'TimePoint', keep_vals = 'T1')
+shoots = filter_data(inputstep5, 'Type', keep_vals = 'Shoot')
+water1 = filter_data(shoots, 'Water', keep_vals = '1')
 water1inoc1 = filter_data(water1, 'Inoculation', keep_vals = '1')
 water1inoc4 = filter_data(water1, 'Inoculation', keep_vals = '4')
 water1inoc5 = filter_data(water1, 'Inoculation', keep_vals = '5')
@@ -1417,324 +1580,117 @@ water3inoc6$data_loaded<-t(hell)
 
 ```
 
-We will need to make a large dataframe here. View after melting to see
-how many columns to make. This will be phylum and then we can do class
-and order
-
+We will need to make a large dataframe here. View after melting to see how many columns to make. This will be family for shoots
 ```{r,results='hide'}
 library(reshape2)
-water1inoc1_tax_sum_phylum = summarize_taxonomy(water1inoc1, level = 2, report_higher_tax = FALSE)
-water1inoc1_tax_sum_phylum$Phylum <-row.names(water1inoc1_tax_sum_phylum)
-water1inoc1_melt<- melt(water1inoc1_tax_sum_phylum, id.var="Phylum")
+water1inoc1_tax_sum_family = summarize_taxonomy(water1inoc1, level = 5, report_higher_tax = FALSE)
+water1inoc1_tax_sum_family$family <-row.names(water1inoc1_tax_sum_family)
+water1inoc1_melt<- melt(water1inoc1_tax_sum_family, id.var="family")
 nrow(water1inoc1_melt)
 inoculation<-rep("inoc1",times=nrow(water1inoc1_melt))
 water<-rep("water1",times=nrow(water1inoc1_melt))
 water1inoc1_melt<-cbind(water1inoc1_melt,inoculation,water)
 
-water1inoc4_tax_sum_phylum = summarize_taxonomy(water1inoc4, level = 2, report_higher_tax = FALSE)
-water1inoc4_tax_sum_phylum$Phylum <-row.names(water1inoc4_tax_sum_phylum)
-water1inoc4_melt<- melt(water1inoc4_tax_sum_phylum, id.var="Phylum")
+water1inoc4_tax_sum_family = summarize_taxonomy(water1inoc4, level = 5, report_higher_tax = FALSE)
+water1inoc4_tax_sum_family$family <-row.names(water1inoc4_tax_sum_family)
+water1inoc4_melt<- melt(water1inoc4_tax_sum_family, id.var="family")
 nrow(water1inoc4_melt)
 inoculation<-rep("inoc4",times=nrow(water1inoc4_melt))
 water<-rep("water1",times=nrow(water1inoc4_melt))
 water1inoc4_melt<-cbind(water1inoc4_melt,inoculation,water)
 
-water1inoc5_tax_sum_phylum = summarize_taxonomy(water1inoc5, level = 2, report_higher_tax = FALSE)
-water1inoc5_tax_sum_phylum$Phylum <-row.names(water1inoc5_tax_sum_phylum)
-water1inoc5_melt<- melt(water1inoc5_tax_sum_phylum, id.var="Phylum")
+water1inoc5_tax_sum_family = summarize_taxonomy(water1inoc5, level = 5, report_higher_tax = FALSE)
+water1inoc5_tax_sum_family$family <-row.names(water1inoc5_tax_sum_family)
+water1inoc5_melt<- melt(water1inoc5_tax_sum_family, id.var="family")
 nrow(water1inoc5_melt)
 inoculation<-rep("inoc5",times=nrow(water1inoc5_melt))
 water<-rep("water1",times=nrow(water1inoc5_melt))
 water1inoc5_melt<-cbind(water1inoc5_melt,inoculation,water)
 
-water1inoc6_tax_sum_phylum = summarize_taxonomy(water1inoc6, level = 2, report_higher_tax = FALSE)
-water1inoc6_tax_sum_phylum$Phylum <-row.names(water1inoc6_tax_sum_phylum)
-water1inoc6_melt<- melt(water1inoc6_tax_sum_phylum, id.var="Phylum")
+water1inoc6_tax_sum_family = summarize_taxonomy(water1inoc6, level = 5, report_higher_tax = FALSE)
+water1inoc6_tax_sum_family$family <-row.names(water1inoc6_tax_sum_family)
+water1inoc6_melt<- melt(water1inoc6_tax_sum_family, id.var="family")
 nrow(water1inoc6_melt)
 inoculation<-rep("inoc6",times=nrow(water1inoc6_melt))
 water<-rep("water1",times=nrow(water1inoc6_melt))
 water1inoc6_melt<-cbind(water1inoc6_melt,inoculation,water)
 
-water2inoc1_tax_sum_phylum = summarize_taxonomy(water2inoc1, level = 2, report_higher_tax = FALSE)
-water2inoc1_tax_sum_phylum$Phylum <-row.names(water2inoc1_tax_sum_phylum)
-water2inoc1_melt<- melt(water2inoc1_tax_sum_phylum, id.var="Phylum")
+water2inoc1_tax_sum_family = summarize_taxonomy(water2inoc1, level = 5, report_higher_tax = FALSE)
+water2inoc1_tax_sum_family$family <-row.names(water2inoc1_tax_sum_family)
+water2inoc1_melt<- melt(water2inoc1_tax_sum_family, id.var="family")
 nrow(water2inoc1_melt)
 inoculation<-rep("inoc1",times=nrow(water2inoc1_melt))
 water<-rep("water2",times=nrow(water2inoc1_melt))
 water2inoc1_melt<-cbind(water2inoc1_melt,inoculation,water)
 
-water2inoc4_tax_sum_phylum = summarize_taxonomy(water2inoc4, level = 2, report_higher_tax = FALSE)
-water2inoc4_tax_sum_phylum$Phylum <-row.names(water2inoc4_tax_sum_phylum)
-water2inoc4_melt<- melt(water2inoc4_tax_sum_phylum, id.var="Phylum")
+water2inoc4_tax_sum_family = summarize_taxonomy(water2inoc4, level = 5, report_higher_tax = FALSE)
+water2inoc4_tax_sum_family$family <-row.names(water2inoc4_tax_sum_family)
+water2inoc4_melt<- melt(water2inoc4_tax_sum_family, id.var="family")
 nrow(water2inoc4_melt)
 inoculation<-rep("inoc4",times=nrow(water2inoc4_melt))
 water<-rep("water2",times=nrow(water2inoc4_melt))
 water2inoc4_melt<-cbind(water2inoc4_melt,inoculation,water)
 
-water2inoc5_tax_sum_phylum = summarize_taxonomy(water2inoc5, level = 2, report_higher_tax = FALSE)
-water2inoc5_tax_sum_phylum$Phylum <-row.names(water2inoc5_tax_sum_phylum)
-water2inoc5_melt<- melt(water2inoc5_tax_sum_phylum, id.var="Phylum")
+water2inoc5_tax_sum_family = summarize_taxonomy(water2inoc5, level = 5, report_higher_tax = FALSE)
+water2inoc5_tax_sum_family$family <-row.names(water2inoc5_tax_sum_family)
+water2inoc5_melt<- melt(water2inoc5_tax_sum_family, id.var="family")
 nrow(water2inoc5_melt)
 inoculation<-rep("inoc5",times=nrow(water2inoc5_melt))
 water<-rep("water2",times=nrow(water2inoc5_melt))
 water2inoc5_melt<-cbind(water2inoc5_melt,inoculation,water)
 
-water2inoc6_tax_sum_phylum = summarize_taxonomy(water2inoc6, level = 2, report_higher_tax = FALSE)
-water2inoc6_tax_sum_phylum$Phylum <-row.names(water2inoc6_tax_sum_phylum)
-water2inoc6_melt<- melt(water2inoc6_tax_sum_phylum, id.var="Phylum")
+water2inoc6_tax_sum_family = summarize_taxonomy(water2inoc6, level = 5, report_higher_tax = FALSE)
+water2inoc6_tax_sum_family$family <-row.names(water2inoc6_tax_sum_family)
+water2inoc6_melt<- melt(water2inoc6_tax_sum_family, id.var="family")
 nrow(water2inoc6_melt)
 inoculation<-rep("inoc6",times=nrow(water2inoc6_melt))
 water<-rep("water2",times=nrow(water2inoc6_melt))
 water2inoc6_melt<-cbind(water2inoc6_melt,inoculation,water)
 
-water3inoc1_tax_sum_phylum = summarize_taxonomy(water3inoc1, level = 2, report_higher_tax = FALSE)
-water3inoc1_tax_sum_phylum$Phylum <-row.names(water3inoc1_tax_sum_phylum)
-water3inoc1_melt<- melt(water3inoc1_tax_sum_phylum, id.var="Phylum")
+water3inoc1_tax_sum_family = summarize_taxonomy(water3inoc1, level = 5, report_higher_tax = FALSE)
+water3inoc1_tax_sum_family$family <-row.names(water3inoc1_tax_sum_family)
+water3inoc1_melt<- melt(water3inoc1_tax_sum_family, id.var="family")
 nrow(water3inoc1_melt)
 inoculation<-rep("inoc1",times=nrow(water3inoc1_melt))
 water<-rep("water3",times=nrow(water3inoc1_melt))
 water3inoc1_melt<-cbind(water3inoc1_melt,inoculation,water)
 
-water3inoc4_tax_sum_phylum = summarize_taxonomy(water3inoc4, level = 2, report_higher_tax = FALSE)
-water3inoc4_tax_sum_phylum$Phylum <-row.names(water3inoc4_tax_sum_phylum)
-water3inoc4_melt<- melt(water3inoc4_tax_sum_phylum, id.var="Phylum")
+water3inoc4_tax_sum_family = summarize_taxonomy(water3inoc4, level = 5, report_higher_tax = FALSE)
+water3inoc4_tax_sum_family$family <-row.names(water3inoc4_tax_sum_family)
+water3inoc4_melt<- melt(water3inoc4_tax_sum_family, id.var="family")
 nrow(water3inoc4_melt)
 inoculation<-rep("inoc4",times=nrow(water3inoc4_melt))
 water<-rep("water3",times=nrow(water3inoc4_melt))
 water3inoc4_melt<-cbind(water3inoc4_melt,inoculation,water)
 
-water3inoc5_tax_sum_phylum = summarize_taxonomy(water3inoc5, level = 2, report_higher_tax = FALSE)
-water3inoc5_tax_sum_phylum$Phylum <-row.names(water3inoc5_tax_sum_phylum)
-water3inoc5_melt<- melt(water3inoc5_tax_sum_phylum, id.var="Phylum")
+water3inoc5_tax_sum_family = summarize_taxonomy(water3inoc5, level = 5, report_higher_tax = FALSE)
+water3inoc5_tax_sum_family$family <-row.names(water3inoc5_tax_sum_family)
+water3inoc5_melt<- melt(water3inoc5_tax_sum_family, id.var="family")
 nrow(water3inoc5_melt)
 inoculation<-rep("inoc5",times=nrow(water3inoc5_melt))
 water<-rep("water3",times=nrow(water3inoc5_melt))
 water3inoc5_melt<-cbind(water3inoc5_melt,inoculation,water)
 
-water3inoc6_tax_sum_phylum = summarize_taxonomy(water3inoc6, level = 2, report_higher_tax = FALSE)
-water3inoc6_tax_sum_phylum$Phylum <-row.names(water3inoc6_tax_sum_phylum)
-water3inoc6_melt<- melt(water3inoc6_tax_sum_phylum, id.var="Phylum")
+water3inoc6_tax_sum_family = summarize_taxonomy(water3inoc6, level = 5, report_higher_tax = FALSE)
+water3inoc6_tax_sum_family$family <-row.names(water3inoc6_tax_sum_family)
+water3inoc6_melt<- melt(water3inoc6_tax_sum_family, id.var="family")
 nrow(water3inoc6_melt)
 inoculation<-rep("inoc6",times=nrow(water3inoc6_melt))
 water<-rep("water3",times=nrow(water3inoc6_melt))
 water3inoc6_melt<-cbind(water3inoc6_melt,inoculation,water)
 
-phylumfinalbind<-do.call("rbind",list(water1inoc1_melt,water1inoc4_melt,water1inoc5_melt,water1inoc6_melt,water2inoc1_melt,water2inoc4_melt,water2inoc5_melt,water2inoc6_melt,water3inoc1_melt,water3inoc4_melt,water3inoc5_melt,water3inoc6_melt))
+familyfinalbind<-do.call("rbind",list(water1inoc1_melt,water1inoc4_melt,water1inoc5_melt,water1inoc6_melt,water2inoc1_melt,water2inoc4_melt,water2inoc5_melt,water2inoc6_melt,water3inoc1_melt,water3inoc4_melt,water3inoc5_melt,water3inoc6_melt))
 ```
 
-Class. just switch to level =3.
 
-```{r, results='hide'}
-water1inoc1_tax_sum_phylum = summarize_taxonomy(water1inoc1, level = 3, report_higher_tax = FALSE)
-water1inoc1_tax_sum_phylum$Phylum <-row.names(water1inoc1_tax_sum_phylum)
-water1inoc1_melt<- melt(water1inoc1_tax_sum_phylum, id.var="Phylum")
-nrow(water1inoc1_melt)
-inoculation<-rep("inoc1",times=nrow(water1inoc1_melt))
-water<-rep("water1",times=nrow(water1inoc1_melt))
-water1inoc1_melt<-cbind(water1inoc1_melt,inoculation,water)
-
-water1inoc4_tax_sum_phylum = summarize_taxonomy(water1inoc4, level = 3, report_higher_tax = FALSE)
-water1inoc4_tax_sum_phylum$Phylum <-row.names(water1inoc4_tax_sum_phylum)
-water1inoc4_melt<- melt(water1inoc4_tax_sum_phylum, id.var="Phylum")
-nrow(water1inoc4_melt)
-inoculation<-rep("inoc4",times=nrow(water1inoc4_melt))
-water<-rep("water1",times=nrow(water1inoc4_melt))
-water1inoc4_melt<-cbind(water1inoc4_melt,inoculation,water)
-
-water1inoc5_tax_sum_phylum = summarize_taxonomy(water1inoc5, level = 3, report_higher_tax = FALSE)
-water1inoc5_tax_sum_phylum$Phylum <-row.names(water1inoc5_tax_sum_phylum)
-water1inoc5_melt<- melt(water1inoc5_tax_sum_phylum, id.var="Phylum")
-nrow(water1inoc5_melt)
-inoculation<-rep("inoc5",times=nrow(water1inoc5_melt))
-water<-rep("water1",times=nrow(water1inoc5_melt))
-water1inoc5_melt<-cbind(water1inoc5_melt,inoculation,water)
-
-water1inoc6_tax_sum_phylum = summarize_taxonomy(water1inoc6, level = 3, report_higher_tax = FALSE)
-water1inoc6_tax_sum_phylum$Phylum <-row.names(water1inoc6_tax_sum_phylum)
-water1inoc6_melt<- melt(water1inoc6_tax_sum_phylum, id.var="Phylum")
-nrow(water1inoc6_melt)
-inoculation<-rep("inoc6",times=nrow(water1inoc6_melt))
-water<-rep("water1",times=nrow(water1inoc6_melt))
-water1inoc6_melt<-cbind(water1inoc6_melt,inoculation,water)
-
-water2inoc1_tax_sum_phylum = summarize_taxonomy(water2inoc1, level = 3, report_higher_tax = FALSE)
-water2inoc1_tax_sum_phylum$Phylum <-row.names(water2inoc1_tax_sum_phylum)
-water2inoc1_melt<- melt(water2inoc1_tax_sum_phylum, id.var="Phylum")
-nrow(water2inoc1_melt)
-inoculation<-rep("inoc1",times=nrow(water2inoc1_melt))
-water<-rep("water2",times=nrow(water2inoc1_melt))
-water2inoc1_melt<-cbind(water2inoc1_melt,inoculation,water)
-
-water2inoc4_tax_sum_phylum = summarize_taxonomy(water2inoc4, level = 3, report_higher_tax = FALSE)
-water2inoc4_tax_sum_phylum$Phylum <-row.names(water2inoc4_tax_sum_phylum)
-water2inoc4_melt<- melt(water2inoc4_tax_sum_phylum, id.var="Phylum")
-nrow(water2inoc4_melt)
-inoculation<-rep("inoc4",times=nrow(water2inoc4_melt))
-water<-rep("water2",times=nrow(water2inoc4_melt))
-water2inoc4_melt<-cbind(water2inoc4_melt,inoculation,water)
-
-water2inoc5_tax_sum_phylum = summarize_taxonomy(water2inoc5, level = 3, report_higher_tax = FALSE)
-water2inoc5_tax_sum_phylum$Phylum <-row.names(water2inoc5_tax_sum_phylum)
-water2inoc5_melt<- melt(water2inoc5_tax_sum_phylum, id.var="Phylum")
-nrow(water2inoc5_melt)
-inoculation<-rep("inoc5",times=nrow(water2inoc5_melt))
-water<-rep("water2",times=nrow(water2inoc5_melt))
-water2inoc5_melt<-cbind(water2inoc5_melt,inoculation,water)
-
-water2inoc6_tax_sum_phylum = summarize_taxonomy(water2inoc6, level = 3, report_higher_tax = FALSE)
-water2inoc6_tax_sum_phylum$Phylum <-row.names(water2inoc6_tax_sum_phylum)
-water2inoc6_melt<- melt(water2inoc6_tax_sum_phylum, id.var="Phylum")
-nrow(water2inoc6_melt)
-inoculation<-rep("inoc6",times=nrow(water2inoc6_melt))
-water<-rep("water2",times=nrow(water2inoc6_melt))
-water2inoc6_melt<-cbind(water2inoc6_melt,inoculation,water)
-
-water3inoc1_tax_sum_phylum = summarize_taxonomy(water3inoc1, level = 3, report_higher_tax = FALSE)
-water3inoc1_tax_sum_phylum$Phylum <-row.names(water3inoc1_tax_sum_phylum)
-water3inoc1_melt<- melt(water3inoc1_tax_sum_phylum, id.var="Phylum")
-nrow(water3inoc1_melt)
-inoculation<-rep("inoc1",times=nrow(water3inoc1_melt))
-water<-rep("water3",times=nrow(water3inoc1_melt))
-water3inoc1_melt<-cbind(water3inoc1_melt,inoculation,water)
-
-water3inoc4_tax_sum_phylum = summarize_taxonomy(water3inoc4, level = 3, report_higher_tax = FALSE)
-water3inoc4_tax_sum_phylum$Phylum <-row.names(water3inoc4_tax_sum_phylum)
-water3inoc4_melt<- melt(water3inoc4_tax_sum_phylum, id.var="Phylum")
-nrow(water3inoc4_melt)
-inoculation<-rep("inoc4",times=nrow(water3inoc4_melt))
-water<-rep("water3",times=nrow(water3inoc4_melt))
-water3inoc4_melt<-cbind(water3inoc4_melt,inoculation,water)
-
-water3inoc5_tax_sum_phylum = summarize_taxonomy(water3inoc5, level = 3, report_higher_tax = FALSE)
-water3inoc5_tax_sum_phylum$Phylum <-row.names(water3inoc5_tax_sum_phylum)
-water3inoc5_melt<- melt(water3inoc5_tax_sum_phylum, id.var="Phylum")
-nrow(water3inoc5_melt)
-inoculation<-rep("inoc5",times=nrow(water3inoc5_melt))
-water<-rep("water3",times=nrow(water3inoc5_melt))
-water3inoc5_melt<-cbind(water3inoc5_melt,inoculation,water)
-
-water3inoc6_tax_sum_phylum = summarize_taxonomy(water3inoc6, level = 3, report_higher_tax = FALSE)
-water3inoc6_tax_sum_phylum$Phylum <-row.names(water3inoc6_tax_sum_phylum)
-water3inoc6_melt<- melt(water3inoc6_tax_sum_phylum, id.var="Phylum")
-nrow(water3inoc6_melt)
-inoculation<-rep("inoc6",times=nrow(water3inoc6_melt))
-water<-rep("water3",times=nrow(water3inoc6_melt))
-water3inoc6_melt<-cbind(water3inoc6_melt,inoculation,water)
-
-classfinalbind<-do.call("rbind",list(water1inoc1_melt,water1inoc4_melt,water1inoc5_melt,water1inoc6_melt,water2inoc1_melt,water2inoc4_melt,water2inoc5_melt,water2inoc6_melt,water3inoc1_melt,water3inoc4_melt,water3inoc5_melt,water3inoc6_melt))
-```
-
-Order. just switch to level =4.
-
-```{r, results='hide'}
-water1inoc1_tax_sum_phylum = summarize_taxonomy(water1inoc1, level = 4, report_higher_tax = FALSE)
-water1inoc1_tax_sum_phylum$Phylum <-row.names(water1inoc1_tax_sum_phylum)
-water1inoc1_melt<- melt(water1inoc1_tax_sum_phylum, id.var="Phylum")
-nrow(water1inoc1_melt)
-inoculation<-rep("inoc1",times=nrow(water1inoc1_melt))
-water<-rep("water1",times=nrow(water1inoc1_melt))
-water1inoc1_melt<-cbind(water1inoc1_melt,inoculation,water)
-
-water1inoc4_tax_sum_phylum = summarize_taxonomy(water1inoc4, level = 4, report_higher_tax = FALSE)
-water1inoc4_tax_sum_phylum$Phylum <-row.names(water1inoc4_tax_sum_phylum)
-water1inoc4_melt<- melt(water1inoc4_tax_sum_phylum, id.var="Phylum")
-nrow(water1inoc4_melt)
-inoculation<-rep("inoc4",times=nrow(water1inoc4_melt))
-water<-rep("water1",times=nrow(water1inoc4_melt))
-water1inoc4_melt<-cbind(water1inoc4_melt,inoculation,water)
-
-water1inoc5_tax_sum_phylum = summarize_taxonomy(water1inoc5, level = 4, report_higher_tax = FALSE)
-water1inoc5_tax_sum_phylum$Phylum <-row.names(water1inoc5_tax_sum_phylum)
-water1inoc5_melt<- melt(water1inoc5_tax_sum_phylum, id.var="Phylum")
-nrow(water1inoc5_melt)
-inoculation<-rep("inoc5",times=nrow(water1inoc5_melt))
-water<-rep("water1",times=nrow(water1inoc5_melt))
-water1inoc5_melt<-cbind(water1inoc5_melt,inoculation,water)
-
-water1inoc6_tax_sum_phylum = summarize_taxonomy(water1inoc6, level = 4, report_higher_tax = FALSE)
-water1inoc6_tax_sum_phylum$Phylum <-row.names(water1inoc6_tax_sum_phylum)
-water1inoc6_melt<- melt(water1inoc6_tax_sum_phylum, id.var="Phylum")
-nrow(water1inoc6_melt)
-inoculation<-rep("inoc6",times=nrow(water1inoc6_melt))
-water<-rep("water1",times=nrow(water1inoc6_melt))
-water1inoc6_melt<-cbind(water1inoc6_melt,inoculation,water)
-
-water2inoc1_tax_sum_phylum = summarize_taxonomy(water2inoc1, level = 4, report_higher_tax = FALSE)
-water2inoc1_tax_sum_phylum$Phylum <-row.names(water2inoc1_tax_sum_phylum)
-water2inoc1_melt<- melt(water2inoc1_tax_sum_phylum, id.var="Phylum")
-nrow(water2inoc1_melt)
-inoculation<-rep("inoc1",times=nrow(water2inoc1_melt))
-water<-rep("water2",times=nrow(water2inoc1_melt))
-water2inoc1_melt<-cbind(water2inoc1_melt,inoculation,water)
-
-water2inoc4_tax_sum_phylum = summarize_taxonomy(water2inoc4, level = 4, report_higher_tax = FALSE)
-water2inoc4_tax_sum_phylum$Phylum <-row.names(water2inoc4_tax_sum_phylum)
-water2inoc4_melt<- melt(water2inoc4_tax_sum_phylum, id.var="Phylum")
-nrow(water2inoc4_melt)
-inoculation<-rep("inoc4",times=nrow(water2inoc4_melt))
-water<-rep("water2",times=nrow(water2inoc4_melt))
-water2inoc4_melt<-cbind(water2inoc4_melt,inoculation,water)
-
-water2inoc5_tax_sum_phylum = summarize_taxonomy(water2inoc5, level = 4, report_higher_tax = FALSE)
-water2inoc5_tax_sum_phylum$Phylum <-row.names(water2inoc5_tax_sum_phylum)
-water2inoc5_melt<- melt(water2inoc5_tax_sum_phylum, id.var="Phylum")
-nrow(water2inoc5_melt)
-inoculation<-rep("inoc5",times=nrow(water2inoc5_melt))
-water<-rep("water2",times=nrow(water2inoc5_melt))
-water2inoc5_melt<-cbind(water2inoc5_melt,inoculation,water)
-
-water2inoc6_tax_sum_phylum = summarize_taxonomy(water2inoc6, level = 4, report_higher_tax = FALSE)
-water2inoc6_tax_sum_phylum$Phylum <-row.names(water2inoc6_tax_sum_phylum)
-water2inoc6_melt<- melt(water2inoc6_tax_sum_phylum, id.var="Phylum")
-nrow(water2inoc6_melt)
-inoculation<-rep("inoc6",times=nrow(water2inoc6_melt))
-water<-rep("water2",times=nrow(water2inoc6_melt))
-water2inoc6_melt<-cbind(water2inoc6_melt,inoculation,water)
-
-water3inoc1_tax_sum_phylum = summarize_taxonomy(water3inoc1, level = 4, report_higher_tax = FALSE)
-water3inoc1_tax_sum_phylum$Phylum <-row.names(water3inoc1_tax_sum_phylum)
-water3inoc1_melt<- melt(water3inoc1_tax_sum_phylum, id.var="Phylum")
-nrow(water3inoc1_melt)
-inoculation<-rep("inoc1",times=nrow(water3inoc1_melt))
-water<-rep("water3",times=nrow(water3inoc1_melt))
-water3inoc1_melt<-cbind(water3inoc1_melt,inoculation,water)
-
-water3inoc4_tax_sum_phylum = summarize_taxonomy(water3inoc4, level = 4, report_higher_tax = FALSE)
-water3inoc4_tax_sum_phylum$Phylum <-row.names(water3inoc4_tax_sum_phylum)
-water3inoc4_melt<- melt(water3inoc4_tax_sum_phylum, id.var="Phylum")
-nrow(water3inoc4_melt)
-inoculation<-rep("inoc4",times=nrow(water3inoc4_melt))
-water<-rep("water3",times=nrow(water3inoc4_melt))
-water3inoc4_melt<-cbind(water3inoc4_melt,inoculation,water)
-
-water3inoc5_tax_sum_phylum = summarize_taxonomy(water3inoc5, level = 4, report_higher_tax = FALSE)
-water3inoc5_tax_sum_phylum$Phylum <-row.names(water3inoc5_tax_sum_phylum)
-water3inoc5_melt<- melt(water3inoc5_tax_sum_phylum, id.var="Phylum")
-nrow(water3inoc5_melt)
-inoculation<-rep("inoc5",times=nrow(water3inoc5_melt))
-water<-rep("water3",times=nrow(water3inoc5_melt))
-water3inoc5_melt<-cbind(water3inoc5_melt,inoculation,water)
-
-water3inoc6_tax_sum_phylum = summarize_taxonomy(water3inoc6, level = 4, report_higher_tax = FALSE)
-water3inoc6_tax_sum_phylum$Phylum <-row.names(water3inoc6_tax_sum_phylum)
-water3inoc6_melt<- melt(water3inoc6_tax_sum_phylum, id.var="Phylum")
-nrow(water3inoc6_melt)
-inoculation<-rep("inoc6",times=nrow(water3inoc6_melt))
-water<-rep("water3",times=nrow(water3inoc6_melt))
-water3inoc6_melt<-cbind(water3inoc6_melt,inoculation,water)
-
-orderfinalbind<-do.call("rbind",list(water1inoc1_melt,water1inoc4_melt,water1inoc5_melt,water1inoc6_melt,water2inoc1_melt,water2inoc4_melt,water2inoc5_melt,water2inoc6_melt,water3inoc1_melt,water3inoc4_melt,water3inoc5_melt,water3inoc6_melt))
-```
-
-phylum graph
-
+# Shoots family graph
 ```{r}
-# use package ggthemes
-ggplot(phylumfinalbind, aes(x = inoculation, y = value, fill = Phylum)) + 
+library(ggthemes)
+shootsfamily<-ggplot(familyfinalbind, aes(x = inoculation, y = value, fill = family)) + 
   geom_bar(stat="identity",position = "fill") + 
   scale_y_continuous(labels = scales::percent) +
-  scale_fill_manual(values = colorRampPalette(solarized_pal()(8))(7)) + 
-  ggtitle("Phylum Graphs")+
+  scale_fill_manual(values = colorRampPalette(solarized_pal()(8))(90)) + 
+  ggtitle("Shoots Family Graphs")+
   facet_grid(.~water,scales ="free",space="free")+
   theme(
     axis.text = element_text(color='black',size=10),
@@ -1743,23 +1699,220 @@ ggplot(phylumfinalbind, aes(x = inoculation, y = value, fill = Phylum)) +
     axis.title = element_text(color='black',size=12),
     axis.ticks = element_line(color='black'),
     legend.title = element_text(size=18),
-    legend.key = element_rect(fill=NA),
     panel.background = element_rect(fill=NA,color='black'),
     panel.grid = element_blank(),
+    legend.key.size = unit(1, 'mm'),
+    legend.text = element_text(color='black',size=4),
     plot.title=element_text(size=20,face="bold",vjust=2))
+shootsfamily
 
+ggsave(filename = "shootsfamily.pdf",
+       plot = shootsfamily,
+       bg = "transparent",
+       width = 17, height = 8, units = "in",
+       dpi = 600)
+```
+Now we can make t1 roots by inoculation and water treatment
+```{r,results='hide'}
+#let's refilter again just in case but include the control too
+#Pair down the other data. We will have to hellinger transform this data too
+
+inputstep5 = filter_data(input, 'TimePoint', keep_vals = 'T1')
+roots = filter_data(inputstep5, 'Type', keep_vals = 'Root')
+water1 = filter_data(roots, 'Water', keep_vals = '1')
+water1inoc1 = filter_data(water1, 'Inoculation', keep_vals = '1')
+water1inoc4 = filter_data(water1, 'Inoculation', keep_vals = '4')
+water1inoc5 = filter_data(water1, 'Inoculation', keep_vals = '5')
+water1inoc6 = filter_data(water1, 'Inoculation', keep_vals = '6')
+water2 = filter_data(inputstep5, 'Water', keep_vals = '2')
+water2inoc1 = filter_data(water2, 'Inoculation', keep_vals = '1')
+water2inoc4 = filter_data(water2, 'Inoculation', keep_vals = '4')
+water2inoc5 = filter_data(water2, 'Inoculation', keep_vals = '5')
+water2inoc6 = filter_data(water2, 'Inoculation', keep_vals = '6')
+
+water3 = filter_data(inputstep5, 'Water', keep_vals = '3')
+water3inoc1 = filter_data(water3, 'Inoculation', keep_vals = '1')
+water3inoc4 = filter_data(water3, 'Inoculation', keep_vals = '4')
+water3inoc5 = filter_data(water3, 'Inoculation', keep_vals = '5')
+water3inoc6 = filter_data(water3, 'Inoculation', keep_vals = '6')
+
+#transformation
+otuTAB<-water1inoc1$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+water1inoc1$data_loaded<-t(hell)
+otuTAB<-water1inoc4$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+water1inoc4$data_loaded<-t(hell)
+otuTAB<-water1inoc5$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+water1inoc5$data_loaded<-t(hell)
+otuTAB<-water1inoc6$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+water1inoc6$data_loaded<-t(hell)
+
+otuTAB<-water2inoc1$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+water2inoc1$data_loaded<-t(hell)
+otuTAB<-water2inoc4$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+water2inoc4$data_loaded<-t(hell)
+otuTAB<-water2inoc5$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+water2inoc5$data_loaded<-t(hell)
+otuTAB<-water2inoc6$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+water2inoc6$data_loaded<-t(hell)
+
+otuTAB<-water3inoc1$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+water3inoc1$data_loaded<-t(hell)
+otuTAB<-water3inoc4$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+water3inoc4$data_loaded<-t(hell)
+otuTAB<-water3inoc5$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+water3inoc5$data_loaded<-t(hell)
+otuTAB<-water3inoc6$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+water3inoc6$data_loaded<-t(hell)
 
 ```
 
-class graph
+We will need to make a large dataframe here. View after melting to see how many columns to make. This will be family for shoots
+```{r,results='hide'}
+library(reshape2)
+water1inoc1_tax_sum_family = summarize_taxonomy(water1inoc1, level = 5, report_higher_tax = FALSE)
+water1inoc1_tax_sum_family$family <-row.names(water1inoc1_tax_sum_family)
+water1inoc1_melt<- melt(water1inoc1_tax_sum_family, id.var="family")
+nrow(water1inoc1_melt)
+inoculation<-rep("inoc1",times=nrow(water1inoc1_melt))
+water<-rep("water1",times=nrow(water1inoc1_melt))
+water1inoc1_melt<-cbind(water1inoc1_melt,inoculation,water)
 
-```{r fig.height=6, fig.width=12}
+water1inoc4_tax_sum_family = summarize_taxonomy(water1inoc4, level = 5, report_higher_tax = FALSE)
+water1inoc4_tax_sum_family$family <-row.names(water1inoc4_tax_sum_family)
+water1inoc4_melt<- melt(water1inoc4_tax_sum_family, id.var="family")
+nrow(water1inoc4_melt)
+inoculation<-rep("inoc4",times=nrow(water1inoc4_melt))
+water<-rep("water1",times=nrow(water1inoc4_melt))
+water1inoc4_melt<-cbind(water1inoc4_melt,inoculation,water)
 
-ggplot(classfinalbind, aes(x = inoculation, y = value, fill = Phylum)) + 
+water1inoc5_tax_sum_family = summarize_taxonomy(water1inoc5, level = 5, report_higher_tax = FALSE)
+water1inoc5_tax_sum_family$family <-row.names(water1inoc5_tax_sum_family)
+water1inoc5_melt<- melt(water1inoc5_tax_sum_family, id.var="family")
+nrow(water1inoc5_melt)
+inoculation<-rep("inoc5",times=nrow(water1inoc5_melt))
+water<-rep("water1",times=nrow(water1inoc5_melt))
+water1inoc5_melt<-cbind(water1inoc5_melt,inoculation,water)
+
+water1inoc6_tax_sum_family = summarize_taxonomy(water1inoc6, level = 5, report_higher_tax = FALSE)
+water1inoc6_tax_sum_family$family <-row.names(water1inoc6_tax_sum_family)
+water1inoc6_melt<- melt(water1inoc6_tax_sum_family, id.var="family")
+nrow(water1inoc6_melt)
+inoculation<-rep("inoc6",times=nrow(water1inoc6_melt))
+water<-rep("water1",times=nrow(water1inoc6_melt))
+water1inoc6_melt<-cbind(water1inoc6_melt,inoculation,water)
+
+water2inoc1_tax_sum_family = summarize_taxonomy(water2inoc1, level = 5, report_higher_tax = FALSE)
+water2inoc1_tax_sum_family$family <-row.names(water2inoc1_tax_sum_family)
+water2inoc1_melt<- melt(water2inoc1_tax_sum_family, id.var="family")
+nrow(water2inoc1_melt)
+inoculation<-rep("inoc1",times=nrow(water2inoc1_melt))
+water<-rep("water2",times=nrow(water2inoc1_melt))
+water2inoc1_melt<-cbind(water2inoc1_melt,inoculation,water)
+
+water2inoc4_tax_sum_family = summarize_taxonomy(water2inoc4, level = 5, report_higher_tax = FALSE)
+water2inoc4_tax_sum_family$family <-row.names(water2inoc4_tax_sum_family)
+water2inoc4_melt<- melt(water2inoc4_tax_sum_family, id.var="family")
+nrow(water2inoc4_melt)
+inoculation<-rep("inoc4",times=nrow(water2inoc4_melt))
+water<-rep("water2",times=nrow(water2inoc4_melt))
+water2inoc4_melt<-cbind(water2inoc4_melt,inoculation,water)
+
+water2inoc5_tax_sum_family = summarize_taxonomy(water2inoc5, level = 5, report_higher_tax = FALSE)
+water2inoc5_tax_sum_family$family <-row.names(water2inoc5_tax_sum_family)
+water2inoc5_melt<- melt(water2inoc5_tax_sum_family, id.var="family")
+nrow(water2inoc5_melt)
+inoculation<-rep("inoc5",times=nrow(water2inoc5_melt))
+water<-rep("water2",times=nrow(water2inoc5_melt))
+water2inoc5_melt<-cbind(water2inoc5_melt,inoculation,water)
+
+water2inoc6_tax_sum_family = summarize_taxonomy(water2inoc6, level = 5, report_higher_tax = FALSE)
+water2inoc6_tax_sum_family$family <-row.names(water2inoc6_tax_sum_family)
+water2inoc6_melt<- melt(water2inoc6_tax_sum_family, id.var="family")
+nrow(water2inoc6_melt)
+inoculation<-rep("inoc6",times=nrow(water2inoc6_melt))
+water<-rep("water2",times=nrow(water2inoc6_melt))
+water2inoc6_melt<-cbind(water2inoc6_melt,inoculation,water)
+
+water3inoc1_tax_sum_family = summarize_taxonomy(water3inoc1, level = 5, report_higher_tax = FALSE)
+water3inoc1_tax_sum_family$family <-row.names(water3inoc1_tax_sum_family)
+water3inoc1_melt<- melt(water3inoc1_tax_sum_family, id.var="family")
+nrow(water3inoc1_melt)
+inoculation<-rep("inoc1",times=nrow(water3inoc1_melt))
+water<-rep("water3",times=nrow(water3inoc1_melt))
+water3inoc1_melt<-cbind(water3inoc1_melt,inoculation,water)
+
+water3inoc4_tax_sum_family = summarize_taxonomy(water3inoc4, level = 5, report_higher_tax = FALSE)
+water3inoc4_tax_sum_family$family <-row.names(water3inoc4_tax_sum_family)
+water3inoc4_melt<- melt(water3inoc4_tax_sum_family, id.var="family")
+nrow(water3inoc4_melt)
+inoculation<-rep("inoc4",times=nrow(water3inoc4_melt))
+water<-rep("water3",times=nrow(water3inoc4_melt))
+water3inoc4_melt<-cbind(water3inoc4_melt,inoculation,water)
+
+water3inoc5_tax_sum_family = summarize_taxonomy(water3inoc5, level = 5, report_higher_tax = FALSE)
+water3inoc5_tax_sum_family$family <-row.names(water3inoc5_tax_sum_family)
+water3inoc5_melt<- melt(water3inoc5_tax_sum_family, id.var="family")
+nrow(water3inoc5_melt)
+inoculation<-rep("inoc5",times=nrow(water3inoc5_melt))
+water<-rep("water3",times=nrow(water3inoc5_melt))
+water3inoc5_melt<-cbind(water3inoc5_melt,inoculation,water)
+
+water3inoc6_tax_sum_family = summarize_taxonomy(water3inoc6, level = 5, report_higher_tax = FALSE)
+water3inoc6_tax_sum_family$family <-row.names(water3inoc6_tax_sum_family)
+water3inoc6_melt<- melt(water3inoc6_tax_sum_family, id.var="family")
+nrow(water3inoc6_melt)
+inoculation<-rep("inoc6",times=nrow(water3inoc6_melt))
+water<-rep("water3",times=nrow(water3inoc6_melt))
+water3inoc6_melt<-cbind(water3inoc6_melt,inoculation,water)
+
+familyrootfinalbind<-do.call("rbind",list(water1inoc1_melt,water1inoc4_melt,water1inoc5_melt,water1inoc6_melt,water2inoc1_melt,water2inoc4_melt,water2inoc5_melt,water2inoc6_melt,water3inoc1_melt,water3inoc4_melt,water3inoc5_melt,water3inoc6_melt))
+```
+
+
+# Roots family graph
+```{r}
+library(ggthemes)
+Rootsfamily<-ggplot(familyrootfinalbind, aes(x = inoculation, y = value, fill = family)) + 
   geom_bar(stat="identity",position = "fill") + 
   scale_y_continuous(labels = scales::percent) +
-  scale_fill_manual(values = colorRampPalette(solarized_pal()(8))(18)) + 
-  ggtitle("Class Graphs")+
+  scale_fill_manual(values = colorRampPalette(solarized_pal()(8))(90)) + 
+  ggtitle("Roots Family Graphs")+
   facet_grid(.~water,scales ="free",space="free")+
   theme(
     axis.text = element_text(color='black',size=10),
@@ -1768,40 +1921,19 @@ ggplot(classfinalbind, aes(x = inoculation, y = value, fill = Phylum)) +
     axis.title = element_text(color='black',size=12),
     axis.ticks = element_line(color='black'),
     legend.title = element_text(size=18),
-    legend.key = element_rect(fill=NA),
     panel.background = element_rect(fill=NA,color='black'),
     panel.grid = element_blank(),
+    legend.key.size = unit(1, 'mm'),
+    legend.text = element_text(color='black',size=4),
     plot.title=element_text(size=20,face="bold",vjust=2))
+Rootsfamily
 
-
+ggsave(filename = "Rootsfamily.pdf",
+       plot = Rootsfamily,
+       bg = "transparent",
+       width = 17, height = 8, units = "in",
+       dpi = 600)
 ```
-
-order graph
-
-```{r}
-
-ggplot(orderfinalbind, aes(x = inoculation, y = value, fill = Phylum)) + 
-  geom_bar(stat="identity",position = "fill") + 
-  scale_y_continuous(labels = scales::percent) +
-  scale_fill_manual(values = colorRampPalette(solarized_pal()(8))(50)) + 
-  ggtitle("Order Graphs")+
-  facet_grid(.~water,scales ="free",space="free")+
-  theme(
-    axis.text = element_text(color='black',size=10),
-    axis.title.y= element_blank(),
-    axis.title.x= element_blank(),
-    axis.title = element_text(color='black',size=12),
-    axis.ticks = element_line(color='black'),
-    legend.title = element_text(size=8),
-    legend.key = element_rect(fill=NA),
-    legend.key.size = unit(0.5, 'mm'),
-    legend.text = element_text(size=5),
-    panel.background = element_rect(fill=NA,color='black'),
-    panel.grid = element_blank(),
-    plot.title=element_text(size=20,face="bold",vjust=2))
-
-```
-
 Let's start with the raw data. The venn diagram we want is split into
 the three water groups. Then we need original inoculum, leaves post-inoc
 post stress, leaves post-inoc pre stress, roots post inoc post stress

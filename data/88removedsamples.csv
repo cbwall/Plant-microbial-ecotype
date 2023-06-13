@@ -1,0 +1,89 @@
+Sample,TimePoint,Type,PlantID,WeightGrams,SampleNotes,Water,Inoculation,Replicate,PlantNotes,SampleType,Sample_or_Control
+KSTRAW0007,Control,Shoot,,NA,pre-inoc shoots,NA,Initi Ctl,1,,pre_inoc,Control
+KSTRAW0008,Control,Shoot,,NA,pre-inoc shoots,NA,Initi Ctl,2,,pre_inoc,Control
+KSTRAW0009,Control,Shoot,,NA,pre-inoc shoots,NA,Initi Ctl,3,,pre_inoc,Control
+KSTRAW0010,Control,Shoot,,NA,pre-inoc shoots,NA,Initi Ctl,4,,pre_inoc,Control
+KSTRAW0011,Control,Shoot,,NA,pre-inoc shoots,NA,Initi Ctl,5,,pre_inoc,Control
+KSTRAW0012,Control,Shoot,,NA,pre-inoc shoots,NA,Initi Ctl,6,,pre_inoc,Control
+KSTRAW0013,Control,Shoot,,NA,pre-inoc shoots,NA,Initi Ctl,7,,pre_inoc,Control
+KSTRAW0014,Control,Shoot,,NA,pre-inoc shoots,NA,Initi Ctl,8,,pre_inoc,Control
+KSTRAW0015,Control,Shoot,,NA,pre-inoc shoots,NA,Initi Ctl,9,,pre_inoc,Control
+KSTRAW0017,Control,Root,,NA,pre-inoc roots,NA,Initi Ctl,1,,pre_inoc,Control
+KSTRAW0018,Control,Root,,NA,pre-inoc roots,NA,Initi Ctl,2,,pre_inoc,Control
+KSTRAW0019,Control,Root,,NA,pre-inoc roots,NA,Initi Ctl,3,,pre_inoc,Control
+KSTRAW0020,Control,Root,,NA,pre-inoc roots,NA,Initi Ctl,4,,pre_inoc,Control
+KSTRAW0021,Control,Root,,NA,pre-inoc roots,NA,Initi Ctl,5,,pre_inoc,Control
+KSTRAW0022,Control,Root,,NA,pre-inoc roots,NA,Initi Ctl,6,,pre_inoc,Control
+KSTRAW0023,Control,Root,,NA,pre-inoc roots,NA,Initi Ctl,7,,pre_inoc,Control
+KSTRAW0024,Control,Root,,NA,pre-inoc roots,NA,Initi Ctl,8,,pre_inoc,Control
+KSTRAW0025,Control,Root,,NA,pre-inoc roots,NA,Initi Ctl,9,,pre_inoc,Control
+KSTRAW0026,Control,Root,,NA,pre-inoc roots,NA,Initi Ctl,10,,pre_inoc,Control
+KSTRAW0848,T1,Root,R06I03W01,0.2032,,1,3,6,P16,post_inoc_post_stress,True Sample
+KSTRAW0854,T1,Root,R12I03W01,0.0959,,1,3,12,,post_inoc_post_stress,True Sample
+KSTRAW0859,T1,Root,R03I04W01,0.1443,,1,4,3,P12,post_inoc_post_stress,True Sample
+KSTRAW0862,T1,Root,R06I04W01,0.0451,,1,4,6,,post_inoc_post_stress,True Sample
+KSTRAW0867,T1,Root,R11I04W01,0.0811,,1,4,11,,post_inoc_post_stress,True Sample
+KSTRAW0878,T1,Root,R08I05W01,0.2768,,1,5,8,P26,post_inoc_post_stress,True Sample
+KSTRAW0883,T1,Root,R13I05W01,0.05383,,1,5,13,,post_inoc_post_stress,True Sample
+KSTRAW0884,T1,Root,R14I05W01,0.14917,,1,5,14,,post_inoc_post_stress,True Sample
+KSTRAW0910,T1,Root,R12I01W02,0.0634,,2,1,12,,post_inoc_post_stress,True Sample
+KSTRAW0913,T1,Root,R01I02W02,0.1993,,2,2,1,,post_inoc_post_stress,True Sample
+KSTRAW0924,T1,Root,R12I02W02,0.2492,,2,2,12,,post_inoc_post_stress,True Sample
+KSTRAW0948,T1,Root,R08I04W02,0.1766,,2,4,8,,post_inoc_post_stress,True Sample
+KSTRAW0951,T1,Root,R11I04W02,0.1599,,2,4,11,,post_inoc_post_stress,True Sample
+KSTRAW0955,T1,Root,R01I05W02,0.3117,,2,5,1,,post_inoc_post_stress,True Sample
+KSTRAW0959,T1,Root,R05I05W02,0.3329,,2,5,5,,post_inoc_post_stress,True Sample
+KSTRAW1072,T1,Shoot,R06I01W01,0.08145,,1,1,6,,post_inoc_post_stress,True Sample
+KSTRAW1091,T1,Root,R13I02W01,0.1151,,1,2,13,,post_inoc_post_stress,True Sample
+KSTRAW1103,T1,Shoot,R09I03W01,0.14834,,1,3,9,P23,post_inoc_post_stress,True Sample
+KSTRAW1108,T1,Shoot,R14I03W01,0.05884,,1,3,14,,post_inoc_post_stress,True Sample
+KSTRAW1112,T1,Shoot,R04I04W01,0.09441,,1,4,4,,post_inoc_post_stress,True Sample
+KSTRAW1116,T1,Shoot,R08I04W01,0.04849,,1,4,8,,post_inoc_post_stress,True Sample
+KSTRAW1121,T1,Shoot,R13I04W01,0.14588,,1,4,13,,post_inoc_post_stress,True Sample
+KSTRAW1123,T1,Shoot,R01I05W01,0.07689,,1,5,1,P14,post_inoc_post_stress,True Sample
+KSTRAW1127,T1,Shoot,R05I05W01,0.05317,,1,5,5,,post_inoc_post_stress,True Sample
+KSTRAW1156,T1,Shoot,R06I01W02,0.06678,,2,1,6,,post_inoc_post_stress,True Sample
+KSTRAW1166,T1,Shoot,R02I02W02,0.10721,,2,2,2,,post_inoc_post_stress,True Sample
+KSTRAW1198,T1,Shoot,R06I04W02,0.09643,,2,4,6,,post_inoc_post_stress,True Sample
+KSTRAW1246,T1,Shoot,R12I01W03,0.0645,,3,1,12,,post_inoc_post_stress,True Sample
+KSTRAW1278,T1,Shoot,R02I04W03,0.07398,,3,4,2,,post_inoc_post_stress,True Sample
+KSTRAW1303,T1,Shoot,R13I05W03,0.02505,,3,5,13,,post_inoc_post_stress,True Sample
+KSTRAW1310,T1,Shoot,R06I06W03,0.03559,,3,6,6,,i6,Control
+KSTRAW1313,T1,Shoot,R09I06W03,0.10303,,3,6,9,,i6,Control
+KSTRAW1319,Control,Inoculum 1,R00I01W00,NA,Inoculum 1-estuary rep 1,NA,InitialSource,NA,,slurry,True Sample
+KSTRAW1321,Control,Inoculum 3,R00I03W00,NA,Inoculum 3-drum.down rep 1,NA,InitialSource,NA,,slurry,True Sample
+KSTRAW1322,Control,Inoculum 4,R00I04W00,NA,Inoculum 4-drum.up rep 1,NA,InitialSource,NA,,slurry,True Sample
+KSTRAW1323,Control,Inoculum 5,R00I05W00,NA,Inoculum 5-ridge rep 1,NA,InitialSource,NA,,slurry,True Sample
+KSTRAW1325,Control,Inoculum 1,R00I01W00,NA,Inoculum 1-estuary rep 2,NA,InitialSource,NA,,slurry,True Sample
+KSTRAW1326,Control,Inoculum 2,R00I02W00,NA,Inoculum 2-falls rep 2,NA,InitialSource,NA,,slurry,True Sample
+KSTRAW1327,Control,Inoculum 3,R00I03W00,NA,Inoculum 3-drum.down rep 2,NA,InitialSource,NA,,slurry,True Sample
+KSTRAW1328,Control,Inoculum 4,R00I04W00,NA,Inoculum 4-drum.up rep 2,NA,InitialSource,NA,,slurry,True Sample
+KSTRAW1330,Control,Inoculum 6,R00I06W00,NA,Inoculum 6-water from MQ (in lab) rep 2,NA,InitialSource,NA,,di_water,Control
+KSTRAW1336,T0,Shoot,R06I01W01,NA,Time 0 DNA pooled leaves 10 mg,1,1,6,Pooled plants,post_inoc_pre_stress,True Sample
+KSTRAW1337,T0,Shoot,R07I01W01,NA,Time 0 DNA pooled leaves 10 mg,1,1,7,Pooled plants,post_inoc_pre_stress,True Sample
+KSTRAW1341,T0,Shoot,R04I02W01,NA,Time 0 DNA pooled leaves 10 mg,1,2,4,Pooled plants,post_inoc_pre_stress,True Sample
+KSTRAW1345,T0,Shoot,R01I03W01,NA,Time 0 DNA pooled leaves 10 mg,1,3,1,Pooled plants,post_inoc_pre_stress,True Sample
+KSTRAW1347,T0,Shoot,R03I03W01,NA,Time 0 DNA pooled leaves 10 mg,1,3,3,Pooled plants,post_inoc_pre_stress,True Sample
+KSTRAW1350,T0,Shoot,R06I03W01,NA,Time 0 DNA pooled leaves 10 mg,1,3,6,Pooled plants,post_inoc_pre_stress,True Sample
+KSTRAW1359,T0,Shoot,R01I05W01,NA,Time 0 DNA pooled leaves 10 mg,1,5,1,Pooled plants,post_inoc_pre_stress,True Sample
+KSTRAW1362,T0,Shoot,R04I05W01,NA,Time 0 DNA pooled leaves 10 mg,1,5,4,Pooled plants,post_inoc_pre_stress,True Sample
+KSTRAW1373,T0,Shoot,R01I01W02,NA,Time 0 DNA pooled leaves 10 mg,2,1,1,Pooled plants,post_inoc_pre_stress,True Sample
+KSTRAW1374,T0,Shoot,R02I01W02,NA,Time 0 DNA pooled leaves 10 mg,2,1,2,Pooled plants,post_inoc_pre_stress,True Sample
+KSTRAW1376,T0,Shoot,R04I01W02,NA,Time 0 DNA pooled leaves 10 mg,2,1,4,Pooled plants,post_inoc_pre_stress,True Sample
+KSTRAW1378,T0,Shoot,R06I01W02,NA,Time 0 DNA pooled leaves 10 mg,2,1,6,Pooled plants,post_inoc_pre_stress,True Sample
+KSTRAW1379,T0,Shoot,R07I01W02,NA,Time 0 DNA pooled leaves 10 mg,2,1,7,Pooled plants,post_inoc_pre_stress,True Sample
+KSTRAW1391,T0,Shoot,R05I03W02,NA,Time 0 DNA pooled leaves 10 mg,2,3,5,Pooled plants,post_inoc_pre_stress,True Sample
+KSTRAW1392,T0,Shoot,R06I03W02,NA,Time 0 DNA pooled leaves 10 mg,2,3,6,Pooled plants,post_inoc_pre_stress,True Sample
+KSTRAW1398,T0,Shoot,R05I04W02,NA,Time 0 DNA pooled leaves 10 mg,2,4,5,Pooled plants,post_inoc_pre_stress,True Sample
+KSTRAW1401,T0,Shoot,R01I05W02,NA,Time 0 DNA pooled leaves 10 mg,2,5,1,Pooled plants,post_inoc_pre_stress,True Sample
+KSTRAW1403,T0,Shoot,R03I05W02,NA,Time 0 DNA pooled leaves 10 mg,2,5,3,Pooled plants,post_inoc_pre_stress,True Sample
+KSTRAW1404,T0,Shoot,R04I05W02,NA,Time 0 DNA pooled leaves 10 mg,2,5,4,Pooled plants,post_inoc_pre_stress,True Sample
+KSTRAW1405,T0,Shoot,R05I05W02,NA,Time 0 DNA pooled leaves 10 mg,2,5,5,Pooled plants,post_inoc_pre_stress,True Sample
+KSTRAW1407,T0,Shoot,R07I05W02,NA,Time 0 DNA pooled leaves 10 mg,2,5,7,Pooled plants,post_inoc_pre_stress,True Sample
+KSTRAW1409,T0,Shoot,R02I06W02,NA,Time 0 DNA pooled leaves 10 mg,2,6,2,Pooled plants,i6,Control
+KSTRAW1410,T0,Shoot,R03I06W02,NA,Time 0 DNA pooled leaves 10 mg,2,6,3,Pooled plants,i6,Control
+KSTRAW1413,T0,Shoot,R06I06W02,NA,Time 0 DNA pooled leaves 10 mg,2,6,6,Pooled plants,i6,Control
+KSTRAW1431,T0,Shoot,R03I03W03,NA,Time 0 DNA pooled leaves 10 mg,3,3,3,Pooled plants,post_inoc_pre_stress,True Sample
+KSTRAW1441,T0,Shoot,R06I04W03,NA,Time 0 DNA pooled leaves 10 mg,3,4,6,Pooled plants,post_inoc_pre_stress,True Sample
+KSTRAW1445,T0,Shoot,R03I05W03,NA,Time 0 DNA pooled leaves 10 mg,3,5,3,Pooled plants,post_inoc_pre_stress,True Sample
+KSTRAW1448,T0,Shoot,R06I05W03,NA,Time 0 DNA pooled leaves 10 mg,3,5,6,Pooled plants,post_inoc_pre_stress,True Sample
