@@ -1934,6 +1934,112 @@ ggsave(filename = "Rootsfamily.pdf",
        width = 17, height = 8, units = "in",
        dpi = 600)
 ```
+
+Now we can make t0 shoots by inoculation and water treatment
+```{r,results='hide'}
+#let's refilter again just in case but include the control too
+#Pair down the other data. We will have to hellinger transform this data too
+
+inputstep5 = filter_data(input, 'TimePoint', keep_vals = 'T0')
+shoots = filter_data(inputstep5, 'Type', keep_vals = 'Shoot')
+water1inoc1 = filter_data(shoots, 'Inoculation', keep_vals = '1')
+water1inoc4 = filter_data(shoots, 'Inoculation', keep_vals = '4')
+water1inoc5 = filter_data(shoots, 'Inoculation', keep_vals = '5')
+water1inoc6 = filter_data(shoots, 'Inoculation', keep_vals = '6')
+
+
+#transformation
+otuTAB<-water1inoc1$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+water1inoc1$data_loaded<-t(hell)
+otuTAB<-water1inoc4$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+water1inoc4$data_loaded<-t(hell)
+otuTAB<-water1inoc5$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+water1inoc5$data_loaded<-t(hell)
+otuTAB<-water1inoc6$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+hell<-hellinger(otuTABtranspose)
+water1inoc6$data_loaded<-t(hell)
+```
+
+We will need to make a large dataframe here. View after melting to see how many columns to make. This will be family for shoots t0
+```{r,results='hide'}
+library(reshape2)
+water1inoc1_tax_sum_family = summarize_taxonomy(water1inoc1, level = 5, report_higher_tax = FALSE)
+water1inoc1_tax_sum_family$family <-row.names(water1inoc1_tax_sum_family)
+water1inoc1_melt<- melt(water1inoc1_tax_sum_family, id.var="family")
+nrow(water1inoc1_melt)
+inoculation<-rep("inoc1",times=nrow(water1inoc1_melt))
+water<-rep("water1",times=nrow(water1inoc1_melt))
+water1inoc1_melt<-cbind(water1inoc1_melt,inoculation,water)
+
+water1inoc4_tax_sum_family = summarize_taxonomy(water1inoc4, level = 5, report_higher_tax = FALSE)
+water1inoc4_tax_sum_family$family <-row.names(water1inoc4_tax_sum_family)
+water1inoc4_melt<- melt(water1inoc4_tax_sum_family, id.var="family")
+nrow(water1inoc4_melt)
+inoculation<-rep("inoc4",times=nrow(water1inoc4_melt))
+water<-rep("water1",times=nrow(water1inoc4_melt))
+water1inoc4_melt<-cbind(water1inoc4_melt,inoculation,water)
+
+water1inoc5_tax_sum_family = summarize_taxonomy(water1inoc5, level = 5, report_higher_tax = FALSE)
+water1inoc5_tax_sum_family$family <-row.names(water1inoc5_tax_sum_family)
+water1inoc5_melt<- melt(water1inoc5_tax_sum_family, id.var="family")
+nrow(water1inoc5_melt)
+inoculation<-rep("inoc5",times=nrow(water1inoc5_melt))
+water<-rep("water1",times=nrow(water1inoc5_melt))
+water1inoc5_melt<-cbind(water1inoc5_melt,inoculation,water)
+
+water1inoc6_tax_sum_family = summarize_taxonomy(water1inoc6, level = 5, report_higher_tax = FALSE)
+water1inoc6_tax_sum_family$family <-row.names(water1inoc6_tax_sum_family)
+water1inoc6_melt<- melt(water1inoc6_tax_sum_family, id.var="family")
+nrow(water1inoc6_melt)
+inoculation<-rep("inoc6",times=nrow(water1inoc6_melt))
+water<-rep("water1",times=nrow(water1inoc6_melt))
+water1inoc6_melt<-cbind(water1inoc6_melt,inoculation,water)
+
+familyshoott0finalbind<-do.call("rbind",list(water1inoc1_melt,water1inoc4_melt,water1inoc5_melt,water1inoc6_melt))
+```
+
+
+# Shoots T0 family graph
+```{r}
+library(ggthemes)
+Shootst0family<-ggplot(familyshoott0finalbind, aes(x = inoculation, y = value, fill = family)) + 
+  geom_bar(stat="identity",position = "fill") + 
+  scale_y_continuous(labels = scales::percent) +
+  scale_fill_manual(values = colorRampPalette(solarized_pal()(8))(90)) + 
+  ggtitle("Shoots T0 Family Graphs")+
+  facet_grid(.~water,scales ="free",space="free")+
+  theme(
+    axis.text = element_text(color='black',size=10),
+    axis.title.y= element_blank(),
+    axis.title.x= element_blank(),
+    axis.title = element_text(color='black',size=12),
+    axis.ticks = element_line(color='black'),
+    legend.title = element_text(size=18),
+    panel.background = element_rect(fill=NA,color='black'),
+    panel.grid = element_blank(),
+    legend.key.size = unit(1, 'mm'),
+    legend.text = element_text(color='black',size=4),
+    plot.title=element_text(size=20,face="bold",vjust=2))
+Shootst0family
+
+ggsave(filename = "Shootst0family.pdf",
+       plot = Shootst0family,
+       bg = "transparent",
+       width = 10, height = 8, units = "in",
+       dpi = 600)
+```
+
 Let's start with the raw data. The venn diagram we want is split into
 the three water groups. Then we need original inoculum, leaves post-inoc
 post stress, leaves post-inoc pre stress, roots post inoc post stress
