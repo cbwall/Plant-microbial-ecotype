@@ -1556,6 +1556,54 @@ ggsave(filename = "shannonviolint1.pdf",
       width = 12, height = 6, units = "in",
       dpi = 600)
 ```
+
+#Stats of T0 to T1
+```{r}
+time<-rep("t0",times=nrow(shanfinalbindt0))
+shanfinalbindt0_time<-cbind(shanfinalbindt0,time)
+shanfinalbindt1_time<-subset(shanfinalbindt1,type!="root")
+time<-rep("t1",times=nrow(shanfinalbindt1_time))
+shanfinalbindt1_time_final<-cbind(shanfinalbindt1_time,time)
+shanfinalbindt1_time_final<-shanfinalbindt1_time_final[-c(2,4)]
+statsdf<-rbind(shanfinalbindt0_time,shanfinalbindt1_time_final)
+timemodel<-lm(shannon~time,statsdf)
+library(car)
+anova(timemodel)
+```
+
+# Stats of T1 graphs
+```{r}
+#View(shanfinalbindt1)
+shanfinalbindt1water1<-subset(shanfinalbindt1,water!="water2"&water!="water3")
+shanfinalbindt1water2<-subset(shanfinalbindt1,water!="water1"&water!="water3")
+shanfinalbindt1water3<-subset(shanfinalbindt1,water!="water2"&water!="water1")
+
+```
+
+# Water 1 stats
+```{r}
+water1model<-lm(shannon~type*inoculation,shanfinalbindt1water1)
+Anova(water1model,type=3)
+emmeans(water1model,pairwise~inoculation|type)
+emmeans(water1model,pairwise~type|inoculation)
+```
+
+# Water 2 stats
+```{r}
+water2model<-lm(shannon~type*inoculation,shanfinalbindt1water2)
+Anova(water2model,type=3)
+emmeans(water2model,pairwise~inoculation|type)
+emmeans(water2model,pairwise~type|inoculation)
+```
+
+# Water 3 stats
+```{r}
+water3model<-lm(shannon~type*inoculation,shanfinalbindt1water3)
+Anova(water3model,type=3)
+emmeans(water3model,pairwise~inoculation|type)
+emmeans(water3model,pairwise~type|inoculation)
+```
+
 Let's make some stacked bar plots too:
 
 ```{r,results='hide'}
