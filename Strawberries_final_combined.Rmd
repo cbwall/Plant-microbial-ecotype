@@ -54,8 +54,10 @@ shootroot_final<-shootroot_step1removal %>% drop_na()
 shootroot_inoc23removed<-subset(shootroot_final,Inoculation!="2"&Inoculation!="3")
 shootroot_inoc23removed$Inoculation<-as.factor(shootroot_inoc23removed$Inoculation)
 shootroot_inoc23removed$Inoculation<-factor(shootroot_inoc23removed$Inoculation,levels=c("Dry Inoculation","Medium Inoculation","Wet Inoculation","No Inoculation"))
+
 shootroot_inoc23removed$Water<-as.factor(shootroot_inoc23removed$Water)
 shootroot_inoc23removed$Water<-factor(shootroot_inoc23removed$Water,levels=c("Low","Medium","High"))
+
 shootsonlywithcontrol<-subset(shootroot_inoc23removed,Type!="Root")
 rootsonlywithcontrol<-subset(shootroot_inoc23removed,Type!="Shoot")
 
@@ -69,19 +71,20 @@ write.csv(rootsonlywithcontrol, "output/rootsonlywithcontrol.csv")
 ### check data normality: (yikes very very skewed)
 
 hist(shootroot_inoc23removed$WeightGrams)
-hist(shootsonly$WeightGrams)
-hist(rootsonly$WeightGrams)
+
+hist(shootsonlywithcontrol$WeightGrams)
+hist(rootsonlywithcontrol$WeightGrams)
 
 ### check assumptions shoots (qqplot not normal)
 
-typeIIIModelshoot<-lm(WeightGrams~Inoculation*Water,data=shootsonly)
+typeIIIModelshoot<-lm(WeightGrams~Inoculation*Water,data=shootsonlywithcontrol)
 plot(typeIIIModelshoot)
 ```
 
 ```{r, collapse=TRUE}
 ### check assumptions roots (qqplot not normal)
 
-typeIIIModelroot<-lm(WeightGrams~Inoculation*Water,data=rootsonly)
+typeIIIModelroot<-lm(WeightGrams~Inoculation*Water,data=rootsonlywithcontrol)
 plot(typeIIIModelroot)
 ```
 
@@ -89,12 +92,9 @@ Boxplot of above and belowground total biomass. This is the raw, non-normalized 
 ```{r above below biomass, width=20}
 
 root.shoot.biomass<-ggplot(shootroot_inoc23removed,aes(Water,WeightGrams,fill=Inoculation)) +
-  facet_wrap(.~Type)+
-  geom_boxplot(position=position_dodge())+
-  
-  ylab("Weight (g)") +
+  geom_boxplot()+
   scale_fill_manual(values=c("coral2", "#E69F00", "#56B4E9","darkseagreen3"))+
-  
+  ylab("Weight (g)") +
   theme(
     axis.text = element_text(color='black',size=10),
     axis.title = element_text(color='black',size=12),
@@ -103,7 +103,8 @@ root.shoot.biomass<-ggplot(shootroot_inoc23removed,aes(Water,WeightGrams,fill=In
     legend.key = element_rect(fill=NA),
     panel.background = element_rect(fill=NA,color='black'),
     panel.grid = element_blank(),
-    plot.title=element_text(size=20,face="bold",vjust=2))
+    plot.title=element_text(size=20,face="bold",vjust=2))+
+facet_wrap(.~Type)
 
 root.shoot.biomass
 ggsave("figures/root.shoot.biomass.pdf", height=6, width=10)
@@ -161,10 +162,11 @@ I believe we need to remake shootsonlywithcontrol. I don't see it in the code ab
 #View(rootsonlywithcontrol)
 
 
+
 shootsonlywithcontrol <- shootsonlywithcontrol %>% 
-       rename("shoot_weight" = "WeightGrams")
+       dplyr::rename("shoot_weight" = "WeightGrams")
 rootsonlywithcontrol <- rootsonlywithcontrol %>% 
-       rename("root_weight" = "WeightGrams")
+       dplyr::rename("root_weight" = "WeightGrams")
 shootsonly_premerge<-subset(shootsonlywithcontrol,select = -c(SampleID,TimePoint,Type,SampleNotes,Water,Inoculation,Replicate,PlantNotes,SampleType,Sample_or_Control))
 rootshoot_merge <- merge(shootsonly_premerge,rootsonlywithcontrol,by="PlantID")
 
@@ -280,8 +282,8 @@ Make a plot of mortality data.
 ```{r mortality prop data, results='hide'}
 ### final mortality data here
 mortality_prop_data<-mortality.sheet %>%
-  group_by(Water, Inoculation) %>% 
-  summarize(prop = sum(mortality=="alive") / n())
+  dplyr::group_by(Water, Inoculation) %>% 
+  dplyr::summarize(prop = sum(mortality=="alive") / n())
 
 mortality_prop_data$Water<-factor(mortality_prop_data$Water,levels=c("Low","Medium","High"))
 
@@ -317,101 +319,9 @@ ggsave("figures/mortality.pdf", height=6, width=10)
 
 ```
 
-Fix ASV table and taxonomy for mctoolsr into one dataframe. Strawberries
-Map is already made.
-
-```{r, eval=FALSE}
-#setwd("~/Desktop/Strawberries/Data for microbiome analysis/")
-#ASV_table<-read.csv('asv_table.csv',header=FALSE)
-#ASV_table_transpose<-t(ASV_table)
-#library(janitor)
-#ASV_table_transpose<-janitor::row_to_names(ASV_table_transpose,row_number = 1)
-#taxonomy<-read.csv('taxonomy_table.csv',header=TRUE)
-#library(dplyr)
-#taxonomy <- taxonomy %>% 
-       #rename("#OTU ID" = "X")
-#taxonomy <- subset(taxonomy,select=-c(X.1,X.2))
-
-#library(tidyr)
-#taxonomy<-unite(taxonomy, col='taxonomy', c('Kingdom', 'Phylum', 'Class', 'Order', 'Family', 'Genus', 'Species'), sep=';')
-#ASV_table_mctoolsr <- merge(ASV_table_transpose,taxonomy,by="#OTU ID")
-#write.csv(ASV_table_mctoolsr,'ASV_table_mctoolsr.csv')
-```
-
-Make sure to change the csv file to a .txt file. I think it's easier to
-just do in excel, but you can also save out the file as a .txt file. I
-also like to check the formatting there too to make sure it all worked
-out.
-
-Next, input the data in mctoolsr. Kacie already decontamed, so no need
-to that. But we will need to remove low abundance ASVs and samples.
-
-```{r, eval=FALSE}
-#inputraw <- load_taxa_table("ASV_table_mctoolsr.txt", "strawb_miseq_map.txt")
-```
-
-```{r, eval=FALSE}
-#remove low abundance ASVs 
-#asvsums <- rowSums(input$data_loaded)
-#summary(asvsums)
-#sum(asvsums==0)
-#sort(asvsums)[sum(asvsums==1)]
-#sum(asvsums==1)
-#tail(sort(asvsums),5)
-#head(sort(asvsums),5)
-```
-
-```{r, eval=FALSE, message=FALSE}
-#remove low abundance Samples 
-#sampsums <- colSums(input$data_loaded)
-#summary(sampsums)
-#sum(sampsums==0)
-#tail(sort(sampsums),5)
-#sum(sampsums<max(sampsums)/10)
-#newmax <- tail(sort(sampsums))[2]
-#sum(sampsums<newmax/10)
-#sum(sampsums<1000)
-#sort(sampsums<1000)
-```
-
-From this, let's remove ASV1964, ASV1965, ASV1966, and ASV 1968. Then
-let's remove the 88 samples with less than 1000 reads.
-```{r, eval=FALSE}
-#input$data_loaded<-input$data_loaded[c(1:1957),]
-#transformed<-t(input$data_loaded)
-#transformedremoved<-subset(transformed,rowSums(transformed)>1000)
-#input$data_loaded<-t(transformedremoved)
-#input$map_loaded<-subset(input$map_loaded,rowSums(transformed)>1000)
-#input$taxonomy_loaded<-input$taxonomy_loaded[c(1:1957),]
-```
-
-For some reason, once you mess with the dataframe, you can't go back. So
-we need to download these as csvs, change them to .txt and then re-merge
-them and download the dataframe again. Very annoying, but hopefully it
-will be easy to folow:
-```{r, eval=FALSE}
-#write.csv(input$data_loaded,'output/data_loaded_strawberries.csv')
-#write.csv(input$map_loaded,'output/map_loaded_strawberries.csv')
-#write.csv(input$taxonomy_loaded,'output/taxonomy_loaded_strawberries.csv')
-```
-
-Read in data and taxonomy
-```{r, eval=FALSE}
-#table<-read.csv('data_loaded_strawberries.csv', header=TRUE)
-#taxonomy<-read.csv('taxonomy_loaded_strawberries.csv', header=TRUE)
-#library(tidyr)
-#taxonomy<-unite(taxonomy, col='taxonomy', c('taxonomy1', 'taxonomy2', 'taxonomy3', 'taxonomy4', 'taxonomy5', 'taxonomy6', 'taxonomy7'), sep=';')
-#ASV_table_postfiltering <- merge(table,taxonomy,by="X.OTU.ID")
-#write.csv(ASV_table_postfiltering,'ASV_table_postfiltering.csv')
-```
-
-On your computer turn both the map and ASV table with taxonomy into text
-files. Make sure to rename as "#OTU ID". Re input these and then we are
-good to go.
-
+### Fungal microbiome
 ```{r, message=FALSE, warning=FALSE, results='hide'}
-
-input <- load_taxa_table("data/ASV_table_postfiltering.txt", "map_loaded_strawberries.txt")
+input <- load_taxa_table("data/ASV_table_postfiltering.txt", "data/map_loaded_strawberries.txt")
 ```
 
 Then let's start with just looking at the basic NMDS plot between the
@@ -522,7 +432,6 @@ b<-ggplot(data=data.scoresshoot,aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=fa
   ggtitle("Shoots")+
   geom_point(data=data.scoresshoot,aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=factor(Inoculation))) + # add the point markers
 
-  
   theme(
     axis.text = element_text(color='black',size=10),
     axis.title = element_text(color='black',size=12),
@@ -601,12 +510,24 @@ inoc.scrs.final <- as.data.frame(scores(inocfinalvf, display = "factors"))
 ```
 
 ```{r fig.height=5, fig.width=10}
+NMDS1.mean.data.time<-aggregate(NMDS1~ Water*TimePoint, data=data.time, FUN=mean)
+NMDS2.mean.data.time<-aggregate(NMDS2~ Water*TimePoint, data=data.time, FUN=mean)
+centroid.data.time<-as.data.frame(cbind(NMDS1.mean.data.time, NMDS2.mean.data.time[3]))
+
+
 timewater<-ggplot(data=data.time,aes(x=NMDS1,y=NMDS2,color=factor(Water),shape=factor(TimePoint))) + 
   ggtitle("Water Treatment")+
+  scale_color_manual(values=c("paleturquoise3", "steelblue2", "slategray4"))+
   geom_point(data=data.time,aes(x=NMDS1,y=NMDS2,color=factor(Water),shape=factor(TimePoint))) +
-  geom_segment(aes(x = 0.3578361, xend = 0.0426045, y = -0.15348765, yend = -0.05051959),arrow = arrow(length = unit(0.25, "cm")), colour = "red") +
-  geom_segment(aes(x = 0.4132936, xend = -0.1758032, y = -0.10041272, yend = 0.17751674),arrow = arrow(length = unit(0.25, "cm")), colour = "green") +
-  geom_segment(aes(x = 0.2591112, xend = -0.2842585, y = -0.19631161, yend = 0.06303771),arrow = arrow(length = unit(0.25, "cm")), colour = "blue") +
+  geom_segment(aes(x = centroid.data.time[1,3], xend = centroid.data.time[4,3], 
+                   y = centroid.data.time[1,4], yend = centroid.data.time[4,4]),
+               arrow = arrow(length = unit(0.25, "cm")), colour = "paleturquoise3") +
+  geom_segment(aes(x = centroid.data.time[2,3], xend = centroid.data.time[5,3], 
+                   y = centroid.data.time[2,4], yend = centroid.data.time[5,4]),
+               arrow = arrow(length = unit(0.25, "cm")), colour = "steelblue2") +
+  geom_segment(aes(x = centroid.data.time[3,3], xend = centroid.data.time[6,3], 
+                   y = centroid.data.time[3,4], yend = centroid.data.time[6,4]),
+               arrow = arrow(length = unit(0.25, "cm")), colour = "slategray4") +
  
   theme(
     axis.text = element_text(color='black',size=10),
@@ -618,15 +539,28 @@ timewater<-ggplot(data=data.time,aes(x=NMDS1,y=NMDS2,color=factor(Water),shape=f
     
     plot.title=element_text(size=20,face="bold",vjust=2))
 
+####
+NMDS1.mean.data.inoc<-aggregate(NMDS1~ Inoculation*TimePoint, data=data.time, FUN=mean)
+NMDS2.mean.data.inoc<-aggregate(NMDS2~ Inoculation*TimePoint, data=data.time, FUN=mean)
+centroid.data.inoc<-as.data.frame(cbind(NMDS1.mean.data.inoc, NMDS2.mean.data.inoc[3]))
+
 
 timeinoculation<-ggplot(data=data.time,aes(x=NMDS1,y=NMDS2,color=factor(Inoculation),shape=factor(TimePoint))) + 
   scale_color_manual(values=c("coral2", "#E69F00", "#56B4E9","darkseagreen3"))+ 
   ggtitle("Inoculation")+
   geom_point(data=data.time,aes(x=NMDS1,y=NMDS2,color=factor(Inoculation),shape=factor(TimePoint))) + # add the point markers
-  geom_segment(aes(x = 0.27865686, xend = -0.35505773, y = -0.1568050, yend = -0.3410676),arrow = arrow(length = unit(0.25, "cm")), colour = "coral2") +
-  geom_segment(aes(x = 0.30840321, xend = -0.42205696, y = -0.1520957, yend = 0.1885330),arrow = arrow(length = unit(0.25, "cm")), colour = "#E69F00") +
-  geom_segment(aes(x = 0.34866122, xend = 0.09727238, y = -0.2057844, yend = 0.3355051),arrow = arrow(length = unit(0.25, "cm")), colour = "#56B4E9") +
-  geom_segment(aes(x = 0.38322169, xend = 0.13228889, y = -0.1386149, yend = 0.1352431),arrow = arrow(length = unit(0.25, "cm")), colour = "darkseagreen3") +
+  geom_segment(aes(x = centroid.data.inoc[1,3], xend = centroid.data.inoc[5,3], 
+                   y = centroid.data.inoc[1,4], yend = centroid.data.inoc[5,4])
+               ,arrow = arrow(length = unit(0.25, "cm")), colour = "coral2") +
+  geom_segment(aes(x = centroid.data.inoc[2,3], xend = centroid.data.inoc[6,3], 
+                   y = centroid.data.inoc[2,4], yend = centroid.data.inoc[6,4]),
+               arrow = arrow(length = unit(0.25, "cm")), colour = "#E69F00") +
+  geom_segment(aes(x = centroid.data.inoc[3,3], xend = centroid.data.inoc[7,3], 
+                   y = centroid.data.inoc[3,4], yend = centroid.data.inoc[7,4]),
+               arrow = arrow(length = unit(0.25, "cm")), colour = "#56B4E9") +
+  geom_segment(aes(x = centroid.data.inoc[4,3], xend = centroid.data.inoc[8,3], 
+                   y = centroid.data.inoc[4,4], yend = centroid.data.inoc[8,4]),
+               arrow = arrow(length = unit(0.25, "cm")), colour = "darkseagreen3") +
   theme(
     axis.text = element_text(color='black',size=10),
     axis.title = element_text(color='black',size=12),
@@ -710,11 +644,10 @@ data.time$Water<-as.factor(data.time$Water)
 data.time$Inoculation<-as.factor(data.time$Inoculation)
 ```
 
-# T0 Graph Only
+#### T0 Graph Only
 ```{r, message=FALSE, warning=FALSE}
 library(ggplot2)
 ggplot(data=data.time,aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=factor(Inoculation))) + 
-  
   ggtitle("T0 Shoots")+
   geom_point(data=data.time,aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=factor(Inoculation))) + # add the point markers
   stat_ellipse(data=data.time,aes(x=NMDS1,y=NMDS2,shape=factor(Inoculation),color=factor(Inoculation)))+
@@ -832,20 +765,27 @@ inoc6vf <- envfit(inoc6.mds~TimeWater, data=inoc6NMDSmovement$map_loaded, perm =
 inoc6.scrs <- as.data.frame(scores(inoc6vf, display = "factors"))
 ```
 
-
 ```{r fig.height=15, fig.width=15, message=FALSE, warning=FALSE}
+NMDS1.mean.inoc1<-aggregate(NMDS1~ Water*TimePoint, data=data.scoresinoc1, FUN=mean)
+NMDS2.mean.inoc1<-aggregate(NMDS2~ Water*TimePoint, data=data.scoresinoc1, FUN=mean)
+centroid.inoc1<-as.data.frame(cbind(NMDS1.mean.inoc1, NMDS2.mean.inoc1[3]))
+
 data.scoresinoc1$TimePoint<-factor(data.scoresinoc1$TimePoint,levels=c("T1","T0"))
 data.scoresinoc4$TimePoint<-factor(data.scoresinoc4$TimePoint,levels=c("T1","T0"))
 data.scoresinoc5$TimePoint<-factor(data.scoresinoc5$TimePoint,levels=c("T1","T0"))
 data.scoresinoc6$TimePoint<-factor(data.scoresinoc6$TimePoint,levels=c("T1","T0"))
-a<-ggplot(data=data.scoresinoc1,aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water))) + 
+
+inoc1.trajectory<-ggplot(data=data.scoresinoc1,aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water))) + 
   ggtitle("Inoculation 1")+
   geom_point(data=data.scoresinoc1,aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water))) + 
   stat_ellipse(data=data.scoresinoc1,aes(x=NMDS1,y=NMDS2,color=factor(Water),linetype=factor(TimePoint)))+
-  scale_color_manual(values=c("red", "#E69F00", "#56B4E9"))+ 
-  geom_segment(aes(x = 1.0748196, xend = -0.2792946, y = -0.129579748, yend = 0.206168365),arrow = arrow(), colour = "red") +
-  geom_segment(aes(x = 0.8359716, xend = 0.2345195, y = -0.007819216, yend = 0.300057000),arrow = arrow(), colour = "#E69F00") +
-  geom_segment(aes(x = 0.7974356, xend = -0.4957090, y = -0.211029418, yend = -0.370015554),arrow = arrow(), colour = "#56B4E9") +
+  scale_color_manual(values=c("red", "#E69F00", "#56B4E9"))+  # for water 1,2,3
+  geom_segment(aes(x = centroid.inoc1[4,3], xend = centroid.inoc1[1,3], 
+                   y = centroid.inoc1[4,4], yend = centroid.inoc1[1,4]),arrow = arrow(), colour = "red") +
+  geom_segment(aes(x = centroid.inoc1[5,3], xend = centroid.inoc1[2,3], 
+                   y = centroid.inoc1[5,4], yend = centroid.inoc1[2,4]),arrow = arrow(), colour = "#E69F00") +
+  geom_segment(aes(x = centroid.inoc1[6,3], xend = centroid.inoc1[3,3], 
+                   y = centroid.inoc1[6,4], yend = centroid.inoc1[3,4]),arrow = arrow(), colour = "#56B4E9") +
   theme(
     axis.text = element_text(color='black',size=10),
     axis.title = element_text(color='black',size=12),
@@ -855,16 +795,25 @@ a<-ggplot(data=data.scoresinoc1,aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),colo
     panel.grid = element_blank(),
     legend.position = "none",
     plot.title=element_text(size=20,face="bold",vjust=2))
+###
+
+NMDS1.mean.inoc4<-aggregate(NMDS1~ Water*TimePoint, data=data.scoresinoc4, FUN=mean)
+NMDS2.mean.inoc4<-aggregate(NMDS2~ Water*TimePoint, data=data.scoresinoc4, FUN=mean)
+centroid.inoc4<-as.data.frame(cbind(NMDS1.mean.inoc4, NMDS2.mean.inoc4[3]))
+
 
 data.scoresinoc4$TimePoint<-factor(data.scoresinoc4$TimePoint,levels=c("T1","T0"))
-b<-ggplot(data=data.scoresinoc4,aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water))) + 
+inoc4.trajectory<-ggplot(data=data.scoresinoc4,aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water))) + 
   ggtitle("Inoculation 4")+
   geom_point(data=data.scoresinoc4,aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water))) + 
   stat_ellipse(data=data.scoresinoc4,aes(x=NMDS1,y=NMDS2,color=factor(Water),linetype=factor(TimePoint)))+
   scale_color_manual(values=c("red", "#E69F00", "#56B4E9"))+ 
-  geom_segment(aes(x = -0.8064349, xend = -0.3221243, y = 0.1072066, yend = -0.4555394),arrow = arrow(), colour = "red") +
-  geom_segment(aes(x = -0.8296081, xend = 0.8910620, y = 0.2153826, yend = 0.3326888),arrow = arrow(), colour = "#E69F00") +
-  geom_segment(aes(x = -0.7438051, xend = 0.4923720, y = 0.1831681, yend = -0.2589884),arrow = arrow(), colour = "#56B4E9") +
+  geom_segment(aes(x = centroid.inoc4[4,3], xend = centroid.inoc4[1,3], 
+                   y = centroid.inoc4[4,4], yend = centroid.inoc4[1,4]),arrow = arrow(), colour = "red") +
+  geom_segment(aes(x = centroid.inoc4[5,3], xend = centroid.inoc4[2,3], 
+                   y = centroid.inoc4[5,4], yend = centroid.inoc4[2,4]),arrow = arrow(), colour = "#E69F00") +
+  geom_segment(aes(x = centroid.inoc4[6,3], xend = centroid.inoc4[3,3], 
+                   y = centroid.inoc4[6,4], yend = centroid.inoc4[3,4]),arrow = arrow(), colour = "#56B4E9") +
   theme(
     axis.text = element_text(color='black',size=10),
     axis.title = element_text(color='black',size=12),
@@ -875,15 +824,25 @@ b<-ggplot(data=data.scoresinoc4,aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),colo
    
     plot.title=element_text(size=20,face="bold",vjust=2))
 
+###
+
+NMDS1.mean.inoc5<-aggregate(NMDS1~ Water*TimePoint, data=data.scoresinoc5, FUN=mean)
+NMDS2.mean.inoc5<-aggregate(NMDS2~ Water*TimePoint, data=data.scoresinoc5, FUN=mean)
+centroid.inoc5<-as.data.frame(cbind(NMDS1.mean.inoc5, NMDS2.mean.inoc5[3]))
+
+
 data.scoresinoc5$TimePoint<-factor(data.scoresinoc5$TimePoint,levels=c("T1","T0"))
-c<-ggplot(data=data.scoresinoc5,aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water))) + 
+inoc5.trajectory<-ggplot(data=data.scoresinoc5,aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water))) + 
   ggtitle("Inoculation 5")+
   geom_point(data=data.scoresinoc5,aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water))) + 
   stat_ellipse(data=data.scoresinoc5,aes(x=NMDS1,y=NMDS2,color=factor(Water),linetype=factor(TimePoint)))+
   scale_color_manual(values=c("red", "#E69F00", "#56B4E9"))+ 
-  geom_segment(aes(x = 0.8798274, xend = 0.1156044, y = 0.012396957, yend = -0.191885618),arrow = arrow(), colour = "red") +
-  geom_segment(aes(x = 1.0058536, xend = -0.5117177, y = 0.186918089, yend = 0.096629614),arrow = arrow(), colour = "#E69F00") +
-  geom_segment(aes(x = 0.9322398, xend = -0.4299817, y = 0.050863641, yend = 0.008018499),arrow = arrow(), colour = "#56B4E9") +
+  geom_segment(aes(x = centroid.inoc5[4,3], xend = centroid.inoc5[1,3], 
+                   y = centroid.inoc5[4,4], yend = centroid.inoc5[1,4]),arrow = arrow(), colour = "red") +
+  geom_segment(aes(x = centroid.inoc5[5,3], xend = centroid.inoc5[2,3], 
+                   y = centroid.inoc5[5,4], yend = centroid.inoc5[2,4]),arrow = arrow(), colour = "#E69F00") +
+  geom_segment(aes(x = centroid.inoc5[6,3], xend = centroid.inoc5[3,3], 
+                   y = centroid.inoc5[6,4], yend = centroid.inoc5[3,4]),arrow = arrow(), colour = "#56B4E9") +
   theme(
     axis.text = element_text(color='black',size=10),
     axis.title = element_text(color='black',size=12),
@@ -894,15 +853,25 @@ c<-ggplot(data=data.scoresinoc5,aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),colo
     legend.position = "none",
     plot.title=element_text(size=20,face="bold",vjust=2))
 
+##
+
+NMDS1.mean.inoc6<-aggregate(NMDS1~ Water*TimePoint, data=data.scoresinoc6, FUN=mean)
+NMDS2.mean.inoc6<-aggregate(NMDS2~ Water*TimePoint, data=data.scoresinoc6, FUN=mean)
+centroid.inoc6<-as.data.frame(cbind(NMDS1.mean.inoc6, NMDS2.mean.inoc6[3]))
+
 data.scoresinoc6$TimePoint<-factor(data.scoresinoc6$TimePoint,levels=c("T1","T0"))
-d<-ggplot(data=data.scoresinoc6,aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water))) + 
+
+inoc6.trajectory<-ggplot(data=data.scoresinoc6,aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water))) + 
   ggtitle("Inoculation 6")+
   geom_point(data=data.scoresinoc6,aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water))) + 
   stat_ellipse(data=data.scoresinoc6,aes(x=NMDS1,y=NMDS2,color=factor(Water),linetype=factor(TimePoint)))+
   scale_color_manual(values=c("red", "#E69F00", "#56B4E9"))+ 
-  geom_segment(aes(x = -0.7826861, xend = 0.0963381, y = 0.116332603, yend = -0.012561138),arrow = arrow(), colour = "red") +
-  geom_segment(aes(x = -0.7975986, xend = 0.5303918, y = -0.044149099, yend = 0.226943871),arrow = arrow(), colour = "#E69F00") +
-  geom_segment(aes(x = -0.6673381, xend = 0.5452394, y = 0.009773014, yend = -0.256409510),arrow = arrow(), colour = "#56B4E9") +
+  geom_segment(aes(x = centroid.inoc6[4,3], xend = centroid.inoc6[1,3], 
+                   y = centroid.inoc6[4,4], yend = centroid.inoc6[1,4]),arrow = arrow(), colour = "red") +
+  geom_segment(aes(x = centroid.inoc6[5,3], xend = centroid.inoc6[2,3], 
+                   y = centroid.inoc6[5,4], yend = centroid.inoc6[2,4]),arrow = arrow(), colour = "#E69F00") +
+  geom_segment(aes(x = centroid.inoc6[6,3], xend = centroid.inoc6[3,3], 
+                   y = centroid.inoc6[6,4], yend = centroid.inoc6[3,4]),arrow = arrow(), colour = "#56B4E9") +
   theme(
     axis.text = element_text(color='black',size=10),
     axis.title = element_text(color='black',size=12),
@@ -915,15 +884,17 @@ d<-ggplot(data=data.scoresinoc6,aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),colo
 
 
 library(patchwork)
-inocalone<-(a+b)/(c+d)
+inocalone<-(inoc1.trajectory+inoc4.trajectory)/(inoc5.trajectory+inoc6.trajectory)
 inocalone
 
+inocalone
+ggsave("figures/timebyinoc.pdf", height=8, width=10)
 
-ggsave(filename = "timebyinoc.pdf",
-      plot = inocalone,
-      bg = "transparent",
-      width = 10, height = 8, units = "in",
-      dpi = 600)
+#ggsave(filename = "timebyinoc.pdf",
+#      plot = inocalone,
+#      bg = "transparent",
+#      width = 10, height = 8, units = "in",
+#      dpi = 600)
 
 ```
 
@@ -994,7 +965,7 @@ shoots_post_stress$data_loaded<-t(hell)
 
 
 mantel test: (significant across inoculum, but not water treatment)
-```{r}
+```{r, mantel test roots}
 roots.dataframe<-as.data.frame(t(roots_post_stress$data_loaded))
 dist.abund.root = vegdist(roots.dataframe, method = "bray")
 inoc <- roots_post_stress$map_loaded$Inoculation
@@ -1009,7 +980,7 @@ abund_water
 
 ```
 
-```{r}
+```{r, mantel test shoots}
 shoots.dataframe<-as.data.frame(t(shoots_post_stress$data_loaded))
 dist.abund.shoot = vegdist(shoots.dataframe, method = "bray")
 inoc <- shoots_post_stress$map_loaded$Inoculation
@@ -1025,9 +996,9 @@ abund_water
 ```
 
 Let's make the shannon's diversity plots next: 
-```{r,results='hide'}
+```{r, shannon diversity, results='hide'}
 #inputraw has the slurry data so let's take that first. Then we will need to transform it too. 
-input <- load_taxa_table("ASV_table_postfiltering.txt", "map_loaded_strawberries.txt")
+input <- load_taxa_table("data/ASV_table_postfiltering.txt", "data/map_loaded_strawberries.txt")
 inputstep5 = filter_data(input, 'TimePoint', keep_vals = 'T1')
 roott1 = filter_data(inputstep5, 'Type', keep_vals = 'Root')
 roott1water1 = filter_data(roott1, 'Water', keep_vals = '1')
@@ -1061,6 +1032,7 @@ shoott1inoc1water3 = filter_data(shoott1water3, 'Inoculation', keep_vals = '1')
 shoott1inoc4water3 = filter_data(shoott1water3, 'Inoculation', keep_vals = '4')
 shoott1inoc5water3 = filter_data(shoott1water3, 'Inoculation', keep_vals = '5')
 shoott1inoc6water3 = filter_data(shoott1water3, 'Inoculation', keep_vals = '6')
+
 t0 = filter_data(input, 'TimePoint', keep_vals = 'T0')
 shoott0 = filter_data(t0, 'Type', keep_vals = 'Shoot')
 shoott0inoc1 = filter_data(shoott0, 'Inoculation', keep_vals = '1')
@@ -1524,12 +1496,13 @@ shannonviolint0<-ggplot(shanfinalbindt0,aes(x=inoculation,y=shannon,color=factor
     plot.title=element_text(size=20,face="bold",vjust=2))
 
 shannonviolint0
+ggsave("figures/shannonviolint0.pdf", height=6, width=12)
 
-ggsave(filename = "shannonviolint0.pdf",
-      plot = shannonviolint0,
-      bg = "transparent",
-      width = 12, height = 6, units = "in",
-      dpi = 600)
+#ggsave(filename = "shannonviolint0.pdf",
+#      plot = shannonviolint0,
+#      bg = "transparent",
+#      width = 12, height = 6, units = "in",
+#      dpi = 600)
 ```
 
 # T1 Shannon's Diversity
@@ -1549,12 +1522,13 @@ shannonviolint1<-ggplot(shanfinalbindt1,aes(x=inoculation,y=shannon,color=factor
     plot.title=element_text(size=20,face="bold",vjust=2))
 
 shannonviolint1
+ggsave("figures/shannonviolint1.pdf", height=6, width=12)
 
-ggsave(filename = "shannonviolint1.pdf",
-      plot = shannonviolint1,
-      bg = "transparent",
-      width = 12, height = 6, units = "in",
-      dpi = 600)
+#ggsave(filename = "shannonviolint1.pdf",
+#      plot = shannonviolint1,
+#      bg = "transparent",
+#      width = 12, height = 6, units = "in",
+#      dpi = 600)
 ```
 
 #Stats of T0 to T1
@@ -1609,7 +1583,7 @@ Let's make some stacked bar plots too:
 ```{r,results='hide'}
 #let's refilter again to just root t1, shoot t1, and shoot t0
 #Pair down the other data. We will have to hellinger transform this data too
-input <- load_taxa_table("ASV_table_postfiltering.txt", "map_loaded_strawberries.txt")
+input <- load_taxa_table("data/ASV_table_postfiltering.txt", "data/map_loaded_strawberries.txt")
 inputstep5 = filter_data(input, 'TimePoint', keep_vals = 'T1')
 roott1 = filter_data(inputstep5, 'Type', keep_vals = 'Root')
 roott1 = filter_data(roott1, 'Inoculation', filter_vals = '2')
@@ -1695,13 +1669,15 @@ familygraph<-ggplot(familyfinalbind, aes(x = treatment, y = value, fill = family
     panel.grid = element_blank(),
     legend.key.size = unit(0.1, 'mm'),
     plot.title=element_text(size=20,face="bold",vjust=2))
-familygraph
 
-ggsave(filename = "familygraph.pdf",
-       plot = familygraph,
-       bg = "transparent",
-       width = 17, height = 8, units = "in",
-       dpi = 600)
+familygraph
+ggsave("figures/familygraph.pdf", height=8, width=17)
+
+#ggsave(filename = "familygraph.pdf",
+#       plot = familygraph,
+#       bg = "transparent",
+#       width = 17, height = 8, units = "in",
+#       dpi = 600)
 ```
 
 
@@ -1755,13 +1731,15 @@ classgraph<-ggplot(classfinalbind, aes(x = treatment, y = value, fill = class)) 
     panel.grid = element_blank(),
     legend.key.size = unit(0.5, 'mm'),
     plot.title=element_text(size=20,face="bold",vjust=2))
-classgraph
 
-ggsave(filename = "classgraph.pdf",
-       plot = classgraph,
-       bg = "transparent",
-       width = 10, height = 6, units = "in",
-       dpi = 600)
+classgraph
+ggsave("figures/classgraph.pdf", height=6, width=10)
+
+#ggsave(filename = "classgraph.pdf",
+#       plot = classgraph,
+#       bg = "transparent",
+#      width = 10, height = 6, units = "in",
+#       dpi = 600)
 ```
 
 Now we can make t1 shoots by inoculation and water treatment
@@ -1980,13 +1958,15 @@ shootsfamily<-ggplot(familyfinalbind, aes(x = inoculation, y = value, fill = fam
     legend.key.size = unit(1, 'mm'),
     legend.text = element_text(color='black',size=4),
     plot.title=element_text(size=20,face="bold",vjust=2))
-shootsfamily
 
-ggsave(filename = "shootsfamily.pdf",
-       plot = shootsfamily,
-       bg = "transparent",
-       width = 17, height = 8, units = "in",
-       dpi = 600)
+shootsfamily
+ggsave("figures/shootsfamily.pdf", height=8, width=17)
+
+#ggsave(filename = "shootsfamily.pdf",
+#       plot = shootsfamily,
+#       bg = "transparent",
+#       width = 17, height = 8, units = "in",
+#       dpi = 600)
 ```
 Now we can make t1 roots by inoculation and water treatment
 ```{r,results='hide'}
@@ -2202,13 +2182,15 @@ Rootsfamily<-ggplot(familyrootfinalbind, aes(x = inoculation, y = value, fill = 
     legend.key.size = unit(1, 'mm'),
     legend.text = element_text(color='black',size=4),
     plot.title=element_text(size=20,face="bold",vjust=2))
-Rootsfamily
 
-ggsave(filename = "Rootsfamily.pdf",
-       plot = Rootsfamily,
-       bg = "transparent",
-       width = 17, height = 8, units = "in",
-       dpi = 600)
+Rootsfamily
+ggsave("figures/Rootsfamily.pdf", height=8, width=17)
+
+#ggsave(filename = "Rootsfamily.pdf",
+#       plot = Rootsfamily,
+#       bg = "transparent",
+#       width = 17, height = 8, units = "in",
+#       dpi = 600)
 ```
 
 Now we can make t0 shoots by inoculation and water treatment
@@ -2307,13 +2289,15 @@ Shootst0family<-ggplot(familyshoott0finalbind, aes(x = inoculation, y = value, f
     legend.key.size = unit(1, 'mm'),
     legend.text = element_text(color='black',size=4),
     plot.title=element_text(size=20,face="bold",vjust=2))
-Shootst0family
 
-ggsave(filename = "Shootst0family.pdf",
-       plot = Shootst0family,
-       bg = "transparent",
-       width = 10, height = 8, units = "in",
-       dpi = 600)
+Shootst0family
+ggsave("figures/Shootst0family.pdf", height=8, width=10)
+
+#ggsave(filename = "Shootst0family.pdf",
+#       plot = Shootst0family,
+#       bg = "transparent",
+#       width = 10, height = 8, units = "in",
+#       dpi = 600)
 ```
 
 Let's start with the raw data. The venn diagram we want is split into
@@ -2328,7 +2312,7 @@ First let's split into inoculation 1, 2 and 3
 Inoculation 1
 
 ```{r,results='hide'}
-input <- load_taxa_table("ASV_table_postfiltering.txt", "map_loaded_strawberries.txt")
+input <- load_taxa_table("data/ASV_table_postfiltering.txt", "data/map_loaded_strawberries.txt")
 #inoc1
 inputinoc1only = filter_data(input, 'Inoculation', keep_vals = '1')
 #leaves post-inoc post stress
@@ -2346,7 +2330,7 @@ inoc1shootpostinocprestress = filter_data(inputinoc1onlyshoot, 'SampleType', kee
 i1spiprs<-as.data.frame(inoc1shootpostinocprestress$data_loaded)
 i1spiprs$ASV <-row.names(i1spiprs)
 #Then let's grab original inoculum. We will need to grab the original data frame again.
-inputraw <- load_taxa_table("ASV_table_mctoolsr.txt", "strawb_miseq_map.txt")
+inputraw <- load_taxa_table("data/ASV_table_raw.txt", "data/strawberries_raw_full_data.txt")
 slurryonly = filter_data(inputraw, 'SampleType', keep_vals = 'slurry')
 slurryonlyinoc1 = filter_data(slurryonly, 'Type', keep_vals = 'Inoculum 1')
 slurryinoc1<-as.data.frame(slurryonlyinoc1$data_loaded)
@@ -2416,17 +2400,15 @@ inoc1 <-c("Shoot Post-Inoc Post-Stress" = 308, "Root Post-Inoc Post-Stress" = 53
                     "Shoot Post-Inoc Pre-Stress&Slurry" = 11, "Shoot Post-Inoc Post-Stress&Root Post-Inoc Post-Stress&Shoot Post-Inoc Pre-Stress&Slurry" = 10, "Shoot Post-Inoc Post-Stress&Root Post-Inoc Post-Stress&Shoot Post-Inoc Pre-Stress" = 58, "Shoot Post-Inoc Post-Stress&Root Post-Inoc Post-Stress&Slurry" = 12,
                     "Root Post-Inoc Post-Stress&Shoot Post-Inoc Pre-Stress&Slurry" = 10)
 fitinoc1 <- euler(inoc1,shape="ellipse")
-pdf(file="inoc1venn",
-    width=8,
-    height=8)
-plot(fitinoc1, main="Inoculation 1",quantities = TRUE)
-dev.off()
+
+fitinoc1
+ggsave("figures/inoc1venn.pdf", height=8, width=8)
 ```
 
 Inoculation 4
 
 ```{r,results='hide'}
-input <- load_taxa_table("ASV_table_postfiltering.txt", "map_loaded_strawberries.txt")
+input <- load_taxa_table("data/ASV_table_postfiltering.txt", "data/map_loaded_strawberries.txt")
 #inoc4
 inputinoc4only = filter_data(input, 'Inoculation', keep_vals = '4')
 #leaves post-inoc post stress
@@ -2444,7 +2426,7 @@ inoc4shootpostinocprestress = filter_data(inputinoc4onlyshoot, 'SampleType', kee
 i4spiprs<-as.data.frame(inoc4shootpostinocprestress$data_loaded)
 i4spiprs$ASV <-row.names(i4spiprs)
 #Then let's grab original inoculum. We will need to grab the original data frame again.
-inputraw <- load_taxa_table("ASV_table_mctoolsr.txt", "strawb_miseq_map.txt")
+inputraw <- load_taxa_table("data/ASV_table_raw.txt", "data/strawberries_raw_full_data.txt")
 slurryonly = filter_data(inputraw, 'SampleType', keep_vals = 'slurry')
 slurryonlyinoc4 = filter_data(slurryonly, 'Type', keep_vals = 'Inoculum 4')
 slurryinoc4<-as.data.frame(slurryonlyinoc4$data_loaded)
@@ -2512,18 +2494,17 @@ inoc4 <-c("Shoot Post-Inoc Post-Stress" = 290, "Root Post-Inoc Post-Stress" = 51
                     "Shoot Post-Inoc Post-Stress&Root Post-Inoc Post-Stress" = 187, "Shoot Post-Inoc Post-Stress&Shoot Post-Inoc Pre-Stress" = 67, "Shoot Post-Inoc Post-Stress&Slurry" = 5, "Root Post-Inoc Post-Stress&Shoot Post-Inoc Pre-Stress" = 71,"Root Post-Inoc Post-Stress&Slurry" = 5,
                     "Shoot Post-Inoc Pre-Stress&Slurry" = 2, "Shoot Post-Inoc Post-Stress&Root Post-Inoc Post-Stress&Shoot Post-Inoc Pre-Stress&Slurry" = 2, "Shoot Post-Inoc Post-Stress&Root Post-Inoc Post-Stress&Shoot Post-Inoc Pre-Stress" = 60, "Shoot Post-Inoc Post-Stress&Root Post-Inoc Post-Stress&Slurry" = 4,
                     "Root Post-Inoc Post-Stress&Shoot Post-Inoc Pre-Stress&Slurry" = 2)
+
 fitinoc4 <- euler(inoc4,shape="ellipse")
-pdf(file="inoc4venn",
-    width=8,
-    height=8)
-plot(fitinoc4, main="Inoculation 4",quantities = TRUE)
-dev.off()
+
+fitinoc4
+ggsave("figures/inoc4venn.pdf", height=8, width=8)
 ```
 
 Inoculation 5
 
 ```{r,results='hide'}
-input <- load_taxa_table("ASV_table_postfiltering.txt", "map_loaded_strawberries.txt")
+input <- load_taxa_table("data/ASV_table_postfiltering.txt", "data/map_loaded_strawberries.txt")
 #inoc5
 inputinoc5only = filter_data(input, 'Inoculation', keep_vals = '5')
 #leaves post-inoc post stress
@@ -2541,7 +2522,7 @@ inoc5shootpostinocprestress = filter_data(inputinoc5onlyshoot, 'SampleType', kee
 i5spiprs<-as.data.frame(inoc5shootpostinocprestress$data_loaded)
 i5spiprs$ASV <-row.names(i5spiprs)
 #Then let's grab original inoculum. We will need to grab the original data frame again.
-inputraw <- load_taxa_table("ASV_table_mctoolsr.txt", "strawb_miseq_map.txt")
+inputraw <- load_taxa_table("data/ASV_table_raw.txt", "data/strawberries_raw_full_data.txt")
 slurryonly = filter_data(inputraw, 'SampleType', keep_vals = 'slurry')
 slurryonlyinoc5 = filter_data(slurryonly, 'Type', keep_vals = 'Inoculum 5')
 slurryinoc5<-as.data.frame(slurryonlyinoc5$data_loaded)
@@ -2610,9 +2591,7 @@ inoc5 <-c("Shoot Post-Inoc Post-Stress" = 174, "Root Post-Inoc Post-Stress" = 26
                     "Shoot Post-Inoc Pre-Stress&Slurry" = 10, "Shoot Post-Inoc Post-Stress&Root Post-Inoc Post-Stress&Shoot Post-Inoc Pre-Stress&Slurry" = 10, "Shoot Post-Inoc Post-Stress&Root Post-Inoc Post-Stress&Shoot Post-Inoc Pre-Stress" = 39, "Shoot Post-Inoc Post-Stress&Root Post-Inoc Post-Stress&Slurry" = 12,
                     "Root Post-Inoc Post-Stress&Shoot Post-Inoc Pre-Stress&Slurry" = 10)
 fitinoc5 <- euler(inoc5,shape="ellipse")
-pdf(file="inoc5venn",
-    width=8,
-    height=8)
-plot(fitinoc5, main="Inoculation 5",quantities = TRUE)
-dev.off()
+
+fitinoc5
+ggsave("figures/inoc5venn.pdf", height=8, width=8)
 ```
