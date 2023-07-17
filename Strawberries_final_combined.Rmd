@@ -55,8 +55,15 @@ shootroot_inoc23removed<-subset(shootroot_final,Inoculation!="2"&Inoculation!="3
 shootroot_inoc23removed$Inoculation<-as.factor(shootroot_inoc23removed$Inoculation)
 shootroot_inoc23removed$Inoculation<-factor(shootroot_inoc23removed$Inoculation,levels=c("Dry Inoculation","Medium Inoculation","Wet Inoculation","No Inoculation"))
 
+# rename levels
+levels(shootroot_inoc23removed$Inoculation) <- list(
+  Dry="Dry Inoculation", Moderate="Medium Inoculation", Wet="Wet Inoculation", Control="No Inoculation")
+
 shootroot_inoc23removed$Water<-as.factor(shootroot_inoc23removed$Water)
 shootroot_inoc23removed$Water<-factor(shootroot_inoc23removed$Water,levels=c("Low","Medium","High"))
+
+# rename one level
+levels(shootroot_inoc23removed$Water)[levels(shootroot_inoc23removed$Water)=="Medium"] <- "Moderate"
 
 shootsonlywithcontrol<-subset(shootroot_inoc23removed,Type!="Root")
 rootsonlywithcontrol<-subset(shootroot_inoc23removed,Type!="Shoot")
@@ -66,139 +73,50 @@ write.csv(shootsonlywithcontrol, "output/shootsonlywithcontrol.csv")
 write.csv(rootsonlywithcontrol, "output/rootsonlywithcontrol.csv")
 ```
 
-
-```{r, collapse=TRUE}
-### check data normality: (yikes very very skewed)
-
-hist(shootroot_inoc23removed$WeightGrams)
-
-hist(shootsonlywithcontrol$WeightGrams)
-hist(rootsonlywithcontrol$WeightGrams)
-
-### check assumptions shoots (qqplot not normal)
-
-typeIIIModelshoot<-lm(WeightGrams~Inoculation*Water,data=shootsonlywithcontrol)
-plot(typeIIIModelshoot)
-```
-
-```{r, collapse=TRUE}
-### check assumptions roots (qqplot not normal)
-
-typeIIIModelroot<-lm(WeightGrams~Inoculation*Water,data=rootsonlywithcontrol)
-plot(typeIIIModelroot)
-```
-
-Boxplot of above and belowground total biomass. This is the raw, non-normalized data for absolute dry-weight biomass in the roots and shoots. 
-```{r above below biomass, width=20}
-
-root.shoot.biomass<-ggplot(shootroot_inoc23removed,aes(Water,WeightGrams,fill=Inoculation)) +
-  geom_boxplot()+
-  scale_fill_manual(values=c("coral2", "#E69F00", "#56B4E9","darkseagreen3"))+
-  ylab("Weight (g)") +
-  theme(
-    axis.text = element_text(color='black',size=10),
-    axis.title = element_text(color='black',size=12),
-    axis.ticks = element_line(color='black'),
-    legend.title = element_text(size=18),
-    legend.key = element_rect(fill=NA),
-    panel.background = element_rect(fill=NA,color='black'),
-    panel.grid = element_blank(),
-    plot.title=element_text(size=20,face="bold",vjust=2))+
-facet_wrap(.~Type)
-
-root.shoot.biomass
-ggsave("figures/root.shoot.biomass.pdf", height=6, width=10)
-
-#ggsave(filename = "mainfigstawberries.pdf",
-      #plot = root.shoot.biomass,
-      #bg = "transparent",
-      #width = 10, height = 6, units = "in",
-      #dpi = 600)
-
-```
-
-
-Stats for on the raw data for above and belowground plant biomass (not proportion).
-Run models linear models (Type III SS) for *total root or shoot biomass*  
-* First we will run the linear model as `lm(mass ~ Inoculation * Water)`
-* Then run post-hoc contrasts through `emmeans` (if significant effects observed)
-```{r, results='hide', collapse=TRUE}
-#subset by roots and shoots
-shootsonly<-subset(shootroot_inoc23removed,Type!="Root")
-rootsonly<-subset(shootroot_inoc23removed,Type!="Shoot")
-
-#subset each out by water treatment
-shootlow<-subset(shootsonly,Water!="Medium"&Water!="High")
-shootmed<-subset(shootsonly,Water!="Low"&Water!="High")
-shoothigh<-subset(shootsonly,Water!="Medium"&Water!="Low")
-rootlow<-subset(rootsonly,Water!="Medium"&Water!="High")
-rootmed<-subset(rootsonly,Water!="Low"&Water!="High")
-roothigh<-subset(rootsonly,Water!="Medium"&Water!="Low")
-```
-  
-**Table. Model for inoculation and water effects on *total shoot* biomass**  
-* no signifcant effects  
-```{r shoot biomass}
-### SHOOTS stats without proportions
-typeIIIModelshoot<-lm(WeightGrams~Inoculation*Water,data=shootsonly)
-Anova(typeIIIModelshoot,type=3)
-#emmeans(typeIIIModelshoot,pairwise~Water|Inoculation)
-```
-  
-**Table. Model for inoculation and water effects on *total roots* biomass**
-* no signifcant effects  
-```{r root biomass}
-### ROOTS stats without proportions
-typeIIIModelroot<-lm(WeightGrams~Inoculation*Water,data=rootsonly)
-Anova(typeIIIModelroot,type=3)
-#emmeans(typeIIIModelroot,pairwise~Water|Inoculation)
-```
-
 ### Biomass proportion  
-I believe we need to remake shootsonlywithcontrol. I don't see it in the code above.
+We take the root biomass (g) and the shoot biomass (g) to = total biomass, then express the proportion of the biomass for the roots and the shoots relative to total biomass of the plant. 
+
+Stats for proportion above and belowground plant biomass
+Run models linear models (Type III SS) for *proportion root or shoot biomass*  
+* First we will run the linear model as `lm(mass ~ Water*Inoculation)`
+* Then run post-hoc contrasts through `emmeans` (if significant effects observed)
+
 ```{r proportion graph p1, fig.show='hide'}
 
-#View(shootsonlywithcontrol)
-#View(rootsonlywithcontrol)
-
-
-
 shootsonlywithcontrol <- shootsonlywithcontrol %>% 
-       dplyr::rename("shoot_weight" = "WeightGrams")
+       dplyr::rename("shoot.mass..g" = "WeightGrams")
 rootsonlywithcontrol <- rootsonlywithcontrol %>% 
-       dplyr::rename("root_weight" = "WeightGrams")
+       dplyr::rename("root.mass..g" = "WeightGrams")
 shootsonly_premerge<-subset(shootsonlywithcontrol,select = -c(SampleID,TimePoint,Type,SampleNotes,Water,Inoculation,Replicate,PlantNotes,SampleType,Sample_or_Control))
 rootshoot_merge <- merge(shootsonly_premerge,rootsonlywithcontrol,by="PlantID")
 
 #View(rootshoot_merge)
 rootshoot_merge <-subset(rootshoot_merge, select = -c(Type,SampleNotes,PlantNotes))
-rootshoot_merge$total_weight<-rootshoot_merge$shoot_weight+rootshoot_merge$root_weight
-rootshoot_merge$shoot_prop_weight<-rootshoot_merge$shoot_weight/rootshoot_merge$total_weight
-rootshoot_merge$root_prop_weight<-rootshoot_merge$root_weight/rootshoot_merge$total_weight
+rootshoot_merge$total.biomass..g<-rootshoot_merge$shoot.mass..g+rootshoot_merge$root.mass..g
+rootshoot_merge$shoot.prop<-rootshoot_merge$shoot.mass..g/rootshoot_merge$total.biomass..g
+rootshoot_merge$root.prop<-rootshoot_merge$root.mass..g/rootshoot_merge$total.biomass..g
 
 #########
 ### From here with rootshoot_merge, you can redo all the above to see what the data looks like
 
-hist(rootshoot_merge$root_prop_weight)
-hist(rootshoot_merge$shoot_prop_weight)
+hist(rootshoot_merge$root.prop)
+hist(rootshoot_merge$shoot.prop)
 ```
 
-Make a graph of the proportion of root and shoot biomass. 
-* For shoots : `shoot biomass (mg) / total biomass (mg)`
-* For roots : `root biomass (mg) / total biomass (mg)` 
-```{r proportion graph p2, width=20}
+Make a graph of the proportion of root and shoot biomass. *This is FIGURE 1.*
+* For shoots : `shoot biomass (g) / total biomass (g)`
+* For roots : `root biomass (g) / total biomass (g)` 
+```{r proportion graph, width=20}
 
 #View(rootshoot_merge)
 longer_data <- rootshoot_merge %>%
-  pivot_longer(shoot_prop_weight:root_prop_weight, names_to = "type", values_to = "response")
+  pivot_longer(shoot.prop:root.prop, names_to = "Type", values_to = "response")
 
-prop.biomass.plot<-ggplot(longer_data,aes(Water,response,fill=Inoculation)) +
-  facet_wrap(.~type)+
-  geom_boxplot(position=position_dodge())+
-  
-  ylab("Percent of total weight") +
-  scale_fill_manual(values=c("coral2", "#E69F00", "#56B4E9","darkseagreen3"))+
-  
+prop.biomass.Inoc<-ggplot(longer_data,aes(Inoculation,response,fill=Inoculation)) +
+  facet_wrap(.~Type)+
+  geom_boxplot(outlier.size = 0.7, alpha=0.8)+
+  ylab("Proportion of total biomass (g/g)") +
+  scale_fill_brewer(palette="Dark2")+
   theme(
     axis.text = element_text(color='black',size=10),
     axis.title = element_text(color='black',size=12),
@@ -209,8 +127,25 @@ prop.biomass.plot<-ggplot(longer_data,aes(Water,response,fill=Inoculation)) +
     panel.grid = element_blank(),
     plot.title=element_text(size=20,face="bold",vjust=2))
 
-prop.biomass.plot
-ggsave("figures/prop.biomass.plot.pdf", height=6, width=10)
+prop.biomass.Water<-ggplot(longer_data,aes(Water,response,fill=Water)) +
+  facet_wrap(.~Type)+
+  geom_boxplot(outlier.size = 0.7)+
+  ylab("Proportion of total biomass (g/g)") +
+  scale_fill_brewer(palette="Blues")+
+  theme(
+    axis.text = element_text(color='black',size=10),
+    axis.title = element_text(color='black',size=12),
+    axis.ticks = element_line(color='black'),
+    legend.title = element_text(size=18),
+    panel.background = element_rect(fill=NA,color='black'),
+    legend.key = element_rect(fill=NA),
+    panel.grid = element_blank(),
+    plot.title=element_text(size=20,face="bold",vjust=2))
+
+prop.plots<- prop.biomass.Inoc + prop.biomass.Water
+
+prop.plots
+ggsave("figures/Fig1.prop.biomass.pdf", height=6, width=15)
 
 #ggsave(filename = "mainfigstawberries.pdf",
       #plot = prop.biomass.plot,
@@ -224,100 +159,35 @@ Run models linear models (Type III SS) for proportion of total biomass as shoots
 * First we will run the linear model as `lm(prop mass ~ Inoculation * Water)`
 * Then run post-hoc contrasts through `emmeans`
 
-**Table. Model and post-hocs for inoculation and water effects on proportion of *shoot* biomass**  
+**Table S1A. Model and post-hocs for inoculation and water effects on proportion of *root* biomass**  
+* Effect of inoculation and water
+```{r prop roots}
+## This is table S1A
+root.prop.mod<-lm(root.prop~Water*Inoculation,data=rootshoot_merge)
+Anova(root.prop.mod,type=3)
+
+root.posthoc.Wat<-emmeans(root.prop.mod, pairwise~Water)
+multcomp::cld(root.posthoc.Wat, Letters=letters)
+
+root.posthoc.Inoc<-emmeans(root.prop.mod, ~Inoculation)
+multcomp::cld(root.posthoc.Inoc, Letters=letters)
+
+#posthoc with letters
+multcomp::cld(typeIIIModelrootpropem, Letters=letters)
+```
+
+**Table S1B. Model and post-hocs for inoculation and water effects on proportion of *shoot* biomass**  
 * Effect of inoculation and water
 ```{r prop shoots}
-typeIIIModelshootprop<-lm(shoot_prop_weight~Inoculation*Water,data=rootshoot_merge)
+## This is table S1B
+typeIIIModelshootprop<-lm(shoot.prop~Water*Inoculation,data=rootshoot_merge)
 Anova(typeIIIModelshootprop,type=3)
 typeIIIModelshootpropem<-emmeans(typeIIIModelshootprop,pairwise~Inoculation|Water)
 
 #posthoc with letters
 multcomp::cld(typeIIIModelshootpropem, Letters=letters)
 ```
-  
-**Table. Model and post-hocs for inoculation and water effects on proportion of *root* biomass**  
-* Effect of inoculation and water
-```{r prop roots}
-typeIIIModelrootprop<-lm(root_prop_weight~Inoculation*Water,data=rootshoot_merge)
-Anova(typeIIIModelrootprop,type=3)
-typeIIIModelrootpropem<-emmeans(typeIIIModelrootprop,pairwise~Inoculation|Water)
 
-#posthoc with letters
-multcomp::cld(typeIIIModelrootpropem, Letters=letters)
-```
-
-
-### Plant mortality
-```{r mortality import and subset, results='hide',echo=FALSE}
-library(dplyr) # may need to unload-reload if get an error here, plyr and dplyr don't play well
-
-mortality.sheet<-read.csv("data/mortality graph.csv",header=TRUE)
-mortality.sheet<-subset(mortality.sheet,Inoculation!="2"&Inoculation!="3")
-mortality.sheet$Inoculation=as.factor(mortality.sheet$Inoculation)
-mortality.sheet$Water=as.factor(mortality.sheet$Water)
-
-mortality.sheet.binary<-read.csv("data/mortality_graph_binary.csv",header=TRUE)
-mortality.sheet.binary<-subset(mortality.sheet.binary,Inoculation!="2"&Inoculation!="3")
-mortality.sheet.binary.low<-subset(mortality.sheet.binary,Water!="Medium"&Water!="High")
-mortality.sheet.binary.medium<-subset(mortality.sheet.binary,Water!="Low"&Water!="High")
-mortality.sheet.binary.high<-subset(mortality.sheet.binary,Water!="Medium"&Water!="Low")
-
-glm.mortality.low<-glm(mortality ~ Inoculation, family=binomial,data=mortality.sheet.binary.low)
-summary(glm.mortality.low)
-em.low <- emmeans(glm.mortality.low, "Inoculation")
-contrast(em.low, "pairwise", adjust = "Tukey")
-
-glm.mortality.medium<-glm(mortality ~ Inoculation, family=binomial,data=mortality.sheet.binary.medium)
-summary(glm.mortality.medium)
-em.medium <- emmeans(glm.mortality.medium, "Inoculation")
-contrast(em.medium, "pairwise", adjust = "Tukey")
-
-glm.mortality.high<-glm(mortality ~ Inoculation, family=binomial,data=mortality.sheet.binary.high)
-summary(glm.mortality.medium)
-em.medium <- emmeans(glm.mortality.medium, "Inoculation")
-contrast(em.medium, "pairwise", adjust = "Tukey")
-```
-
-Make a plot of mortality data.
-```{r mortality prop data, results='hide'}
-### final mortality data here
-mortality_prop_data<-mortality.sheet %>%
-  dplyr::group_by(Water, Inoculation) %>% 
-  dplyr::summarize(prop = sum(mortality=="alive") / n())
-
-mortality_prop_data$Water<-factor(mortality_prop_data$Water,levels=c("Low","Medium","High"))
-
-mortality_prop_data$Inoculation<-factor(mortality_prop_data$Inoculation,levels=c("Dry","Medium","Wet","None"))
-
-# write the final file
-write.csv(mortality_prop_data, "output/mortality_prop_data.csv")
-
-### plot it
-mortality<-ggplot(mortality_prop_data,aes(Inoculation,prop,fill=Inoculation))+
-  geom_bar(stat="identity")+
-  facet_wrap(.~Water)+
-  ylab("% Survival") +
-  scale_fill_manual(values=c("coral2", "#E69F00", "#56B4E9","darkseagreen3"))+ 
-  theme(
-    axis.text = element_text(color='black',size=10),
-    axis.title = element_text(color='black',size=12),
-    axis.ticks = element_line(color='black'),
-    legend.title = element_text(size=18),
-    legend.key = element_rect(fill=NA),
-    panel.background = element_rect(fill=NA,color='black'),
-    panel.grid = element_blank(),
-    plot.title=element_text(size=20,face="bold",vjust=2))
-
-mortality
-ggsave("figures/mortality.pdf", height=6, width=10)
-
-#ggsave(filename = "mortality.pdf",
-      #plot = mortality,
-      #bg = "transparent",
-      #width = 10, height = 6, units = "in",
-      #dpi = 600)
-
-```
 
 ### Fungal microbiome
 ```{r, message=FALSE, warning=FALSE, results='hide'}
@@ -363,13 +233,49 @@ shoots_post_stress$data_loaded<-t(hell)
 
 Finally it is NMDS time yay! Permanova first
 
+*Table S2* PERMANOVA testing inoculation sources and water treatment effects on plant-associated fungal microbiomes in root and shoot biomass.
 ```{r}
-#shoots first
+#roots first
+#you need to first load the data and make it a data frame. Then transpose the data frame. Add the map loaded too
+otuTAB<-roots_post_stress$data_loaded
+otuTAB <- as.data.frame (otuTAB)
+otuTABtranspose<-t(otuTAB)
+mta<-roots_post_stress$map_loaded
+
+#do as factor
+mta$Water <- as.factor(mta$Water)
+mta$Inoculation <- as.factor(mta$Inoculation)
+
+#make the model
+model1<-adonis2(otuTABtranspose~Water*Inoculation,data=mta,permutations=999,method="bray")
+model1
+
+mtapairwise<-unite(mta,c='water_inoculation',c('Water','Inoculation'),sep='-')
+
+# water pairwise
+pair.mod.water<-pairwise.adonis(otuTABtranspose,
+                          factors=c(mta$Water))
+pair.mod.water
+
+# inoc pairwise
+pair.mod.inoc<-pairwise.adonis(otuTABtranspose,
+                          factors=c(mta$Inoculation))
+pair.mod.inoc
+
+# interaction pairwise
+pair.mod.wat.inoc<-pairwise.adonis(otuTABtranspose,
+                          factors=c(mtapairwise$water_inoculation))
+pair.mod.wat.inoc
+
+
+
+#shoots second
 #you need to first load the data and make it a data frame. Then transpose the data frame. Add the map loaded too
 otuTAB<-shoots_post_stress$data_loaded
 otuTAB <- as.data.frame (otuTAB)
 otuTABtranspose<-t(otuTAB)
 mta<-shoots_post_stress$map_loaded
+
 #do as factor
 mta$Water <- as.factor(mta$Water)
 mta$Inoculation <- as.factor(mta$Inoculation)
@@ -385,24 +291,6 @@ mtapairwise<-unite(mta,c='water_inoculation',c('Water','Inoculation'),sep='-')
 pair.mod<-pairwise.adonis(otuTABtranspose,factors=mtapairwise$water_inoculation)
 pair.mod
 
-
-#roots second
-#you need to first load the data and make it a data frame. Then transpose the data frame. Add the map loaded too
-otuTAB<-roots_post_stress$data_loaded
-otuTAB <- as.data.frame (otuTAB)
-otuTABtranspose<-t(otuTAB)
-mta<-roots_post_stress$map_loaded
-#do as factor
-mta$Water <- as.factor(mta$Water)
-mta$Inoculation <- as.factor(mta$Inoculation)
-
-#make the model
-model1<-adonis2(otuTABtranspose~Water*Inoculation,data=mta,permutations=999,method="bray")
-model1
-
-mtapairwise<-unite(mta,c='water_inoculation',c('Water','Inoculation'),sep='-')
-pair.mod<-pairwise.adonis(otuTABtranspose,factors=mtapairwise$water_inoculation)
-pair.mod
 ```
 
 Everything is significant including pairwise adonis.
@@ -427,30 +315,16 @@ data.scoresroot$Inoculation <- roots_post_stress$map_loaded$Inoculation
 
 ```{r, fig.height=5, fig.width=10, message=FALSE, warning=FALSE}
 
-b<-ggplot(data=data.scoresshoot,aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=factor(Inoculation))) + 
-  scale_color_manual(values=c("coral2", "#E69F00", "#56B4E9","darkseagreen3"))+ 
-  ggtitle("Shoots")+
-  geom_point(data=data.scoresshoot,aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=factor(Inoculation))) + # add the point markers
-
-  theme(
-    axis.text = element_text(color='black',size=10),
-    axis.title = element_text(color='black',size=12),
-    axis.ticks = element_line(color='black'),
-    legend.title = element_text(size=8),
-    legend.key = element_rect(fill=NA),
-    panel.background = element_rect(fill=NA,color='black'),
-    panel.grid = element_blank(),
-    
-    plot.title=element_text(size=20,face="bold",vjust=2))
-
-
-a<-ggplot(data=data.scoresroot,aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=factor(Inoculation))) + 
-  scale_color_manual(values=c("coral2", "#E69F00", "#56B4E9","darkseagreen3"))+ 
-  ggtitle("Roots")+
-  geom_point(data=data.scoresroot,aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=factor(Inoculation))) + # add the point markers
-
-  
-  theme(
+Shoots.T1.NMDS<-ggplot(data=data.scoresshoot,
+                  aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=factor(Inoculation))) + 
+  scale_color_brewer(palette="Dark2")+
+  ggtitle("Shoots T1")+
+  geom_point(data=data.scoresshoot,
+             aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=factor(Inoculation)), alpha=0.8) + 
+  # add the point markers
+  stat_ellipse(data=data.scoresshoot,aes(x=NMDS1,y=NMDS2,lty=factor(Water),color=factor(Inoculation)))+
+  scale_linetype_manual(values=c(1,2,3)) +
+   theme(
     axis.text = element_text(color='black',size=10),
     axis.title = element_text(color='black',size=12),
     axis.ticks = element_line(color='black'),
@@ -460,10 +334,30 @@ a<-ggplot(data=data.scoresroot,aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=fac
     legend.position = "none",
     plot.title=element_text(size=20,face="bold",vjust=2))
 
-both_plots<-a+b
+
+Roots.T1.NMDS<-ggplot(data=data.scoresroot,
+                      aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=factor(Inoculation))) + 
+  scale_color_brewer(palette="Dark2")+
+  stat_ellipse(data=data.scoresroot,aes(x=NMDS1,y=NMDS2,lty=factor(Water),color=factor(Inoculation)))+
+  scale_linetype_manual(values=c(1,2,3)) +
+  ggtitle("Roots T1")+
+  geom_point(data=data.scoresroot,
+             aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=factor(Inoculation)), alpha=0.8) + 
+  # add the point markers
+ theme(
+    axis.text = element_text(color='black',size=10),
+    axis.title = element_text(color='black',size=12),
+    axis.ticks = element_line(color='black'),
+    legend.title = element_text(size=8),
+    legend.key = element_rect(fill=NA),
+    panel.background = element_rect(fill=NA,color='black'),
+    panel.grid = element_blank(),
+    plot.title=element_text(size=20,face="bold",vjust=2))
+
+both_plots<-Shoots.T1.NMDS+Roots.T1.NMDS
 both_plots
 
-ggsave("figures/both_plots.pdf", height=6, width=12)
+ggsave("figures/Fig2.Shoot.Root.T1.NMDS.pdf", height=6, width=12)
 
 #ggsave(filename = "both_plots.pdf",
       #plot = both_plots,
@@ -515,7 +409,8 @@ NMDS2.mean.data.time<-aggregate(NMDS2~ Water*TimePoint, data=data.time, FUN=mean
 centroid.data.time<-as.data.frame(cbind(NMDS1.mean.data.time, NMDS2.mean.data.time[3]))
 
 
-timewater<-ggplot(data=data.time,aes(x=NMDS1,y=NMDS2,color=factor(Water),shape=factor(TimePoint))) + 
+timewater<-ggplot(data=data.time,
+                  aes(x=NMDS1,y=NMDS2,color=factor(Water),shape=factor(TimePoint)), alpha=0.8) + 
   ggtitle("Water Treatment")+
   scale_color_manual(values=c("paleturquoise3", "steelblue2", "slategray4"))+
   geom_point(data=data.time,aes(x=NMDS1,y=NMDS2,color=factor(Water),shape=factor(TimePoint))) +
@@ -545,22 +440,23 @@ NMDS2.mean.data.inoc<-aggregate(NMDS2~ Inoculation*TimePoint, data=data.time, FU
 centroid.data.inoc<-as.data.frame(cbind(NMDS1.mean.data.inoc, NMDS2.mean.data.inoc[3]))
 
 
-timeinoculation<-ggplot(data=data.time,aes(x=NMDS1,y=NMDS2,color=factor(Inoculation),shape=factor(TimePoint))) + 
-  scale_color_manual(values=c("coral2", "#E69F00", "#56B4E9","darkseagreen3"))+ 
+timeinoculation<-ggplot(data=data.time,
+                        aes(x=NMDS1,y=NMDS2,color=factor(Inoculation),shape=factor(TimePoint))) + 
+  scale_color_brewer(palette="Dark2")+ 
   ggtitle("Inoculation")+
-  geom_point(data=data.time,aes(x=NMDS1,y=NMDS2,color=factor(Inoculation),shape=factor(TimePoint))) + # add the point markers
+  geom_point(data=data.time,aes(x=NMDS1,y=NMDS2,color=factor(Inoculation),shape=factor(TimePoint)), alpha=0.8) + # add the point markers
   geom_segment(aes(x = centroid.data.inoc[1,3], xend = centroid.data.inoc[5,3], 
                    y = centroid.data.inoc[1,4], yend = centroid.data.inoc[5,4])
-               ,arrow = arrow(length = unit(0.25, "cm")), colour = "coral2") +
+               ,arrow = arrow(length = unit(0.25, "cm")), colour = "#1B9E77") +
   geom_segment(aes(x = centroid.data.inoc[2,3], xend = centroid.data.inoc[6,3], 
                    y = centroid.data.inoc[2,4], yend = centroid.data.inoc[6,4]),
-               arrow = arrow(length = unit(0.25, "cm")), colour = "#E69F00") +
+               arrow = arrow(length = unit(0.25, "cm")), colour = "#D95F02") +
   geom_segment(aes(x = centroid.data.inoc[3,3], xend = centroid.data.inoc[7,3], 
                    y = centroid.data.inoc[3,4], yend = centroid.data.inoc[7,4]),
-               arrow = arrow(length = unit(0.25, "cm")), colour = "#56B4E9") +
+               arrow = arrow(length = unit(0.25, "cm")), colour = "#7570B3") +
   geom_segment(aes(x = centroid.data.inoc[4,3], xend = centroid.data.inoc[8,3], 
                    y = centroid.data.inoc[4,4], yend = centroid.data.inoc[8,4]),
-               arrow = arrow(length = unit(0.25, "cm")), colour = "darkseagreen3") +
+               arrow = arrow(length = unit(0.25, "cm")), colour = "#E7298A") +
   theme(
     axis.text = element_text(color='black',size=10),
     axis.title = element_text(color='black',size=12),
@@ -624,7 +520,7 @@ inputshootsonlyminus3 =filter_data(inputshootsonlyminus2, 'Inoculation', filter_
 finalNMDSmovement = filter_data(inputshootsonlyminus3, 'TimePoint', keep_vals = 'T0')
 ```
 
-```{r,results='hide', message=FALSE, warning=FALSE,echo=FALSE}
+```{r,results='hide', message=FALSE, warning=FALSE, echo=FALSE}
 #use package labdsv
 otuTAB<-finalNMDSmovement$data_loaded
 otuTAB <- as.data.frame (otuTAB)
@@ -645,13 +541,17 @@ data.time$Inoculation<-as.factor(data.time$Inoculation)
 ```
 
 #### T0 Graph Only
+
+Shoot fungal microbiomes prior to the start of water stress
+*Figure S1: shoots T0 NMDS*
 ```{r, message=FALSE, warning=FALSE}
-library(ggplot2)
-ggplot(data=data.time,aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=factor(Inoculation))) + 
+
+Shoots.T0.NMDS<-ggplot(data=data.time,aes(x=NMDS1,y=NMDS2,color=factor(Inoculation))) + 
   ggtitle("T0 Shoots")+
-  geom_point(data=data.time,aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=factor(Inoculation))) + # add the point markers
-  stat_ellipse(data=data.time,aes(x=NMDS1,y=NMDS2,shape=factor(Inoculation),color=factor(Inoculation)))+
-  
+  scale_color_brewer(palette="Dark2")+
+  geom_point(data=data.time,
+             aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=factor(Inoculation)), alpha=0.8) + 
+  stat_ellipse(data=data.time,aes(x=NMDS1,y=NMDS2,color=factor(Inoculation)))+
   theme(
     axis.text = element_text(color='black',size=10),
     axis.title = element_text(color='black',size=12),
@@ -662,11 +562,16 @@ ggplot(data=data.time,aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=factor(Inocu
     
     plot.title=element_text(size=20,face="bold",vjust=2))
 
+Shoots.T0.NMDS
+ggsave("figures/FigS1.Shoots.T0.NMDS.pdf", height=6, width=8)
+
 
 ```
 
-```{r}
+*Table S3. T0 shoot fungal microbiome*
+```{r shoot T0 microbiome}
 library(vegan)
+
 #make the model
 otuTAB<-finalNMDSmovement$data_loaded
 otuTAB <- as.data.frame (otuTAB)
@@ -676,7 +581,7 @@ mta<-finalNMDSmovement$map_loaded
 mta$Water <- as.factor(mta$Water)
 mta$Inoculation <- as.factor(mta$Inoculation)
 
-
+set.seed(138)
 model1<-adonis2(otuTABtranspose~Water*Inoculation,data=mta,permutations=999,method="bray")
 model1
 ```
@@ -769,6 +674,7 @@ inoc6.scrs <- as.data.frame(scores(inoc6vf, display = "factors"))
 NMDS1.mean.inoc1<-aggregate(NMDS1~ Water*TimePoint, data=data.scoresinoc1, FUN=mean)
 NMDS2.mean.inoc1<-aggregate(NMDS2~ Water*TimePoint, data=data.scoresinoc1, FUN=mean)
 centroid.inoc1<-as.data.frame(cbind(NMDS1.mean.inoc1, NMDS2.mean.inoc1[3]))
+centroid.inoc1$TimePoint<-factor(centroid.inoc1$TimePoint, levels=c("T0", "T1"))
 
 data.scoresinoc1$TimePoint<-factor(data.scoresinoc1$TimePoint,levels=c("T1","T0"))
 data.scoresinoc4$TimePoint<-factor(data.scoresinoc4$TimePoint,levels=c("T1","T0"))
@@ -780,12 +686,12 @@ inoc1.trajectory<-ggplot(data=data.scoresinoc1,aes(x=NMDS1,y=NMDS2,shape=factor(
   geom_point(data=data.scoresinoc1,aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water))) + 
   stat_ellipse(data=data.scoresinoc1,aes(x=NMDS1,y=NMDS2,color=factor(Water),linetype=factor(TimePoint)))+
   scale_color_manual(values=c("red", "#E69F00", "#56B4E9"))+  # for water 1,2,3
-  geom_segment(aes(x = centroid.inoc1[4,3], xend = centroid.inoc1[1,3], 
-                   y = centroid.inoc1[4,4], yend = centroid.inoc1[1,4]),arrow = arrow(), colour = "red") +
-  geom_segment(aes(x = centroid.inoc1[5,3], xend = centroid.inoc1[2,3], 
-                   y = centroid.inoc1[5,4], yend = centroid.inoc1[2,4]),arrow = arrow(), colour = "#E69F00") +
-  geom_segment(aes(x = centroid.inoc1[6,3], xend = centroid.inoc1[3,3], 
-                   y = centroid.inoc1[6,4], yend = centroid.inoc1[3,4]),arrow = arrow(), colour = "#56B4E9") +
+  geom_segment(aes(x = centroid.inoc1[1,3], xend = centroid.inoc1[4,3], 
+                   y = centroid.inoc1[1,4], yend = centroid.inoc1[4,4]),arrow = arrow(), colour = "red") +
+  geom_segment(aes(x = centroid.inoc1[2,3], xend = centroid.inoc1[5,3], 
+                   y = centroid.inoc1[2,4], yend = centroid.inoc1[5,4]),arrow = arrow(), colour = "#E69F00") +
+  geom_segment(aes(x = centroid.inoc1[3,3], xend = centroid.inoc1[6,3], 
+                   y = centroid.inoc1[3,4], yend = centroid.inoc1[6,4]),arrow = arrow(), colour = "#56B4E9") +
   theme(
     axis.text = element_text(color='black',size=10),
     axis.title = element_text(color='black',size=12),
@@ -1242,6 +1148,7 @@ hell<-hellinger(otuTABtranspose)
 #View(hell)
 shoott0inoc6$data_loaded<-t(hell)
 ```
+
 Now that we have the data, we can do shannon's diversity:
 ```{r,results='hide'}
 #all shannon's diversity
