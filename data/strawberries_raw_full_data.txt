@@ -1,4 +1,4 @@
-SampleID	TimePoint	Type	PlantID	WeightGrams	SampleNotes	Water	Inoculation	Replicate	PlantNotes	SampleType	Sample_or_Control
+SampleID	TimePoint	Type	PlantID	WeightGrams	SampleNotes	Water	Inoculum	Replicate	PlantNotes	SampleType	Sample_or_Control
 KSTRAW1074	T1	Shoot	R08I01W01	0.09991		Low	Dry Inoculation	8		post_inoc_post_stress	True Sample
 KSTRAW1437	T0	Shoot	R02I04W03	NA	Time 0 DNA pooled leaves 10 mg	High	Medium Inoculation	2	Pooled plants	post_inoc_pre_stress	True Sample
 KSTRAW1091	T1	Root	R13I02W01	0.1151		Low	2	13		post_inoc_post_stress	True Sample

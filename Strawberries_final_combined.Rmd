@@ -51,12 +51,12 @@ shootrootwithcontrol %>% drop_na()
 
 shootroot_step1removal<-subset(shootrootwithcontrol,TimePoint!="T0"&TimePoint!="Control"&Type!="Control")
 shootroot_final<-shootroot_step1removal %>% drop_na()
-shootroot_inoc23removed<-subset(shootroot_final,Inoculation!="2"&Inoculation!="3")
-shootroot_inoc23removed$Inoculation<-as.factor(shootroot_inoc23removed$Inoculation)
-shootroot_inoc23removed$Inoculation<-factor(shootroot_inoc23removed$Inoculation,levels=c("Dry Inoculation","Medium Inoculation","Wet Inoculation","No Inoculation"))
+shootroot_inoc23removed<-subset(shootroot_final,Inoculum!="2"&Inoculum!="3")
+shootroot_inoc23removed$Inoculum<-as.factor(shootroot_inoc23removed$Inoculum)
+shootroot_inoc23removed$Inoculum<-factor(shootroot_inoc23removed$Inoculum,levels=c("Dry Inoculation","Medium Inoculation","Wet Inoculation","No Inoculation"))
 
 # rename levels
-levels(shootroot_inoc23removed$Inoculation) <- list(
+levels(shootroot_inoc23removed$Inoculum) <- list(
   Dry="Dry Inoculation", Moderate="Medium Inoculation", Wet="Wet Inoculation", Control="No Inoculation")
 
 shootroot_inoc23removed$Water<-as.factor(shootroot_inoc23removed$Water)
@@ -87,7 +87,7 @@ shootsonlywithcontrol <- shootsonlywithcontrol %>%
        dplyr::rename("shoot.mass..g" = "WeightGrams")
 rootsonlywithcontrol <- rootsonlywithcontrol %>% 
        dplyr::rename("root.mass..g" = "WeightGrams")
-shootsonly_premerge<-subset(shootsonlywithcontrol,select = -c(SampleID,TimePoint,Type,SampleNotes,Water,Inoculation,Replicate,PlantNotes,SampleType,Sample_or_Control))
+shootsonly_premerge<-subset(shootsonlywithcontrol,select = -c(SampleID,TimePoint,Type,SampleNotes,Water,Inoculum,Replicate,PlantNotes,SampleType,Sample_or_Control))
 rootshoot_merge <- merge(shootsonly_premerge,rootsonlywithcontrol,by="PlantID")
 
 #View(rootshoot_merge)
@@ -112,7 +112,7 @@ Make a graph of the proportion of root and shoot biomass. *This is FIGURE 1.*
 longer_data <- rootshoot_merge %>%
   pivot_longer(shoot.prop:root.prop, names_to = "Type", values_to = "response")
 
-prop.biomass.Inoc<-ggplot(longer_data,aes(Inoculation,response,fill=Inoculation)) +
+prop.biomass.Inoc<-ggplot(longer_data,aes(Inoculum,response,fill=Inoculum)) +
   facet_wrap(.~Type)+
   geom_boxplot(outlier.size = 0.7, alpha=0.8)+
   ylab("Proportion of total biomass (g/g)") +
@@ -131,7 +131,7 @@ prop.biomass.Water<-ggplot(longer_data,aes(Water,response,fill=Water)) +
   facet_wrap(.~Type)+
   geom_boxplot(outlier.size = 0.7)+
   ylab("Proportion of total biomass (g/g)") +
-  scale_fill_brewer(palette="Blues")+
+  scale_fill_manual(values=c("paleturquoise3", "steelblue2", "skyblue4"))+ 
   theme(
     axis.text = element_text(color='black',size=10),
     axis.title = element_text(color='black',size=12),
@@ -156,20 +156,20 @@ ggsave("figures/Fig1.prop.biomass.pdf", height=6, width=15)
 ```
 
 Run models linear models (Type III SS) for proportion of total biomass as shoots and roots
-* First we will run the linear model as `lm(prop mass ~ Inoculation * Water)`
+* First we will run the linear model as `lm(prop mass ~ Water*Inoculation)`
 * Then run post-hoc contrasts through `emmeans`
 
 **Table S1A. Model and post-hocs for inoculation and water effects on proportion of *root* biomass**  
-* Effect of inoculation and water
+* Effect of water inoculation
 ```{r prop roots}
 ## This is table S1A
-root.prop.mod<-lm(root.prop~Water*Inoculation,data=rootshoot_merge)
+root.prop.mod<-lm(root.prop~Water*Inoculum,data=rootshoot_merge)
 Anova(root.prop.mod,type=3)
 
 root.posthoc.Wat<-emmeans(root.prop.mod, pairwise~Water)
 multcomp::cld(root.posthoc.Wat, Letters=letters)
 
-root.posthoc.Inoc<-emmeans(root.prop.mod, ~Inoculation)
+root.posthoc.Inoc<-emmeans(root.prop.mod, ~Inoculum)
 multcomp::cld(root.posthoc.Inoc, Letters=letters)
 
 #posthoc with letters
@@ -177,12 +177,12 @@ multcomp::cld(typeIIIModelrootpropem, Letters=letters)
 ```
 
 **Table S1B. Model and post-hocs for inoculation and water effects on proportion of *shoot* biomass**  
-* Effect of inoculation and water
+* Effect of water and inoculation
 ```{r prop shoots}
 ## This is table S1B
-typeIIIModelshootprop<-lm(shoot.prop~Water*Inoculation,data=rootshoot_merge)
+typeIIIModelshootprop<-lm(shoot.prop~Water*Inoculum,data=rootshoot_merge)
 Anova(typeIIIModelshootprop,type=3)
-typeIIIModelshootpropem<-emmeans(typeIIIModelshootprop,pairwise~Inoculation|Water)
+typeIIIModelshootpropem<-emmeans(typeIIIModelshootprop,pairwise~Inoculum|Water)
 
 #posthoc with letters
 multcomp::cld(typeIIIModelshootpropem, Letters=letters)
@@ -201,8 +201,8 @@ inoculations after the stress. Let's do a lot of filtering first.
 #keep only time point1
 inputtimepoint1only = filter_data(input, 'TimePoint', keep_vals = 'T1')
 #remove inoculum that we're not using
-inputstep2 =filter_data(inputtimepoint1only, 'Inoculation', filter_vals = '2')
-inputstep3 =filter_data(inputstep2, 'Inoculation', filter_vals = '3')
+inputstep2 =filter_data(inputtimepoint1only, 'Inoculum', filter_vals = '2')
+inputstep3 =filter_data(inputstep2, 'Inoculum', filter_vals = '3')
 #Let's separate into roots and shoots
 roots_post_stress = filter_data(inputstep3, 'Type', keep_vals = 'Root')
 shoots_post_stress = filter_data(inputstep3, 'Type', keep_vals = 'Shoot')
@@ -244,13 +244,13 @@ mta<-roots_post_stress$map_loaded
 
 #do as factor
 mta$Water <- as.factor(mta$Water)
-mta$Inoculation <- as.factor(mta$Inoculation)
+mta$Inoculum <- as.factor(mta$Inoculum)
 
 #make the model
-model1<-adonis2(otuTABtranspose~Water*Inoculation,data=mta,permutations=999,method="bray")
+model1<-adonis2(otuTABtranspose~Water*Inoculum,data=mta,permutations=999,method="bray")
 model1
 
-mtapairwise<-unite(mta,c='water_inoculation',c('Water','Inoculation'),sep='-')
+mtapairwise<-unite(mta,c='water_inoculum',c('Water','Inoculum'),sep='-')
 
 # water pairwise
 pair.mod.water<-pairwise.adonis(otuTABtranspose,
@@ -259,12 +259,12 @@ pair.mod.water
 
 # inoc pairwise
 pair.mod.inoc<-pairwise.adonis(otuTABtranspose,
-                          factors=c(mta$Inoculation))
+                          factors=c(mta$Inoculum))
 pair.mod.inoc
 
 # interaction pairwise
 pair.mod.wat.inoc<-pairwise.adonis(otuTABtranspose,
-                          factors=c(mtapairwise$water_inoculation))
+                          factors=c(mtapairwise$water_inoculum))
 pair.mod.wat.inoc
 
 
@@ -278,17 +278,17 @@ mta<-shoots_post_stress$map_loaded
 
 #do as factor
 mta$Water <- as.factor(mta$Water)
-mta$Inoculation <- as.factor(mta$Inoculation)
+mta$Inoculum <- as.factor(mta$Inoculum)
 
 ## using vegan
 #make the model
-model1<-adonis2(otuTABtranspose~Water*Inoculation,data=mta,permutations=999,method="bray")
+model1<-adonis2(otuTABtranspose~Water*Inoculum,data=mta,permutations=999,method="bray")
 model1
 
-mtapairwise<-unite(mta,c='water_inoculation',c('Water','Inoculation'),sep='-')
+mtapairwise<-unite(mta,c='water_inoculum',c('Water','Inoculum'),sep='-')
 #use pack pairwiseAdonis
 
-pair.mod<-pairwise.adonis(otuTABtranspose,factors=mtapairwise$water_inoculation)
+pair.mod<-pairwise.adonis(otuTABtranspose,factors=mtapairwise$water_inoculum)
 pair.mod
 
 ```
@@ -302,27 +302,28 @@ shoot.mds<-metaMDS(t(shoots_post_stress$data_loaded))
 shoot<-scores(shoot.mds)
 data.scoresshoot <- as.data.frame(shoot$sites) 
 data.scoresshoot$Water <- shoots_post_stress$map_loaded$Water
-data.scoresshoot$Inoculation <- shoots_post_stress$map_loaded$Inoculation
+data.scoresshoot$Inoculum <- shoots_post_stress$map_loaded$Inoculum
 
 
 root.mds<-metaMDS(t(roots_post_stress$data_loaded))
 root<-scores(root.mds)
 data.scoresroot <- as.data.frame(root$sites) 
 data.scoresroot$Water <- roots_post_stress$map_loaded$Water
-data.scoresroot$Inoculation <- roots_post_stress$map_loaded$Inoculation
+data.scoresroot$Inoculum <- roots_post_stress$map_loaded$Inoculum
 
 ```
 
+*Figure 2. Shoot and Root NMDS at T1*
 ```{r, fig.height=5, fig.width=10, message=FALSE, warning=FALSE}
 
 Shoots.T1.NMDS<-ggplot(data=data.scoresshoot,
-                  aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=factor(Inoculation))) + 
+                  aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=factor(Inoculum))) + 
   scale_color_brewer(palette="Dark2")+
   ggtitle("Shoots T1")+
   geom_point(data=data.scoresshoot,
-             aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=factor(Inoculation)), alpha=0.8) + 
+             aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=factor(Inoculum)), alpha=0.8) + 
   # add the point markers
-  stat_ellipse(data=data.scoresshoot,aes(x=NMDS1,y=NMDS2,lty=factor(Water),color=factor(Inoculation)))+
+  stat_ellipse(data=data.scoresshoot,aes(x=NMDS1,y=NMDS2,lty=factor(Water),color=factor(Inoculum)))+
   scale_linetype_manual(values=c(1,2,3)) +
    theme(
     axis.text = element_text(color='black',size=10),
@@ -336,13 +337,13 @@ Shoots.T1.NMDS<-ggplot(data=data.scoresshoot,
 
 
 Roots.T1.NMDS<-ggplot(data=data.scoresroot,
-                      aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=factor(Inoculation))) + 
+                      aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=factor(Inoculum))) + 
   scale_color_brewer(palette="Dark2")+
-  stat_ellipse(data=data.scoresroot,aes(x=NMDS1,y=NMDS2,lty=factor(Water),color=factor(Inoculation)))+
+  stat_ellipse(data=data.scoresroot,aes(x=NMDS1,y=NMDS2,lty=factor(Water),color=factor(Inoculum)))+
   scale_linetype_manual(values=c(1,2,3)) +
   ggtitle("Roots T1")+
   geom_point(data=data.scoresroot,
-             aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=factor(Inoculation)), alpha=0.8) + 
+             aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=factor(Inoculum)), alpha=0.8) + 
   # add the point markers
  theme(
     axis.text = element_text(color='black',size=10),
@@ -374,8 +375,8 @@ Refilter time.
 #View(input$map_loaded)
 #Start by removing all roots. We can only do a time one with shoots
 inputshootsonly = filter_data(input, 'Type', keep_vals = 'Shoot')
-inputshootsonlyminus2 =filter_data(inputshootsonly, 'Inoculation', filter_vals = '2')
-inputshootsonlyminus3 =filter_data(inputshootsonlyminus2, 'Inoculation', filter_vals = '3')
+inputshootsonlyminus2 =filter_data(inputshootsonly, 'Inoculum', filter_vals = '2')
+inputshootsonlyminus3 =filter_data(inputshootsonlyminus2, 'Inoculum', filter_vals = '3')
 finalNMDSmovement = filter_data(inputshootsonlyminus3, 'TimePoint', filter_vals = 'Control')
 ```
 
@@ -386,20 +387,20 @@ Then, let's set up the data for the NMDS plot:
 time.mds<-metaMDS(t(finalNMDSmovement$data_loaded))
 data.time <- as.data.frame(scores(time.mds)$sites) 
 data.time$Water <- finalNMDSmovement$map_loaded$Water
-data.time$Inoculation <- finalNMDSmovement$map_loaded$Inoculation
+data.time$Inoculum <- finalNMDSmovement$map_loaded$Inoculum
 data.time$TimePoint <- finalNMDSmovement$map_loaded$TimePoint
 data.time$PlantID <- finalNMDSmovement$map_loaded$PlantID
 #envfit
 finalNMDSmovement$map_loaded<-subset(finalNMDSmovement$map_loaded, select = -c(WeightGrams,SampleNotes, PlantNotes))
 finalNMDSmovement$map_loaded$Water<-as.factor(finalNMDSmovement$map_loaded$Water)
-finalNMDSmovement$map_loaded$Inoculation<-as.factor(finalNMDSmovement$map_loaded$Inoculation)
+finalNMDSmovement$map_loaded$Inoculum<-as.factor(finalNMDSmovement$map_loaded$Inoculum)
 finalNMDSmovement$map_loaded$TimeWater <- paste(finalNMDSmovement$map_loaded$TimePoint,finalNMDSmovement$map_loaded$Water)
-finalNMDSmovement$map_loaded$TimeInoculation <- paste(finalNMDSmovement$map_loaded$TimePoint,finalNMDSmovement$map_loaded$Inoculation)
+finalNMDSmovement$map_loaded$TimeInoculum <- paste(finalNMDSmovement$map_loaded$TimePoint,finalNMDSmovement$map_loaded$Inoculum)
 
 waterfinalvf <- envfit(time.mds~TimeWater, data=finalNMDSmovement$map_loaded, perm = 999)
 water.scrs.final <- as.data.frame(scores(waterfinalvf, display = "factors"))
 
-inocfinalvf <- envfit(time.mds~TimeInoculation, data=finalNMDSmovement$map_loaded, perm = 999)
+inocfinalvf <- envfit(time.mds~TimeInoculum, data=finalNMDSmovement$map_loaded, perm = 999)
 inoc.scrs.final <- as.data.frame(scores(inocfinalvf, display = "factors"))
 ```
 
@@ -412,7 +413,7 @@ centroid.data.time<-as.data.frame(cbind(NMDS1.mean.data.time, NMDS2.mean.data.ti
 timewater<-ggplot(data=data.time,
                   aes(x=NMDS1,y=NMDS2,color=factor(Water),shape=factor(TimePoint)), alpha=0.8) + 
   ggtitle("Water Treatment")+
-  scale_color_manual(values=c("paleturquoise3", "steelblue2", "slategray4"))+
+  scale_color_manual(values=c("paleturquoise3", "steelblue2", "skyblue4"))+
   geom_point(data=data.time,aes(x=NMDS1,y=NMDS2,color=factor(Water),shape=factor(TimePoint))) +
   geom_segment(aes(x = centroid.data.time[1,3], xend = centroid.data.time[4,3], 
                    y = centroid.data.time[1,4], yend = centroid.data.time[4,4]),
@@ -422,7 +423,7 @@ timewater<-ggplot(data=data.time,
                arrow = arrow(length = unit(0.25, "cm")), colour = "steelblue2") +
   geom_segment(aes(x = centroid.data.time[3,3], xend = centroid.data.time[6,3], 
                    y = centroid.data.time[3,4], yend = centroid.data.time[6,4]),
-               arrow = arrow(length = unit(0.25, "cm")), colour = "slategray4") +
+               arrow = arrow(length = unit(0.25, "cm")), colour = "skyblue4") +
  
   theme(
     axis.text = element_text(color='black',size=10),
@@ -435,16 +436,16 @@ timewater<-ggplot(data=data.time,
     plot.title=element_text(size=20,face="bold",vjust=2))
 
 ####
-NMDS1.mean.data.inoc<-aggregate(NMDS1~ Inoculation*TimePoint, data=data.time, FUN=mean)
-NMDS2.mean.data.inoc<-aggregate(NMDS2~ Inoculation*TimePoint, data=data.time, FUN=mean)
+NMDS1.mean.data.inoc<-aggregate(NMDS1~ Inoculum*TimePoint, data=data.time, FUN=mean)
+NMDS2.mean.data.inoc<-aggregate(NMDS2~ Inoculum*TimePoint, data=data.time, FUN=mean)
 centroid.data.inoc<-as.data.frame(cbind(NMDS1.mean.data.inoc, NMDS2.mean.data.inoc[3]))
 
 
 timeinoculation<-ggplot(data=data.time,
-                        aes(x=NMDS1,y=NMDS2,color=factor(Inoculation),shape=factor(TimePoint))) + 
+                        aes(x=NMDS1,y=NMDS2,color=factor(Inoculum),shape=factor(TimePoint))) + 
   scale_color_brewer(palette="Dark2")+ 
-  ggtitle("Inoculation")+
-  geom_point(data=data.time,aes(x=NMDS1,y=NMDS2,color=factor(Inoculation),shape=factor(TimePoint)), alpha=0.8) + # add the point markers
+  ggtitle("Inoculum")+
+  geom_point(data=data.time,aes(x=NMDS1,y=NMDS2,color=factor(Inoculum),shape=factor(TimePoint)), alpha=0.8) + # add the point markers
   geom_segment(aes(x = centroid.data.inoc[1,3], xend = centroid.data.inoc[5,3], 
                    y = centroid.data.inoc[1,4], yend = centroid.data.inoc[5,4])
                ,arrow = arrow(length = unit(0.25, "cm")), colour = "#1B9E77") +
@@ -494,7 +495,7 @@ otuTABtranspose<-t(otuTAB)
 mta<-finalNMDSmovement$map_loaded
 #do as factor
 mta$Water <- as.factor(mta$Water)
-mta$Inoculation <- as.factor(mta$Inoculation)
+mta$Inoculum <- as.factor(mta$Inoculum)
 mta$TimePoint <- as.factor(mta$TimePoint)
 
 #make the model
@@ -503,9 +504,9 @@ model1
 model3<-adonis2(otuTABtranspose~Water*TimePoint,data=mta,permutations=999,method="jaccard")
 model3
 
-model2<-adonis2(otuTABtranspose~Inoculation*TimePoint,data=mta,permutations=999,method="bray")
+model2<-adonis2(otuTABtranspose~Inoculum*TimePoint,data=mta,permutations=999,method="bray")
 model2
-model4<-adonis2(otuTABtranspose~Inoculation*TimePoint,data=mta,permutations=999,method="jaccard")
+model4<-adonis2(otuTABtranspose~Inoculum*TimePoint,data=mta,permutations=999,method="jaccard")
 model4
 ```
 
@@ -515,8 +516,8 @@ Let's look at T0 only
 #View(input$map_loaded)
 #Start by removing all roots. We can only do a time one with shoots
 inputshootsonly = filter_data(input, 'Type', keep_vals = 'Shoot')
-inputshootsonlyminus2 =filter_data(inputshootsonly, 'Inoculation', filter_vals = '2')
-inputshootsonlyminus3 =filter_data(inputshootsonlyminus2, 'Inoculation', filter_vals = '3')
+inputshootsonlyminus2 =filter_data(inputshootsonly, 'Inoculum', filter_vals = '2')
+inputshootsonlyminus3 =filter_data(inputshootsonlyminus2, 'Inoculum', filter_vals = '3')
 finalNMDSmovement = filter_data(inputshootsonlyminus3, 'TimePoint', keep_vals = 'T0')
 ```
 
@@ -535,9 +536,9 @@ finalNMDSmovement$data_loaded<-t(hell)
 time.mds<-metaMDS(t(finalNMDSmovement$data_loaded))
 data.time <- as.data.frame(scores(time.mds)$sites) 
 data.time$Water <- finalNMDSmovement$map_loaded$Water
-data.time$Inoculation <- finalNMDSmovement$map_loaded$Inoculation
+data.time$Inoculum <- finalNMDSmovement$map_loaded$Inoculum
 data.time$Water<-as.factor(data.time$Water)
-data.time$Inoculation<-as.factor(data.time$Inoculation)
+data.time$Inoculum<-as.factor(data.time$Inoculum)
 ```
 
 #### T0 Graph Only
@@ -546,12 +547,12 @@ Shoot fungal microbiomes prior to the start of water stress
 *Figure S1: shoots T0 NMDS*
 ```{r, message=FALSE, warning=FALSE}
 
-Shoots.T0.NMDS<-ggplot(data=data.time,aes(x=NMDS1,y=NMDS2,color=factor(Inoculation))) + 
+Shoots.T0.NMDS<-ggplot(data=data.time,aes(x=NMDS1,y=NMDS2,color=factor(Inoculum))) + 
   ggtitle("T0 Shoots")+
   scale_color_brewer(palette="Dark2")+
   geom_point(data=data.time,
-             aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=factor(Inoculation)), alpha=0.8) + 
-  stat_ellipse(data=data.time,aes(x=NMDS1,y=NMDS2,color=factor(Inoculation)))+
+             aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=factor(Inoculum)), alpha=0.8) + 
+  stat_ellipse(data=data.time,aes(x=NMDS1,y=NMDS2,color=factor(Inoculum)))+
   theme(
     axis.text = element_text(color='black',size=10),
     axis.title = element_text(color='black',size=12),
@@ -579,23 +580,23 @@ otuTABtranspose<-t(otuTAB)
 mta<-finalNMDSmovement$map_loaded
 #do as factor
 mta$Water <- as.factor(mta$Water)
-mta$Inoculation <- as.factor(mta$Inoculation)
+mta$Inoculum <- as.factor(mta$Inoculum)
 
 set.seed(138)
-model1<-adonis2(otuTABtranspose~Water*Inoculation,data=mta,permutations=999,method="bray")
+model1<-adonis2(otuTABtranspose~Water*Inoculum,data=mta,permutations=999,method="bray")
 model1
 ```
 
 re-filter
 ```{r, results='hide',echo=FALSE}
 inputshootsonly = filter_data(input, 'Type', keep_vals = 'Shoot')
-inputshootsonlyminus2 =filter_data(inputshootsonly, 'Inoculation', filter_vals = '2')
-inputshootsonlyminus3 =filter_data(inputshootsonlyminus2, 'Inoculation', filter_vals = '3')
+inputshootsonlyminus2 =filter_data(inputshootsonly, 'Inoculum', filter_vals = '2')
+inputshootsonlyminus3 =filter_data(inputshootsonlyminus2, 'Inoculum', filter_vals = '3')
 inocNMDSmovement = filter_data(inputshootsonlyminus3, 'TimePoint', filter_vals = 'Control')
-inoc1NMDSmovement =filter_data(inocNMDSmovement, 'Inoculation', keep_vals = '1')
-inoc4NMDSmovement =filter_data(inocNMDSmovement, 'Inoculation', keep_vals = '4')
-inoc5NMDSmovement =filter_data(inocNMDSmovement, 'Inoculation', keep_vals = '5')
-inoc6NMDSmovement =filter_data(inocNMDSmovement, 'Inoculation', keep_vals = '6')
+inoc1NMDSmovement =filter_data(inocNMDSmovement, 'Inoculum', keep_vals = '1')
+inoc4NMDSmovement =filter_data(inocNMDSmovement, 'Inoculum', keep_vals = '4')
+inoc5NMDSmovement =filter_data(inocNMDSmovement, 'Inoculum', keep_vals = '5')
+inoc6NMDSmovement =filter_data(inocNMDSmovement, 'Inoculum', keep_vals = '6')
 ```
 
 ```{r,results='hide',echo=FALSE}
@@ -629,7 +630,7 @@ inoc1.mds<-metaMDS(t(inoc1NMDSmovement$data_loaded))
 inoc1<-scores(inoc1.mds)
 data.scoresinoc1 <- as.data.frame(inoc1$sites) 
 data.scoresinoc1$Water <- inoc1NMDSmovement$map_loaded$Water
-data.scoresinoc1$Inoculation <- inoc1NMDSmovement$map_loaded$Inoculation
+data.scoresinoc1$Inoculum <- inoc1NMDSmovement$map_loaded$Inoculum
 data.scoresinoc1$TimePoint <- inoc1NMDSmovement$map_loaded$TimePoint
 data.scoresinoc1$PlantID <- inoc1NMDSmovement$map_loaded$PlantID
 inoc1NMDSmovement$map_loaded$TimeWater <- paste(inoc1NMDSmovement$map_loaded$TimePoint,inoc1NMDSmovement$map_loaded$Water)
@@ -640,7 +641,7 @@ inoc4.mds<-metaMDS(t(inoc4NMDSmovement$data_loaded))
 inoc4<-scores(inoc4.mds)
 data.scoresinoc4 <- as.data.frame(inoc4$sites) 
 data.scoresinoc4$Water <- inoc4NMDSmovement$map_loaded$Water
-data.scoresinoc4$Inoculation <- inoc4NMDSmovement$map_loaded$Inoculation
+data.scoresinoc4$Inoculum <- inoc4NMDSmovement$map_loaded$Inoculum
 data.scoresinoc4$TimePoint <- inoc4NMDSmovement$map_loaded$TimePoint
 data.scoresinoc4$PlantID <- inoc4NMDSmovement$map_loaded$PlantID
 inoc4NMDSmovement$map_loaded$TimeWater <- paste(inoc4NMDSmovement$map_loaded$TimePoint,inoc4NMDSmovement$map_loaded$Water)
@@ -651,7 +652,7 @@ inoc5.mds<-metaMDS(t(inoc5NMDSmovement$data_loaded))
 inoc5<-scores(inoc5.mds)
 data.scoresinoc5 <- as.data.frame(inoc5$sites) 
 data.scoresinoc5$Water <- inoc5NMDSmovement$map_loaded$Water
-data.scoresinoc5$Inoculation <- inoc5NMDSmovement$map_loaded$Inoculation
+data.scoresinoc5$Inoculum <- inoc5NMDSmovement$map_loaded$Inoculum
 data.scoresinoc5$TimePoint <- inoc5NMDSmovement$map_loaded$TimePoint
 data.scoresinoc5$PlantID <- inoc5NMDSmovement$map_loaded$PlantID
 inoc5NMDSmovement$map_loaded$TimeWater <- paste(inoc5NMDSmovement$map_loaded$TimePoint,inoc5NMDSmovement$map_loaded$Water)
@@ -662,7 +663,7 @@ inoc6.mds<-metaMDS(t(inoc6NMDSmovement$data_loaded))
 inoc6<-scores(inoc6.mds)
 data.scoresinoc6 <- as.data.frame(inoc6$sites) 
 data.scoresinoc6$Water <- inoc6NMDSmovement$map_loaded$Water
-data.scoresinoc6$Inoculation <- inoc6NMDSmovement$map_loaded$Inoculation
+data.scoresinoc6$Inoculum <- inoc6NMDSmovement$map_loaded$Inoculum
 data.scoresinoc6$TimePoint <- inoc6NMDSmovement$map_loaded$TimePoint
 data.scoresinoc6$PlantID <- inoc6NMDSmovement$map_loaded$PlantID
 inoc6NMDSmovement$map_loaded$TimeWater <- paste(inoc6NMDSmovement$map_loaded$TimePoint,inoc6NMDSmovement$map_loaded$Water)
@@ -670,6 +671,7 @@ inoc6vf <- envfit(inoc6.mds~TimeWater, data=inoc6NMDSmovement$map_loaded, perm =
 inoc6.scrs <- as.data.frame(scores(inoc6vf, display = "factors"))
 ```
 
+*Figure 3. NMDS for each inoculum (separate) by water treatment and vectors from T0 to T1*
 ```{r fig.height=15, fig.width=15, message=FALSE, warning=FALSE}
 NMDS1.mean.inoc1<-aggregate(NMDS1~ Water*TimePoint, data=data.scoresinoc1, FUN=mean)
 NMDS2.mean.inoc1<-aggregate(NMDS2~ Water*TimePoint, data=data.scoresinoc1, FUN=mean)
@@ -682,16 +684,16 @@ data.scoresinoc5$TimePoint<-factor(data.scoresinoc5$TimePoint,levels=c("T1","T0"
 data.scoresinoc6$TimePoint<-factor(data.scoresinoc6$TimePoint,levels=c("T1","T0"))
 
 inoc1.trajectory<-ggplot(data=data.scoresinoc1,aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water))) + 
-  ggtitle("Inoculation 1")+
+  ggtitle("Inoculum 1")+
   geom_point(data=data.scoresinoc1,aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water))) + 
   stat_ellipse(data=data.scoresinoc1,aes(x=NMDS1,y=NMDS2,color=factor(Water),linetype=factor(TimePoint)))+
-  scale_color_manual(values=c("red", "#E69F00", "#56B4E9"))+  # for water 1,2,3
+  scale_color_manual(values=c("paleturquoise3", "steelblue2", "skyblue4"))+
   geom_segment(aes(x = centroid.inoc1[1,3], xend = centroid.inoc1[4,3], 
-                   y = centroid.inoc1[1,4], yend = centroid.inoc1[4,4]),arrow = arrow(), colour = "red") +
+                   y = centroid.inoc1[1,4], yend = centroid.inoc1[4,4]),arrow = arrow(), colour = "paleturquoise3") +
   geom_segment(aes(x = centroid.inoc1[2,3], xend = centroid.inoc1[5,3], 
-                   y = centroid.inoc1[2,4], yend = centroid.inoc1[5,4]),arrow = arrow(), colour = "#E69F00") +
+                   y = centroid.inoc1[2,4], yend = centroid.inoc1[5,4]),arrow = arrow(), colour = "steelblue2") +
   geom_segment(aes(x = centroid.inoc1[3,3], xend = centroid.inoc1[6,3], 
-                   y = centroid.inoc1[3,4], yend = centroid.inoc1[6,4]),arrow = arrow(), colour = "#56B4E9") +
+                   y = centroid.inoc1[3,4], yend = centroid.inoc1[6,4]),arrow = arrow(), colour = "skyblue4") +
   theme(
     axis.text = element_text(color='black',size=10),
     axis.title = element_text(color='black',size=12),
@@ -710,16 +712,16 @@ centroid.inoc4<-as.data.frame(cbind(NMDS1.mean.inoc4, NMDS2.mean.inoc4[3]))
 
 data.scoresinoc4$TimePoint<-factor(data.scoresinoc4$TimePoint,levels=c("T1","T0"))
 inoc4.trajectory<-ggplot(data=data.scoresinoc4,aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water))) + 
-  ggtitle("Inoculation 4")+
+  ggtitle("Inoculum 4")+
   geom_point(data=data.scoresinoc4,aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water))) + 
   stat_ellipse(data=data.scoresinoc4,aes(x=NMDS1,y=NMDS2,color=factor(Water),linetype=factor(TimePoint)))+
-  scale_color_manual(values=c("red", "#E69F00", "#56B4E9"))+ 
+  scale_color_manual(values=c("paleturquoise3", "steelblue2", "skyblue4"))+ 
   geom_segment(aes(x = centroid.inoc4[4,3], xend = centroid.inoc4[1,3], 
-                   y = centroid.inoc4[4,4], yend = centroid.inoc4[1,4]),arrow = arrow(), colour = "red") +
+                   y = centroid.inoc4[4,4], yend = centroid.inoc4[1,4]),arrow = arrow(), colour = "paleturquoise3") +
   geom_segment(aes(x = centroid.inoc4[5,3], xend = centroid.inoc4[2,3], 
-                   y = centroid.inoc4[5,4], yend = centroid.inoc4[2,4]),arrow = arrow(), colour = "#E69F00") +
+                   y = centroid.inoc4[5,4], yend = centroid.inoc4[2,4]),arrow = arrow(), colour = "steelblue2") +
   geom_segment(aes(x = centroid.inoc4[6,3], xend = centroid.inoc4[3,3], 
-                   y = centroid.inoc4[6,4], yend = centroid.inoc4[3,4]),arrow = arrow(), colour = "#56B4E9") +
+                   y = centroid.inoc4[6,4], yend = centroid.inoc4[3,4]),arrow = arrow(), colour = "skyblue4") +
   theme(
     axis.text = element_text(color='black',size=10),
     axis.title = element_text(color='black',size=12),
@@ -739,16 +741,16 @@ centroid.inoc5<-as.data.frame(cbind(NMDS1.mean.inoc5, NMDS2.mean.inoc5[3]))
 
 data.scoresinoc5$TimePoint<-factor(data.scoresinoc5$TimePoint,levels=c("T1","T0"))
 inoc5.trajectory<-ggplot(data=data.scoresinoc5,aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water))) + 
-  ggtitle("Inoculation 5")+
+  ggtitle("Inoculum 5")+
   geom_point(data=data.scoresinoc5,aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water))) + 
   stat_ellipse(data=data.scoresinoc5,aes(x=NMDS1,y=NMDS2,color=factor(Water),linetype=factor(TimePoint)))+
-  scale_color_manual(values=c("red", "#E69F00", "#56B4E9"))+ 
+  scale_color_manual(values=c("paleturquoise3", "steelblue2", "skyblue4"))+ 
   geom_segment(aes(x = centroid.inoc5[4,3], xend = centroid.inoc5[1,3], 
-                   y = centroid.inoc5[4,4], yend = centroid.inoc5[1,4]),arrow = arrow(), colour = "red") +
+                   y = centroid.inoc5[4,4], yend = centroid.inoc5[1,4]),arrow = arrow(), colour = "paleturquoise3") +
   geom_segment(aes(x = centroid.inoc5[5,3], xend = centroid.inoc5[2,3], 
-                   y = centroid.inoc5[5,4], yend = centroid.inoc5[2,4]),arrow = arrow(), colour = "#E69F00") +
+                   y = centroid.inoc5[5,4], yend = centroid.inoc5[2,4]),arrow = arrow(), colour = "steelblue2") +
   geom_segment(aes(x = centroid.inoc5[6,3], xend = centroid.inoc5[3,3], 
-                   y = centroid.inoc5[6,4], yend = centroid.inoc5[3,4]),arrow = arrow(), colour = "#56B4E9") +
+                   y = centroid.inoc5[6,4], yend = centroid.inoc5[3,4]),arrow = arrow(), colour = "skyblue4") +
   theme(
     axis.text = element_text(color='black',size=10),
     axis.title = element_text(color='black',size=12),
@@ -768,16 +770,16 @@ centroid.inoc6<-as.data.frame(cbind(NMDS1.mean.inoc6, NMDS2.mean.inoc6[3]))
 data.scoresinoc6$TimePoint<-factor(data.scoresinoc6$TimePoint,levels=c("T1","T0"))
 
 inoc6.trajectory<-ggplot(data=data.scoresinoc6,aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water))) + 
-  ggtitle("Inoculation 6")+
+  ggtitle("Inoculum 6")+
   geom_point(data=data.scoresinoc6,aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water))) + 
   stat_ellipse(data=data.scoresinoc6,aes(x=NMDS1,y=NMDS2,color=factor(Water),linetype=factor(TimePoint)))+
-  scale_color_manual(values=c("red", "#E69F00", "#56B4E9"))+ 
+  scale_color_manual(values=c("paleturquoise3", "steelblue2", "skyblue4"))+ 
   geom_segment(aes(x = centroid.inoc6[4,3], xend = centroid.inoc6[1,3], 
-                   y = centroid.inoc6[4,4], yend = centroid.inoc6[1,4]),arrow = arrow(), colour = "red") +
+                   y = centroid.inoc6[4,4], yend = centroid.inoc6[1,4]),arrow = arrow(), colour = "paleturquoise3") +
   geom_segment(aes(x = centroid.inoc6[5,3], xend = centroid.inoc6[2,3], 
-                   y = centroid.inoc6[5,4], yend = centroid.inoc6[2,4]),arrow = arrow(), colour = "#E69F00") +
+                   y = centroid.inoc6[5,4], yend = centroid.inoc6[2,4]),arrow = arrow(), colour = "steelblue2") +
   geom_segment(aes(x = centroid.inoc6[6,3], xend = centroid.inoc6[3,3], 
-                   y = centroid.inoc6[6,4], yend = centroid.inoc6[3,4]),arrow = arrow(), colour = "#56B4E9") +
+                   y = centroid.inoc6[6,4], yend = centroid.inoc6[3,4]),arrow = arrow(), colour = "skyblue4") +
   theme(
     axis.text = element_text(color='black',size=10),
     axis.title = element_text(color='black',size=12),
@@ -794,7 +796,7 @@ inocalone<-(inoc1.trajectory+inoc4.trajectory)/(inoc5.trajectory+inoc6.trajector
 inocalone
 
 inocalone
-ggsave("figures/timebyinoc.pdf", height=8, width=10)
+ggsave("figures/Fig3.T0T1 inoc.wa vector.pdf", height=8, width=10)
 
 #ggsave(filename = "timebyinoc.pdf",
 #      plot = inocalone,
@@ -846,8 +848,8 @@ library(labdsv)
 #keep only time point1
 inputtimepoint1only = filter_data(input, 'TimePoint', keep_vals = 'T1')
 #remove inoculum that we're not using
-inputstep2 =filter_data(inputtimepoint1only, 'Inoculation', filter_vals = '2')
-inputstep3 =filter_data(inputstep2, 'Inoculation', filter_vals = '3')
+inputstep2 =filter_data(inputtimepoint1only, 'Inoculum', filter_vals = '2')
+inputstep3 =filter_data(inputstep2, 'Inoculum', filter_vals = '3')
 #Let's separate into roots and shoots
 roots_post_stress = filter_data(inputstep3, 'Type', keep_vals = 'Root')
 shoots_post_stress = filter_data(inputstep3, 'Type', keep_vals = 'Shoot')
@@ -874,7 +876,7 @@ mantel test: (significant across inoculum, but not water treatment)
 ```{r, mantel test roots}
 roots.dataframe<-as.data.frame(t(roots_post_stress$data_loaded))
 dist.abund.root = vegdist(roots.dataframe, method = "bray")
-inoc <- roots_post_stress$map_loaded$Inoculation
+inoc <- roots_post_stress$map_loaded$Inoculum
 water <- roots_post_stress$map_loaded$Water
 dist.inoc = dist(inoc, method = "euclidean")
 dist.water = dist(water, method = "euclidean")
@@ -889,7 +891,7 @@ abund_water
 ```{r, mantel test shoots}
 shoots.dataframe<-as.data.frame(t(shoots_post_stress$data_loaded))
 dist.abund.shoot = vegdist(shoots.dataframe, method = "bray")
-inoc <- shoots_post_stress$map_loaded$Inoculation
+inoc <- shoots_post_stress$map_loaded$Inoculum
 water <- shoots_post_stress$map_loaded$Water
 dist.inoc = dist(inoc, method = "euclidean")
 dist.water = dist(water, method = "euclidean")
@@ -908,43 +910,43 @@ input <- load_taxa_table("data/ASV_table_postfiltering.txt", "data/map_loaded_st
 inputstep5 = filter_data(input, 'TimePoint', keep_vals = 'T1')
 roott1 = filter_data(inputstep5, 'Type', keep_vals = 'Root')
 roott1water1 = filter_data(roott1, 'Water', keep_vals = '1')
-roott1inoc1water1 = filter_data(roott1water1, 'Inoculation', keep_vals = '1')
-roott1inoc4water1 = filter_data(roott1water1, 'Inoculation', keep_vals = '4')
-roott1inoc5water1 = filter_data(roott1water1, 'Inoculation', keep_vals = '5')
-roott1inoc6water1 = filter_data(roott1water1, 'Inoculation', keep_vals = '6')
+roott1inoc1water1 = filter_data(roott1water1, 'Inoculum', keep_vals = '1')
+roott1inoc4water1 = filter_data(roott1water1, 'Inoculum', keep_vals = '4')
+roott1inoc5water1 = filter_data(roott1water1, 'Inoculum', keep_vals = '5')
+roott1inoc6water1 = filter_data(roott1water1, 'Inoculum', keep_vals = '6')
 roott1water2 = filter_data(roott1, 'Water', keep_vals = '2')
-roott1inoc1water2 = filter_data(roott1water2, 'Inoculation', keep_vals = '1')
-roott1inoc4water2 = filter_data(roott1water2, 'Inoculation', keep_vals = '4')
-roott1inoc5water2 = filter_data(roott1water2, 'Inoculation', keep_vals = '5')
-roott1inoc6water2 = filter_data(roott1water2, 'Inoculation', keep_vals = '6')
+roott1inoc1water2 = filter_data(roott1water2, 'Inoculum', keep_vals = '1')
+roott1inoc4water2 = filter_data(roott1water2, 'Inoculum', keep_vals = '4')
+roott1inoc5water2 = filter_data(roott1water2, 'Inoculum', keep_vals = '5')
+roott1inoc6water2 = filter_data(roott1water2, 'Inoculum', keep_vals = '6')
 roott1water3 = filter_data(roott1, 'Water', keep_vals = '3')
-roott1inoc1water3 = filter_data(roott1water3, 'Inoculation', keep_vals = '1')
-roott1inoc4water3 = filter_data(roott1water3, 'Inoculation', keep_vals = '4')
-roott1inoc5water3 = filter_data(roott1water3, 'Inoculation', keep_vals = '5')
-roott1inoc6water3 = filter_data(roott1water3, 'Inoculation', keep_vals = '6')
+roott1inoc1water3 = filter_data(roott1water3, 'Inoculum', keep_vals = '1')
+roott1inoc4water3 = filter_data(roott1water3, 'Inoculum', keep_vals = '4')
+roott1inoc5water3 = filter_data(roott1water3, 'Inoculum', keep_vals = '5')
+roott1inoc6water3 = filter_data(roott1water3, 'Inoculum', keep_vals = '6')
 shoott1 = filter_data(inputstep5, 'Type', keep_vals = 'Shoot')
 shoott1water1 = filter_data(shoott1, 'Water', keep_vals = '1')
-shoott1inoc1water1 = filter_data(shoott1water1, 'Inoculation', keep_vals = '1')
-shoott1inoc4water1 = filter_data(shoott1water1, 'Inoculation', keep_vals = '4')
-shoott1inoc5water1 = filter_data(shoott1water1, 'Inoculation', keep_vals = '5')
-shoott1inoc6water1 = filter_data(shoott1water1, 'Inoculation', keep_vals = '6')
+shoott1inoc1water1 = filter_data(shoott1water1, 'Inoculum', keep_vals = '1')
+shoott1inoc4water1 = filter_data(shoott1water1, 'Inoculum', keep_vals = '4')
+shoott1inoc5water1 = filter_data(shoott1water1, 'Inoculum', keep_vals = '5')
+shoott1inoc6water1 = filter_data(shoott1water1, 'Inoculum', keep_vals = '6')
 shoott1water2 = filter_data(shoott1, 'Water', keep_vals = '2')
-shoott1inoc1water2 = filter_data(shoott1water2, 'Inoculation', keep_vals = '1')
-shoott1inoc4water2 = filter_data(shoott1water2, 'Inoculation', keep_vals = '4')
-shoott1inoc5water2 = filter_data(shoott1water2, 'Inoculation', keep_vals = '5')
-shoott1inoc6water2 = filter_data(shoott1water2, 'Inoculation', keep_vals = '6')
+shoott1inoc1water2 = filter_data(shoott1water2, 'Inoculum', keep_vals = '1')
+shoott1inoc4water2 = filter_data(shoott1water2, 'Inoculum', keep_vals = '4')
+shoott1inoc5water2 = filter_data(shoott1water2, 'Inoculum', keep_vals = '5')
+shoott1inoc6water2 = filter_data(shoott1water2, 'Inoculum', keep_vals = '6')
 shoott1water3 = filter_data(shoott1, 'Water', keep_vals = '3')
-shoott1inoc1water3 = filter_data(shoott1water3, 'Inoculation', keep_vals = '1')
-shoott1inoc4water3 = filter_data(shoott1water3, 'Inoculation', keep_vals = '4')
-shoott1inoc5water3 = filter_data(shoott1water3, 'Inoculation', keep_vals = '5')
-shoott1inoc6water3 = filter_data(shoott1water3, 'Inoculation', keep_vals = '6')
+shoott1inoc1water3 = filter_data(shoott1water3, 'Inoculum', keep_vals = '1')
+shoott1inoc4water3 = filter_data(shoott1water3, 'Inoculum', keep_vals = '4')
+shoott1inoc5water3 = filter_data(shoott1water3, 'Inoculum', keep_vals = '5')
+shoott1inoc6water3 = filter_data(shoott1water3, 'Inoculum', keep_vals = '6')
 
 t0 = filter_data(input, 'TimePoint', keep_vals = 'T0')
 shoott0 = filter_data(t0, 'Type', keep_vals = 'Shoot')
-shoott0inoc1 = filter_data(shoott0, 'Inoculation', keep_vals = '1')
-shoott0inoc4 = filter_data(shoott0, 'Inoculation', keep_vals = '4')
-shoott0inoc5 = filter_data(shoott0, 'Inoculation', keep_vals = '5')
-shoott0inoc6 = filter_data(shoott0, 'Inoculation', keep_vals = '6')
+shoott0inoc1 = filter_data(shoott0, 'Inoculum', keep_vals = '1')
+shoott0inoc4 = filter_data(shoott0, 'Inoculum', keep_vals = '4')
+shoott0inoc5 = filter_data(shoott0, 'Inoculum', keep_vals = '5')
+shoott0inoc6 = filter_data(shoott0, 'Inoculum', keep_vals = '6')
 
 #Now that we have all three ready, let's transform them to match our other data:
 otuTAB<-roott1inoc1water1$data_loaded
@@ -1191,208 +1193,216 @@ Next, lets make the dataframe for the ggplot - shannon's (violin plot). We need 
 roott1inoc1water1df<-as.data.frame(roott1inoc1water1)
 colnames(roott1inoc1water1df)[1] ="shannon"
 water<-rep("water1",times=nrow(roott1inoc1water1df))
-inoculation<-rep("inoc1",times=nrow(roott1inoc1water1df))
+inoculum<-rep("inoc1",times=nrow(roott1inoc1water1df))
 type<-rep("root",times=nrow(roott1inoc1water1df))
-roott1inoc1water1dffinal<-cbind(roott1inoc1water1df,water,inoculation,type)
+roott1inoc1water1dffinal<-cbind(roott1inoc1water1df,water,inoculum,type)
 #roott1inoc4water1
 roott1inoc4water1df<-as.data.frame(roott1inoc4water1)
 colnames(roott1inoc4water1df)[1] ="shannon"
 water<-rep("water1",times=nrow(roott1inoc4water1df))
-inoculation<-rep("inoc4",times=nrow(roott1inoc4water1df))
+inoculum<-rep("inoc4",times=nrow(roott1inoc4water1df))
 type<-rep("root",times=nrow(roott1inoc4water1df))
-roott1inoc4water1dffinal<-cbind(roott1inoc4water1df,water,inoculation,type)
+roott1inoc4water1dffinal<-cbind(roott1inoc4water1df,water,inoculum,type)
 #roott1inoc5water1
 roott1inoc5water1df<-as.data.frame(roott1inoc5water1)
 colnames(roott1inoc5water1df)[1] ="shannon"
 water<-rep("water1",times=nrow(roott1inoc5water1df))
-inoculation<-rep("inoc5",times=nrow(roott1inoc5water1df))
+inoculum<-rep("inoc5",times=nrow(roott1inoc5water1df))
 type<-rep("root",times=nrow(roott1inoc5water1df))
-roott1inoc5water1dffinal<-cbind(roott1inoc5water1df,water,inoculation,type)
+roott1inoc5water1dffinal<-cbind(roott1inoc5water1df,water,inoculum,type)
 #roott1inoc6water1
 roott1inoc6water1df<-as.data.frame(roott1inoc6water1)
 colnames(roott1inoc6water1df)[1] ="shannon"
 water<-rep("water1",times=nrow(roott1inoc6water1df))
-inoculation<-rep("inoc6",times=nrow(roott1inoc6water1df))
+inoculum<-rep("inoc6",times=nrow(roott1inoc6water1df))
 type<-rep("root",times=nrow(roott1inoc6water1df))
-roott1inoc6water1dffinal<-cbind(roott1inoc6water1df,water,inoculation,type)
+roott1inoc6water1dffinal<-cbind(roott1inoc6water1df,water,inoculum,type)
 #roott1inoc1water2
 roott1inoc1water2df<-as.data.frame(roott1inoc1water2)
 colnames(roott1inoc1water2df)[1] ="shannon"
 water<-rep("water2",times=nrow(roott1inoc1water2df))
-inoculation<-rep("inoc1",times=nrow(roott1inoc1water2df))
+inoculum<-rep("inoc1",times=nrow(roott1inoc1water2df))
 type<-rep("root",times=nrow(roott1inoc1water2df))
-roott1inoc1water2dffinal<-cbind(roott1inoc1water2df,water,inoculation,type)
+roott1inoc1water2dffinal<-cbind(roott1inoc1water2df,water,inoculum,type)
 #roott1inoc4water2
 roott1inoc4water2df<-as.data.frame(roott1inoc4water2)
 colnames(roott1inoc4water2df)[1] ="shannon"
 water<-rep("water2",times=nrow(roott1inoc4water2df))
-inoculation<-rep("inoc4",times=nrow(roott1inoc4water2df))
+inoculum<-rep("inoc4",times=nrow(roott1inoc4water2df))
 type<-rep("root",times=nrow(roott1inoc4water2df))
-roott1inoc4water2dffinal<-cbind(roott1inoc4water2df,water,inoculation,type)
+roott1inoc4water2dffinal<-cbind(roott1inoc4water2df,water,inoculum,type)
 #roott1inoc5water2
 roott1inoc5water2df<-as.data.frame(roott1inoc5water2)
 colnames(roott1inoc5water2df)[1] ="shannon"
 water<-rep("water2",times=nrow(roott1inoc5water2df))
-inoculation<-rep("inoc5",times=nrow(roott1inoc5water2df))
+inoculum<-rep("inoc5",times=nrow(roott1inoc5water2df))
 type<-rep("root",times=nrow(roott1inoc5water2df))
-roott1inoc5water2dffinal<-cbind(roott1inoc5water2df,water,inoculation,type)
+roott1inoc5water2dffinal<-cbind(roott1inoc5water2df,water,inoculum,type)
 #roott1inoc6water2
 roott1inoc6water2df<-as.data.frame(roott1inoc6water2)
 colnames(roott1inoc6water2df)[1] ="shannon"
 water<-rep("water2",times=nrow(roott1inoc6water2df))
-inoculation<-rep("inoc6",times=nrow(roott1inoc6water2df))
+inoculum<-rep("inoc6",times=nrow(roott1inoc6water2df))
 type<-rep("root",times=nrow(roott1inoc6water2df))
-roott1inoc6water2dffinal<-cbind(roott1inoc6water2df,water,inoculation,type)
+roott1inoc6water2dffinal<-cbind(roott1inoc6water2df,water,inoculum,type)
 #roott1inoc1water3
 roott1inoc1water3df<-as.data.frame(roott1inoc1water3)
 colnames(roott1inoc1water3df)[1] ="shannon"
 water<-rep("water3",times=nrow(roott1inoc1water3df))
-inoculation<-rep("inoc1",times=nrow(roott1inoc1water3df))
+inoculum<-rep("inoc1",times=nrow(roott1inoc1water3df))
 type<-rep("root",times=nrow(roott1inoc1water3df))
-roott1inoc1water3dffinal<-cbind(roott1inoc1water3df,water,inoculation,type)
+roott1inoc1water3dffinal<-cbind(roott1inoc1water3df,water,inoculum,type)
 #roott1inoc4water3
 roott1inoc4water3df<-as.data.frame(roott1inoc4water3)
 colnames(roott1inoc4water3df)[1] ="shannon"
 water<-rep("water3",times=nrow(roott1inoc4water3df))
-inoculation<-rep("inoc4",times=nrow(roott1inoc4water3df))
+inoculum<-rep("inoc4",times=nrow(roott1inoc4water3df))
 type<-rep("root",times=nrow(roott1inoc4water3df))
-roott1inoc4water3dffinal<-cbind(roott1inoc4water3df,water,inoculation,type)
+roott1inoc4water3dffinal<-cbind(roott1inoc4water3df,water,inoculum,type)
 #roott1inoc5water3
 roott1inoc5water3df<-as.data.frame(roott1inoc5water3)
 colnames(roott1inoc5water3df)[1] ="shannon"
 water<-rep("water3",times=nrow(roott1inoc5water3df))
-inoculation<-rep("inoc5",times=nrow(roott1inoc5water3df))
+inoculum<-rep("inoc5",times=nrow(roott1inoc5water3df))
 type<-rep("root",times=nrow(roott1inoc5water3df))
-roott1inoc5water3dffinal<-cbind(roott1inoc5water3df,water,inoculation,type)
+roott1inoc5water3dffinal<-cbind(roott1inoc5water3df,water,inoculum,type)
 #roott1inoc6water3
 roott1inoc6water3df<-as.data.frame(roott1inoc6water3)
 colnames(roott1inoc6water3df)[1] ="shannon"
 water<-rep("water3",times=nrow(roott1inoc6water3df))
-inoculation<-rep("inoc6",times=nrow(roott1inoc6water3df))
+inoculum<-rep("inoc6",times=nrow(roott1inoc6water3df))
 type<-rep("root",times=nrow(roott1inoc6water3df))
-roott1inoc6water3dffinal<-cbind(roott1inoc6water3df,water,inoculation,type)
+roott1inoc6water3dffinal<-cbind(roott1inoc6water3df,water,inoculum,type)
 #shoott1inoc1water1
 shoott1inoc1water1df<-as.data.frame(shoott1inoc1water1)
 colnames(shoott1inoc1water1df)[1] ="shannon"
 water<-rep("water1",times=nrow(shoott1inoc1water1df))
-inoculation<-rep("inoc1",times=nrow(shoott1inoc1water1df))
+inoculum<-rep("inoc1",times=nrow(shoott1inoc1water1df))
 type<-rep("shoot",times=nrow(shoott1inoc1water1df))
-shoott1inoc1water1dffinal<-cbind(shoott1inoc1water1df,water,inoculation,type)
+shoott1inoc1water1dffinal<-cbind(shoott1inoc1water1df,water,inoculum,type)
 #shoott1inoc4water1
 shoott1inoc4water1df<-as.data.frame(shoott1inoc4water1)
 colnames(shoott1inoc4water1df)[1] ="shannon"
 water<-rep("water1",times=nrow(shoott1inoc4water1df))
-inoculation<-rep("inoc4",times=nrow(shoott1inoc4water1df))
+inoculum<-rep("inoc4",times=nrow(shoott1inoc4water1df))
 type<-rep("shoot",times=nrow(shoott1inoc4water1df))
-shoott1inoc4water1dffinal<-cbind(shoott1inoc4water1df,water,inoculation,type)
+shoott1inoc4water1dffinal<-cbind(shoott1inoc4water1df,water,inoculum,type)
 #shoott1inoc5water1
 shoott1inoc5water1df<-as.data.frame(shoott1inoc5water1)
 colnames(shoott1inoc5water1df)[1] ="shannon"
 water<-rep("water1",times=nrow(shoott1inoc5water1df))
-inoculation<-rep("inoc5",times=nrow(shoott1inoc5water1df))
+inoculum<-rep("inoc5",times=nrow(shoott1inoc5water1df))
 type<-rep("shoot",times=nrow(shoott1inoc5water1df))
-shoott1inoc5water1dffinal<-cbind(shoott1inoc5water1df,water,inoculation,type)
+shoott1inoc5water1dffinal<-cbind(shoott1inoc5water1df,water,inoculum,type)
 #shoott1inoc6water1
 shoott1inoc6water1df<-as.data.frame(shoott1inoc6water1)
 colnames(shoott1inoc6water1df)[1] ="shannon"
 water<-rep("water1",times=nrow(shoott1inoc6water1df))
-inoculation<-rep("inoc6",times=nrow(shoott1inoc6water1df))
+inoculum<-rep("inoc6",times=nrow(shoott1inoc6water1df))
 type<-rep("shoot",times=nrow(shoott1inoc6water1df))
-shoott1inoc6water1dffinal<-cbind(shoott1inoc6water1df,water,inoculation,type)
+shoott1inoc6water1dffinal<-cbind(shoott1inoc6water1df,water,inoculum,type)
 #shoott1inoc1water2
 shoott1inoc1water2df<-as.data.frame(shoott1inoc1water2)
 colnames(shoott1inoc1water2df)[1] ="shannon"
 water<-rep("water2",times=nrow(shoott1inoc1water2df))
-inoculation<-rep("inoc1",times=nrow(shoott1inoc1water2df))
+inoculum<-rep("inoc1",times=nrow(shoott1inoc1water2df))
 type<-rep("shoot",times=nrow(shoott1inoc1water2df))
-shoott1inoc1water2dffinal<-cbind(shoott1inoc1water2df,water,inoculation,type)
+shoott1inoc1water2dffinal<-cbind(shoott1inoc1water2df,water,inoculum,type)
 #shoott1inoc4water2
 shoott1inoc4water2df<-as.data.frame(shoott1inoc4water2)
 colnames(shoott1inoc4water2df)[1] ="shannon"
 water<-rep("water2",times=nrow(shoott1inoc4water2df))
-inoculation<-rep("inoc4",times=nrow(shoott1inoc4water2df))
+inoculum<-rep("inoc4",times=nrow(shoott1inoc4water2df))
 type<-rep("shoot",times=nrow(shoott1inoc4water2df))
-shoott1inoc4water2dffinal<-cbind(shoott1inoc4water2df,water,inoculation,type)
+shoott1inoc4water2dffinal<-cbind(shoott1inoc4water2df,water,inoculum,type)
 #shoott1inoc5water2
 shoott1inoc5water2df<-as.data.frame(shoott1inoc5water2)
 colnames(shoott1inoc5water2df)[1] ="shannon"
 water<-rep("water2",times=nrow(shoott1inoc5water2df))
-inoculation<-rep("inoc5",times=nrow(shoott1inoc5water2df))
+inoculum<-rep("inoc5",times=nrow(shoott1inoc5water2df))
 type<-rep("shoot",times=nrow(shoott1inoc5water2df))
-shoott1inoc5water2dffinal<-cbind(shoott1inoc5water2df,water,inoculation,type)
+shoott1inoc5water2dffinal<-cbind(shoott1inoc5water2df,water,inoculum,type)
 #shoott1inoc6water2
 shoott1inoc6water2df<-as.data.frame(shoott1inoc6water2)
 colnames(shoott1inoc6water2df)[1] ="shannon"
 water<-rep("water2",times=nrow(shoott1inoc6water2df))
-inoculation<-rep("inoc6",times=nrow(shoott1inoc6water2df))
+inoculum<-rep("inoc6",times=nrow(shoott1inoc6water2df))
 type<-rep("shoot",times=nrow(shoott1inoc6water2df))
-shoott1inoc6water2dffinal<-cbind(shoott1inoc6water2df,water,inoculation,type)
+shoott1inoc6water2dffinal<-cbind(shoott1inoc6water2df,water,inoculum,type)
 #shoott1inoc1water3
 shoott1inoc1water3df<-as.data.frame(shoott1inoc1water3)
 colnames(shoott1inoc1water3df)[1] ="shannon"
 water<-rep("water3",times=nrow(shoott1inoc1water3df))
-inoculation<-rep("inoc1",times=nrow(shoott1inoc1water3df))
+inoculum<-rep("inoc1",times=nrow(shoott1inoc1water3df))
 type<-rep("shoot",times=nrow(shoott1inoc1water3df))
-shoott1inoc1water3dffinal<-cbind(shoott1inoc1water3df,water,inoculation,type)
+shoott1inoc1water3dffinal<-cbind(shoott1inoc1water3df,water,inoculum,type)
 #shoott1inoc4water3
 shoott1inoc4water3df<-as.data.frame(shoott1inoc4water3)
 colnames(shoott1inoc4water3df)[1] ="shannon"
 water<-rep("water3",times=nrow(shoott1inoc4water3df))
-inoculation<-rep("inoc4",times=nrow(shoott1inoc4water3df))
+inoculum<-rep("inoc4",times=nrow(shoott1inoc4water3df))
 type<-rep("shoot",times=nrow(shoott1inoc4water3df))
-shoott1inoc4water3dffinal<-cbind(shoott1inoc4water3df,water,inoculation,type)
+shoott1inoc4water3dffinal<-cbind(shoott1inoc4water3df,water,inoculum,type)
 #shoott1inoc5water3
 shoott1inoc5water3df<-as.data.frame(shoott1inoc5water3)
 colnames(shoott1inoc5water3df)[1] ="shannon"
 water<-rep("water3",times=nrow(shoott1inoc5water3df))
-inoculation<-rep("inoc5",times=nrow(shoott1inoc5water3df))
+inoculum<-rep("inoc5",times=nrow(shoott1inoc5water3df))
 type<-rep("shoot",times=nrow(shoott1inoc5water3df))
-shoott1inoc5water3dffinal<-cbind(shoott1inoc5water3df,water,inoculation,type)
+shoott1inoc5water3dffinal<-cbind(shoott1inoc5water3df,water,inoculum,type)
 #shoott1inoc6water3
 shoott1inoc6water3df<-as.data.frame(shoott1inoc6water3)
 colnames(shoott1inoc6water3df)[1] ="shannon"
 water<-rep("water3",times=nrow(shoott1inoc6water3df))
-inoculation<-rep("inoc6",times=nrow(shoott1inoc6water3df))
+inoculum<-rep("inoc6",times=nrow(shoott1inoc6water3df))
 type<-rep("shoot",times=nrow(shoott1inoc6water3df))
-shoott1inoc6water3dffinal<-cbind(shoott1inoc6water3df,water,inoculation,type)
+shoott1inoc6water3dffinal<-cbind(shoott1inoc6water3df,water,inoculum,type)
 
 #shoottinoc1
 shoott0inoc1df<-as.data.frame(shoott0inoc1)
 colnames(shoott0inoc1df)[1] ="shannon"
-inoculation<-rep("inoc1",times=nrow(shoott0inoc1df))
-shoott0inoc1dffinal<-cbind(shoott0inoc1df,inoculation)
+inoculum<-rep("inoc1",times=nrow(shoott0inoc1df))
+shoott0inoc1dffinal<-cbind(shoott0inoc1df,inoculum)
 
 #shoottinoc4
 shoott0inoc4df<-as.data.frame(shoott0inoc4)
 colnames(shoott0inoc4df)[1] ="shannon"
-inoculation<-rep("inoc4",times=nrow(shoott0inoc4df))
-shoott0inoc4dffinal<-cbind(shoott0inoc4df,inoculation)
+inoculum<-rep("inoc4",times=nrow(shoott0inoc4df))
+shoott0inoc4dffinal<-cbind(shoott0inoc4df,inoculum)
 
 #shoottinoc5
 shoott0inoc5df<-as.data.frame(shoott0inoc5)
 colnames(shoott0inoc5df)[1] ="shannon"
-inoculation<-rep("inoc5",times=nrow(shoott0inoc5df))
-shoott0inoc5dffinal<-cbind(shoott0inoc5df,inoculation)
+inoculum<-rep("inoc5",times=nrow(shoott0inoc5df))
+shoott0inoc5dffinal<-cbind(shoott0inoc5df,inoculum)
 
 #shoottinoc6
 shoott0inoc6df<-as.data.frame(shoott0inoc6)
 colnames(shoott0inoc6df)[1] ="shannon"
-inoculation<-rep("inoc6",times=nrow(shoott0inoc6df))
-shoott0inoc6dffinal<-cbind(shoott0inoc6df,inoculation)
+inoculum<-rep("inoc6",times=nrow(shoott0inoc6df))
+shoott0inoc6dffinal<-cbind(shoott0inoc6df,inoculum)
 
 #now rbind them together
 shanfinalbindt0<-do.call("rbind",list(shoott0inoc1dffinal,shoott0inoc4dffinal,shoott0inoc5dffinal,shoott0inoc6dffinal))
 shanfinalbindt1<-do.call("rbind",list(roott1inoc1water1dffinal,roott1inoc4water1dffinal,roott1inoc5water1dffinal,roott1inoc6water1dffinal,roott1inoc1water2dffinal,roott1inoc4water2dffinal,roott1inoc5water2dffinal,roott1inoc6water2dffinal,roott1inoc1water3dffinal,roott1inoc4water3dffinal,roott1inoc5water3dffinal,roott1inoc6water3dffinal,shoott1inoc1water1dffinal,shoott1inoc4water1dffinal,shoott1inoc5water1dffinal,shoott1inoc6water1dffinal,shoott1inoc1water2dffinal,shoott1inoc4water2dffinal,shoott1inoc5water2dffinal,shoott1inoc6water2dffinal,shoott1inoc1water3dffinal,shoott1inoc4water3dffinal,shoott1inoc5water3dffinal,shoott1inoc6water3dffinal))
+
+
 ```
 
 
 # Shoots T0 Shannon's Diversity
 ```{r}
-shannonviolint0<-ggplot(shanfinalbindt0,aes(x=inoculation,y=shannon,color=factor(inoculation))) + 
+
+shanfinalbindt0$inoculum<-as.factor(shanfinalbindt0$inoculum)
+levels(shanfinalbindt0$inoculum) <- list(
+  Dry="inoc1", Moderate="inoc4", Wet="inoc5", Control="inoc6")
+
+
+shannonviolint0<-ggplot(shanfinalbindt0,aes(x=inoculum,y=shannon,color=factor(inoculum))) + 
   ggtitle("T0 Shannon's Diversity Shoots Only")+
   geom_violin()+
-  geom_point()+
-
+  geom_point(alpha=0.7)+
+  scale_color_brewer(palette="Dark2")+
   theme(
     axis.text = element_text(color='black',size=10),
     axis.title = element_text(color='black',size=12),
@@ -1403,7 +1413,7 @@ shannonviolint0<-ggplot(shanfinalbindt0,aes(x=inoculation,y=shannon,color=factor
     plot.title=element_text(size=20,face="bold",vjust=2))
 
 shannonviolint0
-ggsave("figures/shannonviolint0.pdf", height=6, width=12)
+ggsave("figures/FigS2.T0inoc.shannon.pdf", height=6, width=6)
 
 #ggsave(filename = "shannonviolint0.pdf",
 #      plot = shannonviolint0,
@@ -1414,11 +1424,18 @@ ggsave("figures/shannonviolint0.pdf", height=6, width=12)
 
 # T1 Shannon's Diversity
 ```{r}
-shannonviolint1<-ggplot(shanfinalbindt1,aes(x=inoculation,y=shannon,color=factor(type))) + 
+
+shanfinalbindt1$inoculum<-as.factor(shanfinalbindt1$inoculum)
+levels(shanfinalbindt1$inoculum) <- list(
+  Dry="inoc1", Moderate="inoc4", Wet="inoc5", Control="inoc6")
+
+shanfinalbindt1$type<-factor(shanfinalbindt1$type, levels=c("shoot", "root"))
+
+shannonviolint1<-ggplot(shanfinalbindt1,aes(x=inoculum,y=shannon,color=factor(type))) + 
   ggtitle("T1 Shannon's Diversity Shoots and Roots")+
-  geom_violin(position=position_dodge(width = 0.5))+
-  geom_point(position=position_dodge(width = 0.5))+
-  facet_grid(.~water,scales ="free",space="free")+
+  geom_violin(position=position_dodge(width = 0.6))+
+  geom_point(position=position_dodge(width = 0.6), alpha=0.8)+
+  scale_color_manual(values=c("mediumaquamarine", "sandybrown"))+
   theme(
     axis.text = element_text(color='black',size=10),
     axis.title = element_text(color='black',size=12),
@@ -1429,7 +1446,7 @@ shannonviolint1<-ggplot(shanfinalbindt1,aes(x=inoculation,y=shannon,color=factor
     plot.title=element_text(size=20,face="bold",vjust=2))
 
 shannonviolint1
-ggsave("figures/shannonviolint1.pdf", height=6, width=12)
+ggsave("figures/FigS3.T1root.shoot.shannonv2.pdf", height=6, width=6)
 
 #ggsave(filename = "shannonviolint1.pdf",
 #      plot = shannonviolint1,
@@ -1443,10 +1460,12 @@ ggsave("figures/shannonviolint1.pdf", height=6, width=12)
 time<-rep("t0",times=nrow(shanfinalbindt0))
 shanfinalbindt0_time<-cbind(shanfinalbindt0,time)
 shanfinalbindt1_time<-subset(shanfinalbindt1,type!="root")
+
 time<-rep("t1",times=nrow(shanfinalbindt1_time))
 shanfinalbindt1_time_final<-cbind(shanfinalbindt1_time,time)
 shanfinalbindt1_time_final<-shanfinalbindt1_time_final[-c(2,4)]
 statsdf<-rbind(shanfinalbindt0_time,shanfinalbindt1_time_final)
+
 timemodel<-lm(shannon~time,statsdf)
 library(car)
 anova(timemodel)
@@ -1459,30 +1478,50 @@ shanfinalbindt1water1<-subset(shanfinalbindt1,water!="water2"&water!="water3")
 shanfinalbindt1water2<-subset(shanfinalbindt1,water!="water1"&water!="water3")
 shanfinalbindt1water3<-subset(shanfinalbindt1,water!="water2"&water!="water1")
 
+fullmodel<-lm(shannon~type*water*inoculum,shanfinalbindt1)
+Anova(fullmodel,type=3)
+
+posthoc.type<-emmeans(fullmodel,pairwise~type|inoculum)
+#posthoc with letters
+multcomp::cld(posthoc.type, Letters=letters)
+
+posthoc.inoc<-emmeans(fullmodel,pairwise~inoculum|type)
+#posthoc with letters
+multcomp::cld(posthoc.inoc, Letters=letters)
+
+
 ```
 
 # Water 1 stats
 ```{r}
-water1model<-lm(shannon~type*inoculation,shanfinalbindt1water1)
+water1model<-lm(shannon~type*inoculum,shanfinalbindt1water1)
 Anova(water1model,type=3)
-emmeans(water1model,pairwise~inoculation|type)
-emmeans(water1model,pairwise~type|inoculation)
+
+posthoc.1<-emmeans(water1model,pairwise~inoculum|type)
+#posthoc with letters
+multcomp::cld(posthoc.1, Letters=letters)
+
+posthoc.2<-emmeans(water1model,pairwise~type|inoculum)
+multcomp::cld(posthoc.2, Letters=letters)
+
+
+
 ```
 
 # Water 2 stats
 ```{r}
-water2model<-lm(shannon~type*inoculation,shanfinalbindt1water2)
+water2model<-lm(shannon~type*inoculum,shanfinalbindt1water2)
 Anova(water2model,type=3)
-emmeans(water2model,pairwise~inoculation|type)
-emmeans(water2model,pairwise~type|inoculation)
+emmeans(water2model,pairwise~inoculum|type)
+emmeans(water2model,pairwise~type|inoculum)
 ```
 
 # Water 3 stats
 ```{r}
-water3model<-lm(shannon~type*inoculation,shanfinalbindt1water3)
+water3model<-lm(shannon~type*inoculum,shanfinalbindt1water3)
 Anova(water3model,type=3)
-emmeans(water3model,pairwise~inoculation|type)
-emmeans(water3model,pairwise~type|inoculation)
+emmeans(water3model,pairwise~inoculum|type)
+emmeans(water3model,pairwise~type|inoculum)
 ```
 
 Let's make some stacked bar plots too:
@@ -1493,15 +1532,15 @@ Let's make some stacked bar plots too:
 input <- load_taxa_table("data/ASV_table_postfiltering.txt", "data/map_loaded_strawberries.txt")
 inputstep5 = filter_data(input, 'TimePoint', keep_vals = 'T1')
 roott1 = filter_data(inputstep5, 'Type', keep_vals = 'Root')
-roott1 = filter_data(roott1, 'Inoculation', filter_vals = '2')
-roott1 = filter_data(roott1, 'Inoculation', filter_vals = '3')
+roott1 = filter_data(roott1, 'Inoculum', filter_vals = '2')
+roott1 = filter_data(roott1, 'Inoculum', filter_vals = '3')
 shoott1 = filter_data(inputstep5, 'Type', keep_vals = 'Shoot')
-shoott1 = filter_data(shoott1, 'Inoculation', filter_vals = '2')
-shoott1 = filter_data(shoott1, 'Inoculation', filter_vals = '3')
+shoott1 = filter_data(shoott1, 'Inoculum', filter_vals = '2')
+shoott1 = filter_data(shoott1, 'Inoculum', filter_vals = '3')
 time0 = filter_data(input,'TimePoint',keep_vals = 'T0')
 shoott0 = filter_data(time0, 'Type', keep_vals = 'Shoot')
-shoott0 = filter_data(shoott0, 'Inoculation', filter_vals = '2')
-shoott0 = filter_data(shoott0, 'Inoculation', filter_vals = '3')
+shoott0 = filter_data(shoott0, 'Inoculum', filter_vals = '2')
+shoott0 = filter_data(shoott0, 'Inoculum', filter_vals = '3')
 
 #transformation
 library(labdsv)
@@ -1659,21 +1698,21 @@ library(labdsv)
 inputstep5 = filter_data(input, 'TimePoint', keep_vals = 'T1')
 shoots = filter_data(inputstep5, 'Type', keep_vals = 'Shoot')
 water1 = filter_data(shoots, 'Water', keep_vals = '1')
-water1inoc1 = filter_data(water1, 'Inoculation', keep_vals = '1')
-water1inoc4 = filter_data(water1, 'Inoculation', keep_vals = '4')
-water1inoc5 = filter_data(water1, 'Inoculation', keep_vals = '5')
-water1inoc6 = filter_data(water1, 'Inoculation', keep_vals = '6')
+water1inoc1 = filter_data(water1, 'Inoculum', keep_vals = '1')
+water1inoc4 = filter_data(water1, 'Inoculum', keep_vals = '4')
+water1inoc5 = filter_data(water1, 'Inoculum', keep_vals = '5')
+water1inoc6 = filter_data(water1, 'Inoculum', keep_vals = '6')
 water2 = filter_data(inputstep5, 'Water', keep_vals = '2')
-water2inoc1 = filter_data(water2, 'Inoculation', keep_vals = '1')
-water2inoc4 = filter_data(water2, 'Inoculation', keep_vals = '4')
-water2inoc5 = filter_data(water2, 'Inoculation', keep_vals = '5')
-water2inoc6 = filter_data(water2, 'Inoculation', keep_vals = '6')
+water2inoc1 = filter_data(water2, 'Inoculum', keep_vals = '1')
+water2inoc4 = filter_data(water2, 'Inoculum', keep_vals = '4')
+water2inoc5 = filter_data(water2, 'Inoculum', keep_vals = '5')
+water2inoc6 = filter_data(water2, 'Inoculum', keep_vals = '6')
 
 water3 = filter_data(inputstep5, 'Water', keep_vals = '3')
-water3inoc1 = filter_data(water3, 'Inoculation', keep_vals = '1')
-water3inoc4 = filter_data(water3, 'Inoculation', keep_vals = '4')
-water3inoc5 = filter_data(water3, 'Inoculation', keep_vals = '5')
-water3inoc6 = filter_data(water3, 'Inoculation', keep_vals = '6')
+water3inoc1 = filter_data(water3, 'Inoculum', keep_vals = '1')
+water3inoc4 = filter_data(water3, 'Inoculum', keep_vals = '4')
+water3inoc5 = filter_data(water3, 'Inoculum', keep_vals = '5')
+water3inoc6 = filter_data(water3, 'Inoculum', keep_vals = '6')
 
 #transformation
 otuTAB<-water1inoc1$data_loaded
@@ -1748,97 +1787,97 @@ water1inoc1_tax_sum_family = summarize_taxonomy(water1inoc1, level = 5, report_h
 water1inoc1_tax_sum_family$family <-row.names(water1inoc1_tax_sum_family)
 water1inoc1_melt<- melt(water1inoc1_tax_sum_family, id.var="family")
 nrow(water1inoc1_melt)
-inoculation<-rep("inoc1",times=nrow(water1inoc1_melt))
+inoculum<-rep("inoc1",times=nrow(water1inoc1_melt))
 water<-rep("water1",times=nrow(water1inoc1_melt))
-water1inoc1_melt<-cbind(water1inoc1_melt,inoculation,water)
+water1inoc1_melt<-cbind(water1inoc1_melt,inoculum,water)
 
 water1inoc4_tax_sum_family = summarize_taxonomy(water1inoc4, level = 5, report_higher_tax = FALSE)
 water1inoc4_tax_sum_family$family <-row.names(water1inoc4_tax_sum_family)
 water1inoc4_melt<- melt(water1inoc4_tax_sum_family, id.var="family")
 nrow(water1inoc4_melt)
-inoculation<-rep("inoc4",times=nrow(water1inoc4_melt))
+inoculum<-rep("inoc4",times=nrow(water1inoc4_melt))
 water<-rep("water1",times=nrow(water1inoc4_melt))
-water1inoc4_melt<-cbind(water1inoc4_melt,inoculation,water)
+water1inoc4_melt<-cbind(water1inoc4_melt,inoculum,water)
 
 water1inoc5_tax_sum_family = summarize_taxonomy(water1inoc5, level = 5, report_higher_tax = FALSE)
 water1inoc5_tax_sum_family$family <-row.names(water1inoc5_tax_sum_family)
 water1inoc5_melt<- melt(water1inoc5_tax_sum_family, id.var="family")
 nrow(water1inoc5_melt)
-inoculation<-rep("inoc5",times=nrow(water1inoc5_melt))
+inoculum<-rep("inoc5",times=nrow(water1inoc5_melt))
 water<-rep("water1",times=nrow(water1inoc5_melt))
-water1inoc5_melt<-cbind(water1inoc5_melt,inoculation,water)
+water1inoc5_melt<-cbind(water1inoc5_melt,inoculum,water)
 
 water1inoc6_tax_sum_family = summarize_taxonomy(water1inoc6, level = 5, report_higher_tax = FALSE)
 water1inoc6_tax_sum_family$family <-row.names(water1inoc6_tax_sum_family)
 water1inoc6_melt<- melt(water1inoc6_tax_sum_family, id.var="family")
 nrow(water1inoc6_melt)
-inoculation<-rep("inoc6",times=nrow(water1inoc6_melt))
+inoculum<-rep("inoc6",times=nrow(water1inoc6_melt))
 water<-rep("water1",times=nrow(water1inoc6_melt))
-water1inoc6_melt<-cbind(water1inoc6_melt,inoculation,water)
+water1inoc6_melt<-cbind(water1inoc6_melt,inoculum,water)
 
 water2inoc1_tax_sum_family = summarize_taxonomy(water2inoc1, level = 5, report_higher_tax = FALSE)
 water2inoc1_tax_sum_family$family <-row.names(water2inoc1_tax_sum_family)
 water2inoc1_melt<- melt(water2inoc1_tax_sum_family, id.var="family")
 nrow(water2inoc1_melt)
-inoculation<-rep("inoc1",times=nrow(water2inoc1_melt))
+inoculum<-rep("inoc1",times=nrow(water2inoc1_melt))
 water<-rep("water2",times=nrow(water2inoc1_melt))
-water2inoc1_melt<-cbind(water2inoc1_melt,inoculation,water)
+water2inoc1_melt<-cbind(water2inoc1_melt,inoculum,water)
 
 water2inoc4_tax_sum_family = summarize_taxonomy(water2inoc4, level = 5, report_higher_tax = FALSE)
 water2inoc4_tax_sum_family$family <-row.names(water2inoc4_tax_sum_family)
 water2inoc4_melt<- melt(water2inoc4_tax_sum_family, id.var="family")
 nrow(water2inoc4_melt)
-inoculation<-rep("inoc4",times=nrow(water2inoc4_melt))
+inoculum<-rep("inoc4",times=nrow(water2inoc4_melt))
 water<-rep("water2",times=nrow(water2inoc4_melt))
-water2inoc4_melt<-cbind(water2inoc4_melt,inoculation,water)
+water2inoc4_melt<-cbind(water2inoc4_melt,inoculum,water)
 
 water2inoc5_tax_sum_family = summarize_taxonomy(water2inoc5, level = 5, report_higher_tax = FALSE)
 water2inoc5_tax_sum_family$family <-row.names(water2inoc5_tax_sum_family)
 water2inoc5_melt<- melt(water2inoc5_tax_sum_family, id.var="family")
 nrow(water2inoc5_melt)
-inoculation<-rep("inoc5",times=nrow(water2inoc5_melt))
+inoculum<-rep("inoc5",times=nrow(water2inoc5_melt))
 water<-rep("water2",times=nrow(water2inoc5_melt))
-water2inoc5_melt<-cbind(water2inoc5_melt,inoculation,water)
+water2inoc5_melt<-cbind(water2inoc5_melt,inoculum,water)
 
 water2inoc6_tax_sum_family = summarize_taxonomy(water2inoc6, level = 5, report_higher_tax = FALSE)
 water2inoc6_tax_sum_family$family <-row.names(water2inoc6_tax_sum_family)
 water2inoc6_melt<- melt(water2inoc6_tax_sum_family, id.var="family")
 nrow(water2inoc6_melt)
-inoculation<-rep("inoc6",times=nrow(water2inoc6_melt))
+inoculum<-rep("inoc6",times=nrow(water2inoc6_melt))
 water<-rep("water2",times=nrow(water2inoc6_melt))
-water2inoc6_melt<-cbind(water2inoc6_melt,inoculation,water)
+water2inoc6_melt<-cbind(water2inoc6_melt,inoculum,water)
 
 water3inoc1_tax_sum_family = summarize_taxonomy(water3inoc1, level = 5, report_higher_tax = FALSE)
 water3inoc1_tax_sum_family$family <-row.names(water3inoc1_tax_sum_family)
 water3inoc1_melt<- melt(water3inoc1_tax_sum_family, id.var="family")
 nrow(water3inoc1_melt)
-inoculation<-rep("inoc1",times=nrow(water3inoc1_melt))
+inoculum<-rep("inoc1",times=nrow(water3inoc1_melt))
 water<-rep("water3",times=nrow(water3inoc1_melt))
-water3inoc1_melt<-cbind(water3inoc1_melt,inoculation,water)
+water3inoc1_melt<-cbind(water3inoc1_melt,inoculum,water)
 
 water3inoc4_tax_sum_family = summarize_taxonomy(water3inoc4, level = 5, report_higher_tax = FALSE)
 water3inoc4_tax_sum_family$family <-row.names(water3inoc4_tax_sum_family)
 water3inoc4_melt<- melt(water3inoc4_tax_sum_family, id.var="family")
 nrow(water3inoc4_melt)
-inoculation<-rep("inoc4",times=nrow(water3inoc4_melt))
+inoculum<-rep("inoc4",times=nrow(water3inoc4_melt))
 water<-rep("water3",times=nrow(water3inoc4_melt))
-water3inoc4_melt<-cbind(water3inoc4_melt,inoculation,water)
+water3inoc4_melt<-cbind(water3inoc4_melt,inoculum,water)
 
 water3inoc5_tax_sum_family = summarize_taxonomy(water3inoc5, level = 5, report_higher_tax = FALSE)
 water3inoc5_tax_sum_family$family <-row.names(water3inoc5_tax_sum_family)
 water3inoc5_melt<- melt(water3inoc5_tax_sum_family, id.var="family")
 nrow(water3inoc5_melt)
-inoculation<-rep("inoc5",times=nrow(water3inoc5_melt))
+inoculum<-rep("inoc5",times=nrow(water3inoc5_melt))
 water<-rep("water3",times=nrow(water3inoc5_melt))
-water3inoc5_melt<-cbind(water3inoc5_melt,inoculation,water)
+water3inoc5_melt<-cbind(water3inoc5_melt,inoculum,water)
 
 water3inoc6_tax_sum_family = summarize_taxonomy(water3inoc6, level = 5, report_higher_tax = FALSE)
 water3inoc6_tax_sum_family$family <-row.names(water3inoc6_tax_sum_family)
 water3inoc6_melt<- melt(water3inoc6_tax_sum_family, id.var="family")
 nrow(water3inoc6_melt)
-inoculation<-rep("inoc6",times=nrow(water3inoc6_melt))
+inoculum<-rep("inoc6",times=nrow(water3inoc6_melt))
 water<-rep("water3",times=nrow(water3inoc6_melt))
-water3inoc6_melt<-cbind(water3inoc6_melt,inoculation,water)
+water3inoc6_melt<-cbind(water3inoc6_melt,inoculum,water)
 
 familyfinalbind<-do.call("rbind",list(water1inoc1_melt,water1inoc4_melt,water1inoc5_melt,water1inoc6_melt,water2inoc1_melt,water2inoc4_melt,water2inoc5_melt,water2inoc6_melt,water3inoc1_melt,water3inoc4_melt,water3inoc5_melt,water3inoc6_melt))
 ```
@@ -1847,7 +1886,7 @@ familyfinalbind<-do.call("rbind",list(water1inoc1_melt,water1inoc4_melt,water1in
 # Shoots family graph
 ```{r}
 library(ggthemes)
-shootsfamily<-ggplot(familyfinalbind, aes(x = inoculation, y = value, fill = family)) + 
+shootsfamily<-ggplot(familyfinalbind, aes(x = inoculum, y = value, fill = family)) + 
   geom_bar(stat="identity",position = "fill") + 
   scale_y_continuous(labels = scales::percent) +
   scale_fill_manual(values = colorRampPalette(solarized_pal()(8))(90)) + 
@@ -1883,21 +1922,21 @@ Now we can make t1 roots by inoculation and water treatment
 inputstep5 = filter_data(input, 'TimePoint', keep_vals = 'T1')
 roots = filter_data(inputstep5, 'Type', keep_vals = 'Root')
 water1 = filter_data(roots, 'Water', keep_vals = '1')
-water1inoc1 = filter_data(water1, 'Inoculation', keep_vals = '1')
-water1inoc4 = filter_data(water1, 'Inoculation', keep_vals = '4')
-water1inoc5 = filter_data(water1, 'Inoculation', keep_vals = '5')
-water1inoc6 = filter_data(water1, 'Inoculation', keep_vals = '6')
+water1inoc1 = filter_data(water1, 'Inoculum', keep_vals = '1')
+water1inoc4 = filter_data(water1, 'Inoculum', keep_vals = '4')
+water1inoc5 = filter_data(water1, 'Inoculum', keep_vals = '5')
+water1inoc6 = filter_data(water1, 'Inoculum', keep_vals = '6')
 water2 = filter_data(inputstep5, 'Water', keep_vals = '2')
-water2inoc1 = filter_data(water2, 'Inoculation', keep_vals = '1')
-water2inoc4 = filter_data(water2, 'Inoculation', keep_vals = '4')
-water2inoc5 = filter_data(water2, 'Inoculation', keep_vals = '5')
-water2inoc6 = filter_data(water2, 'Inoculation', keep_vals = '6')
+water2inoc1 = filter_data(water2, 'Inoculum', keep_vals = '1')
+water2inoc4 = filter_data(water2, 'Inoculum', keep_vals = '4')
+water2inoc5 = filter_data(water2, 'Inoculum', keep_vals = '5')
+water2inoc6 = filter_data(water2, 'Inoculum', keep_vals = '6')
 
 water3 = filter_data(inputstep5, 'Water', keep_vals = '3')
-water3inoc1 = filter_data(water3, 'Inoculation', keep_vals = '1')
-water3inoc4 = filter_data(water3, 'Inoculation', keep_vals = '4')
-water3inoc5 = filter_data(water3, 'Inoculation', keep_vals = '5')
-water3inoc6 = filter_data(water3, 'Inoculation', keep_vals = '6')
+water3inoc1 = filter_data(water3, 'Inoculum', keep_vals = '1')
+water3inoc4 = filter_data(water3, 'Inoculum', keep_vals = '4')
+water3inoc5 = filter_data(water3, 'Inoculum', keep_vals = '5')
+water3inoc6 = filter_data(water3, 'Inoculum', keep_vals = '6')
 
 #transformation
 otuTAB<-water1inoc1$data_loaded
@@ -1972,97 +2011,97 @@ water1inoc1_tax_sum_family = summarize_taxonomy(water1inoc1, level = 5, report_h
 water1inoc1_tax_sum_family$family <-row.names(water1inoc1_tax_sum_family)
 water1inoc1_melt<- melt(water1inoc1_tax_sum_family, id.var="family")
 nrow(water1inoc1_melt)
-inoculation<-rep("inoc1",times=nrow(water1inoc1_melt))
+inoculum<-rep("inoc1",times=nrow(water1inoc1_melt))
 water<-rep("water1",times=nrow(water1inoc1_melt))
-water1inoc1_melt<-cbind(water1inoc1_melt,inoculation,water)
+water1inoc1_melt<-cbind(water1inoc1_melt,inoculum,water)
 
 water1inoc4_tax_sum_family = summarize_taxonomy(water1inoc4, level = 5, report_higher_tax = FALSE)
 water1inoc4_tax_sum_family$family <-row.names(water1inoc4_tax_sum_family)
 water1inoc4_melt<- melt(water1inoc4_tax_sum_family, id.var="family")
 nrow(water1inoc4_melt)
-inoculation<-rep("inoc4",times=nrow(water1inoc4_melt))
+inoculum<-rep("inoc4",times=nrow(water1inoc4_melt))
 water<-rep("water1",times=nrow(water1inoc4_melt))
-water1inoc4_melt<-cbind(water1inoc4_melt,inoculation,water)
+water1inoc4_melt<-cbind(water1inoc4_melt,inoculum,water)
 
 water1inoc5_tax_sum_family = summarize_taxonomy(water1inoc5, level = 5, report_higher_tax = FALSE)
 water1inoc5_tax_sum_family$family <-row.names(water1inoc5_tax_sum_family)
 water1inoc5_melt<- melt(water1inoc5_tax_sum_family, id.var="family")
 nrow(water1inoc5_melt)
-inoculation<-rep("inoc5",times=nrow(water1inoc5_melt))
+inoculum<-rep("inoc5",times=nrow(water1inoc5_melt))
 water<-rep("water1",times=nrow(water1inoc5_melt))
-water1inoc5_melt<-cbind(water1inoc5_melt,inoculation,water)
+water1inoc5_melt<-cbind(water1inoc5_melt,inoculum,water)
 
 water1inoc6_tax_sum_family = summarize_taxonomy(water1inoc6, level = 5, report_higher_tax = FALSE)
 water1inoc6_tax_sum_family$family <-row.names(water1inoc6_tax_sum_family)
 water1inoc6_melt<- melt(water1inoc6_tax_sum_family, id.var="family")
 nrow(water1inoc6_melt)
-inoculation<-rep("inoc6",times=nrow(water1inoc6_melt))
+inoculum<-rep("inoc6",times=nrow(water1inoc6_melt))
 water<-rep("water1",times=nrow(water1inoc6_melt))
-water1inoc6_melt<-cbind(water1inoc6_melt,inoculation,water)
+water1inoc6_melt<-cbind(water1inoc6_melt,inoculum,water)
 
 water2inoc1_tax_sum_family = summarize_taxonomy(water2inoc1, level = 5, report_higher_tax = FALSE)
 water2inoc1_tax_sum_family$family <-row.names(water2inoc1_tax_sum_family)
 water2inoc1_melt<- melt(water2inoc1_tax_sum_family, id.var="family")
 nrow(water2inoc1_melt)
-inoculation<-rep("inoc1",times=nrow(water2inoc1_melt))
+inoculum<-rep("inoc1",times=nrow(water2inoc1_melt))
 water<-rep("water2",times=nrow(water2inoc1_melt))
-water2inoc1_melt<-cbind(water2inoc1_melt,inoculation,water)
+water2inoc1_melt<-cbind(water2inoc1_melt,inoculum,water)
 
 water2inoc4_tax_sum_family = summarize_taxonomy(water2inoc4, level = 5, report_higher_tax = FALSE)
 water2inoc4_tax_sum_family$family <-row.names(water2inoc4_tax_sum_family)
 water2inoc4_melt<- melt(water2inoc4_tax_sum_family, id.var="family")
 nrow(water2inoc4_melt)
-inoculation<-rep("inoc4",times=nrow(water2inoc4_melt))
+inoculum<-rep("inoc4",times=nrow(water2inoc4_melt))
 water<-rep("water2",times=nrow(water2inoc4_melt))
-water2inoc4_melt<-cbind(water2inoc4_melt,inoculation,water)
+water2inoc4_melt<-cbind(water2inoc4_melt,inoculum,water)
 
 water2inoc5_tax_sum_family = summarize_taxonomy(water2inoc5, level = 5, report_higher_tax = FALSE)
 water2inoc5_tax_sum_family$family <-row.names(water2inoc5_tax_sum_family)
 water2inoc5_melt<- melt(water2inoc5_tax_sum_family, id.var="family")
 nrow(water2inoc5_melt)
-inoculation<-rep("inoc5",times=nrow(water2inoc5_melt))
+inoculum<-rep("inoc5",times=nrow(water2inoc5_melt))
 water<-rep("water2",times=nrow(water2inoc5_melt))
-water2inoc5_melt<-cbind(water2inoc5_melt,inoculation,water)
+water2inoc5_melt<-cbind(water2inoc5_melt,inoculum,water)
 
 water2inoc6_tax_sum_family = summarize_taxonomy(water2inoc6, level = 5, report_higher_tax = FALSE)
 water2inoc6_tax_sum_family$family <-row.names(water2inoc6_tax_sum_family)
 water2inoc6_melt<- melt(water2inoc6_tax_sum_family, id.var="family")
 nrow(water2inoc6_melt)
-inoculation<-rep("inoc6",times=nrow(water2inoc6_melt))
+inoculum<-rep("inoc6",times=nrow(water2inoc6_melt))
 water<-rep("water2",times=nrow(water2inoc6_melt))
-water2inoc6_melt<-cbind(water2inoc6_melt,inoculation,water)
+water2inoc6_melt<-cbind(water2inoc6_melt,inoculum,water)
 
 water3inoc1_tax_sum_family = summarize_taxonomy(water3inoc1, level = 5, report_higher_tax = FALSE)
 water3inoc1_tax_sum_family$family <-row.names(water3inoc1_tax_sum_family)
 water3inoc1_melt<- melt(water3inoc1_tax_sum_family, id.var="family")
 nrow(water3inoc1_melt)
-inoculation<-rep("inoc1",times=nrow(water3inoc1_melt))
+inoculum<-rep("inoc1",times=nrow(water3inoc1_melt))
 water<-rep("water3",times=nrow(water3inoc1_melt))
-water3inoc1_melt<-cbind(water3inoc1_melt,inoculation,water)
+water3inoc1_melt<-cbind(water3inoc1_melt,inoculum,water)
 
 water3inoc4_tax_sum_family = summarize_taxonomy(water3inoc4, level = 5, report_higher_tax = FALSE)
 water3inoc4_tax_sum_family$family <-row.names(water3inoc4_tax_sum_family)
 water3inoc4_melt<- melt(water3inoc4_tax_sum_family, id.var="family")
 nrow(water3inoc4_melt)
-inoculation<-rep("inoc4",times=nrow(water3inoc4_melt))
+inoculum<-rep("inoc4",times=nrow(water3inoc4_melt))
 water<-rep("water3",times=nrow(water3inoc4_melt))
-water3inoc4_melt<-cbind(water3inoc4_melt,inoculation,water)
+water3inoc4_melt<-cbind(water3inoc4_melt,inoculum,water)
 
 water3inoc5_tax_sum_family = summarize_taxonomy(water3inoc5, level = 5, report_higher_tax = FALSE)
 water3inoc5_tax_sum_family$family <-row.names(water3inoc5_tax_sum_family)
 water3inoc5_melt<- melt(water3inoc5_tax_sum_family, id.var="family")
 nrow(water3inoc5_melt)
-inoculation<-rep("inoc5",times=nrow(water3inoc5_melt))
+inoculum<-rep("inoc5",times=nrow(water3inoc5_melt))
 water<-rep("water3",times=nrow(water3inoc5_melt))
-water3inoc5_melt<-cbind(water3inoc5_melt,inoculation,water)
+water3inoc5_melt<-cbind(water3inoc5_melt,inoculum,water)
 
 water3inoc6_tax_sum_family = summarize_taxonomy(water3inoc6, level = 5, report_higher_tax = FALSE)
 water3inoc6_tax_sum_family$family <-row.names(water3inoc6_tax_sum_family)
 water3inoc6_melt<- melt(water3inoc6_tax_sum_family, id.var="family")
 nrow(water3inoc6_melt)
-inoculation<-rep("inoc6",times=nrow(water3inoc6_melt))
+inoculum<-rep("inoc6",times=nrow(water3inoc6_melt))
 water<-rep("water3",times=nrow(water3inoc6_melt))
-water3inoc6_melt<-cbind(water3inoc6_melt,inoculation,water)
+water3inoc6_melt<-cbind(water3inoc6_melt,inoculum,water)
 
 familyrootfinalbind<-do.call("rbind",list(water1inoc1_melt,water1inoc4_melt,water1inoc5_melt,water1inoc6_melt,water2inoc1_melt,water2inoc4_melt,water2inoc5_melt,water2inoc6_melt,water3inoc1_melt,water3inoc4_melt,water3inoc5_melt,water3inoc6_melt))
 ```
@@ -2071,7 +2110,7 @@ familyrootfinalbind<-do.call("rbind",list(water1inoc1_melt,water1inoc4_melt,wate
 # Roots family graph
 ```{r}
 library(ggthemes)
-Rootsfamily<-ggplot(familyrootfinalbind, aes(x = inoculation, y = value, fill = family)) + 
+Rootsfamily<-ggplot(familyrootfinalbind, aes(x = inoculum, y = value, fill = family)) + 
   geom_bar(stat="identity",position = "fill") + 
   scale_y_continuous(labels = scales::percent) +
   scale_fill_manual(values = colorRampPalette(solarized_pal()(8))(90)) + 
@@ -2107,10 +2146,10 @@ Now we can make t0 shoots by inoculation and water treatment
 
 inputstep5 = filter_data(input, 'TimePoint', keep_vals = 'T0')
 shoots = filter_data(inputstep5, 'Type', keep_vals = 'Shoot')
-water1inoc1 = filter_data(shoots, 'Inoculation', keep_vals = '1')
-water1inoc4 = filter_data(shoots, 'Inoculation', keep_vals = '4')
-water1inoc5 = filter_data(shoots, 'Inoculation', keep_vals = '5')
-water1inoc6 = filter_data(shoots, 'Inoculation', keep_vals = '6')
+water1inoc1 = filter_data(shoots, 'Inoculum', keep_vals = '1')
+water1inoc4 = filter_data(shoots, 'Inoculum', keep_vals = '4')
+water1inoc5 = filter_data(shoots, 'Inoculum', keep_vals = '5')
+water1inoc6 = filter_data(shoots, 'Inoculum', keep_vals = '6')
 
 
 #transformation
@@ -2143,33 +2182,33 @@ water1inoc1_tax_sum_family = summarize_taxonomy(water1inoc1, level = 5, report_h
 water1inoc1_tax_sum_family$family <-row.names(water1inoc1_tax_sum_family)
 water1inoc1_melt<- melt(water1inoc1_tax_sum_family, id.var="family")
 nrow(water1inoc1_melt)
-inoculation<-rep("inoc1",times=nrow(water1inoc1_melt))
+inoculum<-rep("inoc1",times=nrow(water1inoc1_melt))
 water<-rep("water1",times=nrow(water1inoc1_melt))
-water1inoc1_melt<-cbind(water1inoc1_melt,inoculation,water)
+water1inoc1_melt<-cbind(water1inoc1_melt,inoculum,water)
 
 water1inoc4_tax_sum_family = summarize_taxonomy(water1inoc4, level = 5, report_higher_tax = FALSE)
 water1inoc4_tax_sum_family$family <-row.names(water1inoc4_tax_sum_family)
 water1inoc4_melt<- melt(water1inoc4_tax_sum_family, id.var="family")
 nrow(water1inoc4_melt)
-inoculation<-rep("inoc4",times=nrow(water1inoc4_melt))
+inoculum<-rep("inoc4",times=nrow(water1inoc4_melt))
 water<-rep("water1",times=nrow(water1inoc4_melt))
-water1inoc4_melt<-cbind(water1inoc4_melt,inoculation,water)
+water1inoc4_melt<-cbind(water1inoc4_melt,inoculum,water)
 
 water1inoc5_tax_sum_family = summarize_taxonomy(water1inoc5, level = 5, report_higher_tax = FALSE)
 water1inoc5_tax_sum_family$family <-row.names(water1inoc5_tax_sum_family)
 water1inoc5_melt<- melt(water1inoc5_tax_sum_family, id.var="family")
 nrow(water1inoc5_melt)
-inoculation<-rep("inoc5",times=nrow(water1inoc5_melt))
+inoculum<-rep("inoc5",times=nrow(water1inoc5_melt))
 water<-rep("water1",times=nrow(water1inoc5_melt))
-water1inoc5_melt<-cbind(water1inoc5_melt,inoculation,water)
+water1inoc5_melt<-cbind(water1inoc5_melt,inoculum,water)
 
 water1inoc6_tax_sum_family = summarize_taxonomy(water1inoc6, level = 5, report_higher_tax = FALSE)
 water1inoc6_tax_sum_family$family <-row.names(water1inoc6_tax_sum_family)
 water1inoc6_melt<- melt(water1inoc6_tax_sum_family, id.var="family")
 nrow(water1inoc6_melt)
-inoculation<-rep("inoc6",times=nrow(water1inoc6_melt))
+inoculum<-rep("inoc6",times=nrow(water1inoc6_melt))
 water<-rep("water1",times=nrow(water1inoc6_melt))
-water1inoc6_melt<-cbind(water1inoc6_melt,inoculation,water)
+water1inoc6_melt<-cbind(water1inoc6_melt,inoculum,water)
 
 familyshoott0finalbind<-do.call("rbind",list(water1inoc1_melt,water1inoc4_melt,water1inoc5_melt,water1inoc6_melt))
 ```
@@ -2178,7 +2217,7 @@ familyshoott0finalbind<-do.call("rbind",list(water1inoc1_melt,water1inoc4_melt,w
 # Shoots T0 family graph
 ```{r}
 library(ggthemes)
-Shootst0family<-ggplot(familyshoott0finalbind, aes(x = inoculation, y = value, fill = family)) + 
+Shootst0family<-ggplot(familyshoott0finalbind, aes(x = inoculum, y = value, fill = family)) + 
   geom_bar(stat="identity",position = "fill") + 
   scale_y_continuous(labels = scales::percent) +
   scale_fill_manual(values = colorRampPalette(solarized_pal()(8))(90)) + 
@@ -2216,12 +2255,12 @@ and then do nrows. Then we can make the euler diagrams
 
 First let's split into inoculation 1, 2 and 3
 
-Inoculation 1
+Inoculum 1
 
 ```{r,results='hide'}
 input <- load_taxa_table("data/ASV_table_postfiltering.txt", "data/map_loaded_strawberries.txt")
 #inoc1
-inputinoc1only = filter_data(input, 'Inoculation', keep_vals = '1')
+inputinoc1only = filter_data(input, 'Inoculum', keep_vals = '1')
 #leaves post-inoc post stress
 inputinoc1onlyshoot = filter_data(inputinoc1only, 'Type', keep_vals = 'Shoot')
 inoc1shootpostinocpoststress = filter_data(inputinoc1onlyshoot, 'SampleType', keep_vals = 'post_inoc_post_stress')
@@ -2297,7 +2336,7 @@ B&D i1spiprs & slurry = 11 = C&D i1spips & i1rpips & i1spiprs & slurry =
 10 = A&B&C&D i1spips & i1rpips & i1spiprs = = A&B&C = 58 i1spips &
 i1rpips & slurry = = A&B&D = 12 i1rpips & i1spiprs & slurry = 10 = B&C&D
 
-Inoculation 1 graph
+Inoculum 1 graph
 
 ```{r}
 # use eulerr
@@ -2312,12 +2351,12 @@ fitinoc1
 ggsave("figures/inoc1venn.pdf", height=8, width=8)
 ```
 
-Inoculation 4
+Inoculum 4
 
 ```{r,results='hide'}
 input <- load_taxa_table("data/ASV_table_postfiltering.txt", "data/map_loaded_strawberries.txt")
 #inoc4
-inputinoc4only = filter_data(input, 'Inoculation', keep_vals = '4')
+inputinoc4only = filter_data(input, 'Inoculum', keep_vals = '4')
 #leaves post-inoc post stress
 inputinoc4onlyshoot = filter_data(inputinoc4only, 'Type', keep_vals = 'Shoot')
 inoc4shootpostinocpoststress = filter_data(inputinoc4onlyshoot, 'SampleType', keep_vals = 'post_inoc_post_stress')
@@ -2393,7 +2432,7 @@ B&D i4spiprs & slurry = 2 = C&D i4spips & i4rpips & i4spiprs & slurry =
 2 = A&B&C&D i4spips & i4rpips & i4spiprs = = A&B&C = 60 i4spips &
 i4rpips & slurry = = A&B&D = 4 i4rpips & i4spiprs & slurry = 2 = B&C&D
 
-Inoculation 4 graph
+Inoculum 4 graph
 
 ```{r}
 
@@ -2408,12 +2447,12 @@ fitinoc4
 ggsave("figures/inoc4venn.pdf", height=8, width=8)
 ```
 
-Inoculation 5
+Inoculum 5
 
 ```{r,results='hide'}
 input <- load_taxa_table("data/ASV_table_postfiltering.txt", "data/map_loaded_strawberries.txt")
 #inoc5
-inputinoc5only = filter_data(input, 'Inoculation', keep_vals = '5')
+inputinoc5only = filter_data(input, 'Inoculum', keep_vals = '5')
 #leaves post-inoc post stress
 inputinoc5onlyshoot = filter_data(inputinoc5only, 'Type', keep_vals = 'Shoot')
 inoc5shootpostinocpoststress = filter_data(inputinoc5onlyshoot, 'SampleType', keep_vals = 'post_inoc_post_stress')
@@ -2489,7 +2528,7 @@ B&D i5spiprs & slurry = 10 = C&D i5spips & i5rpips & i5spiprs & slurry =
 10 = A&B&C&D i5spips & i5rpips & i5spiprs = A&B&C = 39 i5spips & i5rpips
 & slurry = A&B&D = 12 i5rpips & i5spiprs & slurry = 10 = B&C&D
 
-Inoculation 5 graph
+Inoculum 5 graph
 
 ```{r}
 

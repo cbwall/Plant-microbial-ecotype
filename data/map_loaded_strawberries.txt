@@ -1,4 +1,4 @@
-#OTU ID	TimePoint	Type	PlantID	WeightGrams	SampleNotes	Water	Inoculation	Replicate	PlantNotes	SampleType	Sample_or_Control
+#OTU ID	TimePoint	Type	PlantID	WeightGrams	SampleNotes	Water	Inoculum	Replicate	PlantNotes	SampleType	Sample_or_Control
 KSTRAW0016	Control	Shoot		NA	pre-inoc shoots	NA	Initi Ctl	10		pre_inoc	Control
 KSTRAW0815	T1	Root	R01I01W01	0.2675		1	1	1		post_inoc_post_stress	True Sample
 KSTRAW0816	T1	Root	R02I01W01	0.188		1	1	2		post_inoc_post_stress	True Sample

@@ -1,4 +1,4 @@
-"","SampleID","TimePoint","Type","PlantID","WeightGrams","SampleNotes","Water","Inoculation","Replicate","PlantNotes","SampleType","Sample_or_Control"
+"","SampleID","TimePoint","Type","PlantID","WeightGrams","SampleNotes","Water","Inoculum","Replicate","PlantNotes","SampleType","Sample_or_Control"
 "1","KSTRAW1074","T1","Shoot","R08I01W01",0.09991,"","Low","Dry",8,"","post_inoc_post_stress","True Sample"
 "5","KSTRAW1132","T1","Shoot","R10I05W01",0.14424,"*may be sample 10 from inoc 6/water3","Low","Wet",10,"P21","post_inoc_post_stress","True Sample"
 "6","KSTRAW1162","T1","Shoot","R12I01W02",0.01339,"","Moderate","Dry",12,"","post_inoc_post_stress","True Sample"
