@@ -33,7 +33,7 @@ knitr::opts_chunk$set(echo = TRUE)
 if (!require("pacman")) install.packages("pacman") # for rapid install if not in library
 
 # use pacman to load all the packages you are missing!
-pacman::p_load("car", "lme4", "lmerTest", "pbkrtest", "emmeans", "ggplot2", "tidyverse", "dplyr", "labdsv", "grid", "gridExtra", "patchwork", "plyr", "mctoolsr", "vegan", "car", "metacoder", "multcompView", "patchwork", "pairwiseAdonis", "labdsv", "eulerr", "ggthemes", "remotes", "mctoolsr")
+pacman::p_load("car", "lme4", "lmerTest", "pbkrtest", "emmeans", "ggplot2", "tidyverse", "dplyr", "labdsv", "grid", "gridExtra", "patchwork", "plyr", "mctoolsr", "vegan", "car", "metacoder", "multcompView", "patchwork", "pairwiseAdonis", "labdsv", "eulerr", "ggthemes", "remotes", "mctoolsr", "brglm2")
 ```
 
 ### Plant Biomass
@@ -81,7 +81,7 @@ Run models linear models (Type III SS) for *proportion root or shoot biomass*
 * First we will run the linear model as `lm(mass ~ Water*Inoculation)`
 * Then run post-hoc contrasts through `emmeans` (if significant effects observed)
 
-```{r proportion graph p1, fig.show='hide'}
+```{r biomass prop, fig.show='hide'}
 
 shootsonlywithcontrol <- shootsonlywithcontrol %>% 
        dplyr::rename("shoot.mass..g" = "WeightGrams")
@@ -106,17 +106,21 @@ hist(rootshoot_merge$shoot.prop)
 Make a graph of the proportion of root and shoot biomass. *This is FIGURE 1.*
 * For shoots : `shoot biomass (g) / total biomass (g)`
 * For roots : `root biomass (g) / total biomass (g)` 
-```{r proportion graph, width=20}
+
+```{r biomass prop figure, width=20}
 
 #View(rootshoot_merge)
 longer_data <- rootshoot_merge %>%
   pivot_longer(shoot.prop:root.prop, names_to = "Type", values_to = "response")
 
-prop.biomass.Inoc<-ggplot(longer_data,aes(Inoculum,response,fill=Inoculum)) +
+longer_data$Type<-factor(longer_data$Type, levels=c("shoot.prop", "root.prop"))
+
+## figure
+prop.biomass<-ggplot(longer_data, aes(Water, response, fill=Inoculum)) +
   facet_wrap(.~Type)+
   geom_boxplot(outlier.size = 0.7, alpha=0.8)+
   ylab("Proportion of total biomass (g/g)") +
-  scale_fill_brewer(palette="Dark2")+
+  scale_fill_manual(values=c("orangered2", "goldenrod", "darkolivegreen3", "mistyrose2"))+
   theme(
     axis.text = element_text(color='black',size=10),
     axis.title = element_text(color='black',size=12),
@@ -127,25 +131,25 @@ prop.biomass.Inoc<-ggplot(longer_data,aes(Inoculum,response,fill=Inoculum)) +
     panel.grid = element_blank(),
     plot.title=element_text(size=20,face="bold",vjust=2))
 
-prop.biomass.Water<-ggplot(longer_data,aes(Water,response,fill=Water)) +
-  facet_wrap(.~Type)+
-  geom_boxplot(outlier.size = 0.7)+
-  ylab("Proportion of total biomass (g/g)") +
-  scale_fill_manual(values=c("paleturquoise3", "steelblue2", "skyblue4"))+ 
-  theme(
-    axis.text = element_text(color='black',size=10),
-    axis.title = element_text(color='black',size=12),
-    axis.ticks = element_line(color='black'),
-    legend.title = element_text(size=18),
-    panel.background = element_rect(fill=NA,color='black'),
-    legend.key = element_rect(fill=NA),
-    panel.grid = element_blank(),
-    plot.title=element_text(size=20,face="bold",vjust=2))
+#prop.biomass.Water<-ggplot(longer_data,aes(Water,response,fill=Water)) +
+  #facet_wrap(.~Type)+
+  #geom_boxplot(outlier.size = 0.7)+
+  #ylab("Proportion of total biomass (g/g)") +
+  #scale_fill_manual(values=c("paleturquoise3", "steelblue2", "skyblue4"))+ 
+  #theme(
+    #axis.text = element_text(color='black',size=10),
+    #axis.title = element_text(color='black',size=12),
+    #axis.ticks = element_line(color='black'),
+    #legend.title = element_text(size=18),
+    #panel.background = element_rect(fill=NA,color='black'),
+    #legend.key = element_rect(fill=NA),
+    #panel.grid = element_blank(),
+    #plot.title=element_text(size=20,face="bold",vjust=2))
 
-prop.plots<- prop.biomass.Inoc + prop.biomass.Water
+#prop.plots<- prop.biomass.Water + prop.biomass.Inoc
 
-prop.plots
-ggsave("figures/Fig1.prop.biomass.pdf", height=6, width=15)
+prop.biomass
+ggsave("figures/Fig1.prop.biomass.pdf", height=6, width=10)
 
 #ggsave(filename = "mainfigstawberries.pdf",
       #plot = prop.biomass.plot,
@@ -158,139 +162,239 @@ ggsave("figures/Fig1.prop.biomass.pdf", height=6, width=15)
 Run models linear models (Type III SS) for proportion of total biomass as shoots and roots
 * First we will run the linear model as `lm(prop mass ~ Water*Inoculation)`
 * Then run post-hoc contrasts through `emmeans`
-
-**Table S1A. Model and post-hocs for inoculation and water effects on proportion of *root* biomass**  
-* Effect of water inoculation
-```{r prop roots}
+**Table 2A. Model and post-hocs for inoculation and water effects on proportion of *shoot* biomass**  
+* Effect of water and inoculation
+```{r prop shoots}
 ## This is table S1A
+typeIIIModelshootprop<-lm(shoot.prop~Water*Inoculum,data=rootshoot_merge)
+Anova(typeIIIModelshootprop,type=3)
+
+#  posthoc
+shoot.prop<-emmeans(typeIIIModelshootprop,pairwise~Inoculum|Water)
+multcomp::cld(shoot.prop.Wat, Letters=letters)
+```
+
+
+**Table S2B. Model and post-hocs for inoculation and water effects on proportion of *root* biomass**  
+* Effect of water*inoculation
+```{r prop roots}
+## This is table S1B
 root.prop.mod<-lm(root.prop~Water*Inoculum,data=rootshoot_merge)
 Anova(root.prop.mod,type=3)
 
-root.posthoc.Wat<-emmeans(root.prop.mod, pairwise~Water)
-multcomp::cld(root.posthoc.Wat, Letters=letters)
-
-root.posthoc.Inoc<-emmeans(root.prop.mod, ~Inoculum)
-multcomp::cld(root.posthoc.Inoc, Letters=letters)
-
-#posthoc with letters
-multcomp::cld(typeIIIModelrootpropem, Letters=letters)
+# roots: Water posthoc
+root.posthoc<-emmeans(root.prop.mod, ~Inoculum|Water)
+multcomp::cld(root.posthoc, Letters=letters)
 ```
 
-**Table S1B. Model and post-hocs for inoculation and water effects on proportion of *shoot* biomass**  
-* Effect of water and inoculation
-```{r prop shoots}
-## This is table S1B
-typeIIIModelshootprop<-lm(shoot.prop~Water*Inoculum,data=rootshoot_merge)
-Anova(typeIIIModelshootprop,type=3)
-typeIIIModelshootpropem<-emmeans(typeIIIModelshootprop,pairwise~Inoculum|Water)
+### Plant mortality
+```{r mortality import and subset, results='hide',echo=FALSE}
+library(dplyr) # may need to unload-reload if get an error here, plyr and dplyr don't play well
 
-#posthoc with letters
-multcomp::cld(typeIIIModelshootpropem, Letters=letters)
+library(brglm2) # use this (bias-reduced logistic regression) due to complete separation
+# Complete separation occurs in logistic (and binomial, and Poisson) regression when some categories contain 100% failures (or zero counts) or (in the logistic/binomial cases) 100% successes.
+library(brglm2)
+
+mortality.df<-read.csv("data/mortality_data.csv",header=TRUE)
+mortality.df$mort.binary<- ifelse(mortality.df$mortality=="alive", 1, 0) # make binary
+mortality.df<-subset(mortality.df,Inoculum!="2"&Inoculum!="3") # remove other inoculations
+mortality.df$Inoculum=as.factor(mortality.df$Inoculum)
+mortality.df$Water=as.factor(mortality.df$Water)
+
+# full model
+glm.mort.full<-glm(mort.binary ~ Inoculum*Water, family=binomial, data=mortality.df, method=brglmFit)
+summary(glm.mort.full)
+anova(glm.mort.full, test="Chisq") # no effect, but a trend, p=0.07
+
+em.full.mort <- emmeans(glm.mort.full, pairwise~ Inoculum)
+multcomp::cld(em.full.mort, Letters=letters)
 ```
 
+Make a plot of mortality data.
+```{r mortality prop data, results='hide'}
+### final mortality data here
+mortality_prop_data<-mortality.df %>%
+  group_by(Water, Inoculum) %>% 
+  summarize(prop = sum(mortality=="alive") / n())
+
+mortality_prop_data$Water<-factor(mortality_prop_data$Water,
+                                  levels=c("Low","Moderate","High"))
+
+mortality_prop_data$Inoculum<-factor(mortality_prop_data$Inoculum,
+                                        levels=c("Dry","Moderate","Wet","Control"))
+
+### plot it
+mortality<-ggplot(mortality_prop_data,aes(Inoculum,prop,fill=Inoculum, color=Water))+
+  geom_bar(stat="identity", color="black", linewidth=0.3)+
+  facet_wrap(.~Water)+
+  ylab("Proportion Survival") +
+  scale_fill_manual(values=c("orangered2", "goldenrod", "darkolivegreen3", "mistyrose2"))+
+  xlab("Inoculum")+
+  theme(
+    axis.text.x=element_text(color='black',size=8),
+    axis.title = element_text(color='black',size=10),
+    axis.ticks = element_line(color='black'),
+    legend.position = "none",
+    panel.background = element_rect(fill=NA,color='black'),
+    panel.grid = element_blank(),
+    plot.title=element_text(size=20,face="bold",vjust=2))
+
+mortality
+ggsave("figures/mortality.pdf", height=6, width=6)
+
+#ggsave(filename = "mortality.pdf",
+      #plot = mortality,
+      #bg = "transparent",
+      #width = 10, height = 6, units = "in",
+      #dpi = 600)
+
+```
 
 ### Fungal microbiome
 ```{r, message=FALSE, warning=FALSE, results='hide'}
 input <- load_taxa_table("data/ASV_table_postfiltering.txt", "data/map_loaded_strawberries.txt")
+# 538 samples
+
+#remove inoculum that we're not using, 350 samples remaining
+input2 =filter_data(input, 'Inoculum', filter_vals = '2')
+input3 =filter_data(input2, 'Inoculum', filter_vals = '3')
+
+# final data with treatments to be used in analyses
+ASV.data<-input3
+
+otuTAB.all<-ASV.data$data_loaded
+otuTAB.all <- as.data.frame(otuTAB.all)
+otuTAB.transp.all<-t(otuTAB.all)
+```
+
+```{r all sample rarefac, eval=FALSE}
+# can be memory intensive, set to eval false for now
+# make a rarefaction curve of all data
+
+# set to eval =FALSE since can take some time to run
+rarecurve(otuTAB.transp.all, xlab = "Sequencing Depth", col="mediumseagreen", ylab = "ASV count", label = FALSE, xlim=c(0,60000))
+
+dev.copy(pdf, "figures/T1T0.all.depth.pdf", height=5, width=8)
+dev.off() 
 ```
 
 Then let's start with just looking at the basic NMDS plot between the
 inoculations after the stress. Let's do a lot of filtering first.
 
 ```{r, message=FALSE, warning=FALSE, results='hide'}
-#keep only time point1
-inputtimepoint1only = filter_data(input, 'TimePoint', keep_vals = 'T1')
-#remove inoculum that we're not using
-inputstep2 =filter_data(inputtimepoint1only, 'Inoculum', filter_vals = '2')
-inputstep3 =filter_data(inputstep2, 'Inoculum', filter_vals = '3')
-#Let's separate into roots and shoots
-roots_post_stress = filter_data(inputstep3, 'Type', keep_vals = 'Root')
-shoots_post_stress = filter_data(inputstep3, 'Type', keep_vals = 'Shoot')
+# final data with treatments to be used in analyses 'ASV.data'
+
+#keep only time point1, 284 samples
+ASV.T1 = filter_data(ASV.data, 'TimePoint', keep_vals = 'T1')
+
+# all T1 data (post stress, roots and shoot)
+T1.root.shoot<-ASV.T1
+
+otuTAB.T1.root.shoot<-T1.root.shoot$data_loaded
+otuTAB.T1.root.shoot <- as.data.frame (otuTAB.T1.root.shoot)
+otuTAB.transp.t1.root.shoot<-t(otuTAB.T1.root.shoot)
+
 ```
 
-Hellinger Transformation only works after you've filterd the samples you
+
+```{r T1 rarefac, eval=FALSE}
+# set to eval =FALSE since can take some time to run
+
+# make a rarefaction curve of all T1 data
+rarecurve(otuTAB.transp.t1.root.shoot, xlab = "Sequencing Depth", col="mediumseagreen", ylab = "ASV count", label = FALSE, xlim=c(0,60000))
+
+dev.copy(pdf, "figures/T1.leaves_roots.depth.pdf", height=5, width=6)
+dev.off() 
+
+```
+
+Hellinger Transformation only works after you've filtered the samples you
 want (not sure why!). But be sure to filter first and then do the
 transformation
 
 ```{r,results='hide', message=FALSE, warning=FALSE}
 #using pack: labdsv
 
-otuTAB<-roots_post_stress$data_loaded
-otuTAB <- as.data.frame (otuTAB)
-otuTABtranspose<-t(otuTAB)
-hell<-hellinger(otuTABtranspose)
+#Let's separate into roots and shoots for separate dataframes, valuable in analyses later on
+roots_post_stress = filter_data(T1.root.shoot, 'Type', keep_vals = 'Root')
+shoots_post_stress = filter_data(T1.root.shoot, 'Type', keep_vals = 'Shoot')
+
+otuTAB.rootT1<-roots_post_stress$data_loaded
+otuTAB.rootT1 <- as.data.frame (otuTAB.rootT1)
+otuTABtranspose.root.T1<-t(otuTAB.rootT1)
+
+hell.root.T1<-hellinger(otuTABtranspose.root.T1)
 #View(hell)
 
-roots_post_stress$data_loaded<-t(hell)
-otuTAB<-shoots_post_stress$data_loaded
-otuTAB <- as.data.frame (otuTAB)
-otuTABtranspose<-t(otuTAB)
-hell<-hellinger(otuTABtranspose)
+roots_post_stress$data_loaded<-t(hell.root.T1)
+
+otuTAB.shootT1<-shoots_post_stress$data_loaded
+otuTAB.shootT1 <- as.data.frame (otuTAB.shootT1)
+otuTABtranspose.shoot.T1<-t(otuTAB.shootT1)
+hell.shoot.T1<-hellinger(otuTABtranspose.shoot.T1)
 #View(hell)
 
-shoots_post_stress$data_loaded<-t(hell)
+shoots_post_stress$data_loaded<-t(hell.shoot.T1)
 ```
 
 Finally it is NMDS time yay! Permanova first
 
-*Table S2* PERMANOVA testing inoculation sources and water treatment effects on plant-associated fungal microbiomes in root and shoot biomass.
-```{r}
-#roots first
+*Table 3* PERMANOVA testing water treatment and inoculum source effects on plant-associated fungal microbiomes in root and shoot biomass.
+```{r shoot root NMDS}
+
+########### SHOOTS
 #you need to first load the data and make it a data frame. Then transpose the data frame. Add the map loaded too
-otuTAB<-roots_post_stress$data_loaded
-otuTAB <- as.data.frame (otuTAB)
-otuTABtranspose<-t(otuTAB)
-mta<-roots_post_stress$map_loaded
+otuTAB.sh.T1 <- as.data.frame(shoots_post_stress$data_loaded)
+otuTAB.transp.sh.T1<-t(otuTAB.sh.T1)
+mta.sh.T1<-shoots_post_stress$map_loaded
 
 #do as factor
-mta$Water <- as.factor(mta$Water)
-mta$Inoculum <- as.factor(mta$Inoculum)
-
-#make the model
-model1<-adonis2(otuTABtranspose~Water*Inoculum,data=mta,permutations=999,method="bray")
-model1
-
-mtapairwise<-unite(mta,c='water_inoculum',c('Water','Inoculum'),sep='-')
-
-# water pairwise
-pair.mod.water<-pairwise.adonis(otuTABtranspose,
-                          factors=c(mta$Water))
-pair.mod.water
-
-# inoc pairwise
-pair.mod.inoc<-pairwise.adonis(otuTABtranspose,
-                          factors=c(mta$Inoculum))
-pair.mod.inoc
-
-# interaction pairwise
-pair.mod.wat.inoc<-pairwise.adonis(otuTABtranspose,
-                          factors=c(mtapairwise$water_inoculum))
-pair.mod.wat.inoc
-
-
-
-#shoots second
-#you need to first load the data and make it a data frame. Then transpose the data frame. Add the map loaded too
-otuTAB<-shoots_post_stress$data_loaded
-otuTAB <- as.data.frame (otuTAB)
-otuTABtranspose<-t(otuTAB)
-mta<-shoots_post_stress$map_loaded
-
-#do as factor
-mta$Water <- as.factor(mta$Water)
-mta$Inoculum <- as.factor(mta$Inoculum)
+mta.sh.T1$Water <- as.factor(mta.sh.T1$Water)
+mta.sh.T1$Inoculum <- as.factor(mta.sh.T1$Inoculum)
 
 ## using vegan
 #make the model
-model1<-adonis2(otuTABtranspose~Water*Inoculum,data=mta,permutations=999,method="bray")
-model1
+model1.sh.T1<-adonis2(otuTAB.transp.sh.T1~Water*Inoculum,data=mta.sh.T1,permutations=999,method="bray")
+model1.sh.T1
 
-mtapairwise<-unite(mta,c='water_inoculum',c('Water','Inoculum'),sep='-')
+mtapairwise.sh.T1<-unite(mta.sh.T1,c='water_inoculum',c('Water','Inoculum'),sep='-')
 #use pack pairwiseAdonis
 
-pair.mod<-pairwise.adonis(otuTABtranspose,factors=mtapairwise$water_inoculum)
-pair.mod
+pair.mod.sh.T1<-pairwise.adonis(otuTAB.transp.sh.T1,factors=mtapairwise.sh.T1$water_inoculum)
+pair.mod.sh.T1
 
+
+########### ROOTS
+#you need to first load the data and make it a data frame. Then transpose the data frame. Add the map loaded too
+otuTAB.ro.T1 <- as.data.frame (roots_post_stress$data_loaded)
+otuTAB.transp.ro.T1<-t(otuTAB.ro.T1)
+mta.ro.T1<-roots_post_stress$map_loaded
+
+#do as factor
+mta.ro.T1$Water <- as.factor(mta.ro.T1$Water)
+mta.ro.T1$Inoculum <- as.factor(mta.ro.T1$Inoculum)
+
+#make the model
+model1.ro.T1<-adonis2(otuTAB.transp.ro.T1~Water*Inoculum,data=mta.ro.T1,permutations=999,method="bray")
+model1.ro.T1
+
+mtapairwise.ro.T1<-unite(mta.ro.T1,c='water_inoculum',c('Water','Inoculum'),sep='-')
+mtapairwise.ro.T1
+
+# water pairwise
+pair.mod.water.ro.T1<-pairwise.adonis(otuTAB.transp.ro.T1,
+                          factors=c(mta.ro.T1$Water))
+pair.mod.water.ro.T1
+
+# inoc pairwise
+pair.mod.inoc.ro.T1<-pairwise.adonis(otuTAB.transp.ro.T1,
+                          factors=c(mta.ro.T1$Inoculum))
+pair.mod.inoc.ro.T1
+
+# interaction pairwise
+pair.mod.wat.inoc.ro.T1<-pairwise.adonis(otuTAB.transp.ro.T1,
+                          factors=c(mtapairwise.ro.T1$water_inoculum))
+pair.mod.wat.inoc.ro.T1
 ```
 
 Everything is significant including pairwise adonis.
@@ -298,32 +402,49 @@ Everything is significant including pairwise adonis.
 Let's make the plot:
 
 ```{r, results='hide', message=FALSE, warning=FALSE}
-shoot.mds<-metaMDS(t(shoots_post_stress$data_loaded))
-shoot<-scores(shoot.mds)
-data.scoresshoot <- as.data.frame(shoot$sites) 
-data.scoresshoot$Water <- shoots_post_stress$map_loaded$Water
-data.scoresshoot$Inoculum <- shoots_post_stress$map_loaded$Inoculum
+shoot.mds.T1<-metaMDS(t(shoots_post_stress$data_loaded))
+shoot.T1<-scores(shoot.mds.T1)
+shoot.T1.NMDS.df <- as.data.frame(shoot.T1$sites) 
+shoot.T1.NMDS.df$Water <- shoots_post_stress$map_loaded$Water
+shoot.T1.NMDS.df$Inoculum <- shoots_post_stress$map_loaded$Inoculum
 
 
-root.mds<-metaMDS(t(roots_post_stress$data_loaded))
-root<-scores(root.mds)
-data.scoresroot <- as.data.frame(root$sites) 
-data.scoresroot$Water <- roots_post_stress$map_loaded$Water
-data.scoresroot$Inoculum <- roots_post_stress$map_loaded$Inoculum
+root.mds.T1<-metaMDS(t(roots_post_stress$data_loaded))
+root.T1<-scores(root.mds.T1)
+root.T1.NMDS.df <- as.data.frame(root.T1$sites) 
+root.T1.NMDS.df$Water <- as.factor(roots_post_stress$map_loaded$Water)
+root.T1.NMDS.df$Inoculum <- as.factor(roots_post_stress$map_loaded$Inoculum)
 
 ```
 
 *Figure 2. Shoot and Root NMDS at T1*
 ```{r, fig.height=5, fig.width=10, message=FALSE, warning=FALSE}
+# change levels...
+shoot.T1.NMDS.df$Inoculum <- as.factor(shoot.T1.NMDS.df$Inoculum)
+levels(shoot.T1.NMDS.df$Inoculum)<-list(Dry="1", Moderate="4", Wet="5", Control="6")
 
-Shoots.T1.NMDS<-ggplot(data=data.scoresshoot,
-                  aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=factor(Inoculum))) + 
+# change levels...
+shoot.T1.NMDS.df$Water <- as.factor(shoot.T1.NMDS.df$Water)
+levels(shoot.T1.NMDS.df$Water) <- list(Low="1", Moderate="2", High="3")
+
+
+# change levels...
+root.T1.NMDS.df$Inoculum <- as.factor(root.T1.NMDS.df$Inoculum)
+levels(root.T1.NMDS.df$Inoculum)<-list(Dry="1", Moderate="4", Wet="5", Control="6")
+
+# change levels...
+root.T1.NMDS.df$Water <- as.factor(root.T1.NMDS.df$Water)
+levels(root.T1.NMDS.df$Water) <- list(Low="1", Moderate="2", High="3")
+
+# Shoot T1 NMDS plot
+Shoots.T1.NMDS<-ggplot(data=shoot.T1.NMDS.df,
+                  aes(x=NMDS1,y=NMDS2,shape=Water,color=Inoculum)) + 
   scale_color_brewer(palette="Dark2")+
   ggtitle("Shoots T1")+
-  geom_point(data=data.scoresshoot,
-             aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=factor(Inoculum)), alpha=0.8) + 
+  geom_point(data=shoot.T1.NMDS.df,
+             aes(x=NMDS1,y=NMDS2,shape=Water,color=Inoculum), alpha=0.8) + 
   # add the point markers
-  stat_ellipse(data=data.scoresshoot,aes(x=NMDS1,y=NMDS2,lty=factor(Water),color=factor(Inoculum)))+
+  stat_ellipse(data=shoot.T1.NMDS.df,aes(x=NMDS1,y=NMDS2,lty=Water,color=Inoculum))+
   scale_linetype_manual(values=c(1,2,3)) +
    theme(
     axis.text = element_text(color='black',size=10),
@@ -336,13 +457,14 @@ Shoots.T1.NMDS<-ggplot(data=data.scoresshoot,
     plot.title=element_text(size=20,face="bold",vjust=2))
 
 
-Roots.T1.NMDS<-ggplot(data=data.scoresroot,
-                      aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=factor(Inoculum))) + 
+### root T1 NMDS
+Roots.T1.NMDS<-ggplot(data=root.T1.NMDS.df,
+                      aes(x=NMDS1,y=NMDS2,shape=Water,color=Inoculum)) + 
   scale_color_brewer(palette="Dark2")+
-  stat_ellipse(data=data.scoresroot,aes(x=NMDS1,y=NMDS2,lty=factor(Water),color=factor(Inoculum)))+
+  stat_ellipse(data=root.T1.NMDS.df,aes(x=NMDS1,y=NMDS2,lty=Water,color=Inoculum))+
   scale_linetype_manual(values=c(1,2,3)) +
   ggtitle("Roots T1")+
-  geom_point(data=data.scoresroot,
+  geom_point(data=root.T1.NMDS.df,
              aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=factor(Inoculum)), alpha=0.8) + 
   # add the point markers
  theme(
@@ -368,61 +490,75 @@ ggsave("figures/Fig2.Shoot.Root.T1.NMDS.pdf", height=6, width=12)
 
 ```
 
-Refilter time.
+### Shoots T0-T1
+Refilter time. Select only shoots, compare how they change from T0 to T1
 
 ```{r, results='hide'}
 #Let's view the original input map first
 #View(input$map_loaded)
 #Start by removing all roots. We can only do a time one with shoots
-inputshootsonly = filter_data(input, 'Type', keep_vals = 'Shoot')
-inputshootsonlyminus2 =filter_data(inputshootsonly, 'Inoculum', filter_vals = '2')
-inputshootsonlyminus3 =filter_data(inputshootsonlyminus2, 'Inoculum', filter_vals = '3')
-finalNMDSmovement = filter_data(inputshootsonlyminus3, 'TimePoint', filter_vals = 'Control')
+
+# final data with treatments to be used in analyses 'ASV.data'
+
+inputshootsonly = filter_data(ASV.data, 'Type', keep_vals = 'Shoot') 
+shoot.T0T1 = filter_data(inputshootsonly, 'TimePoint', filter_vals = 'Control') # 203 samples
 ```
 
 Then, let's set up the data for the NMDS plot:
 
 ```{r, results='hide', message=FALSE, warning=FALSE}
-#View(finalNMDSmovement$map_loaded)
-time.mds<-metaMDS(t(finalNMDSmovement$data_loaded))
-data.time <- as.data.frame(scores(time.mds)$sites) 
-data.time$Water <- finalNMDSmovement$map_loaded$Water
-data.time$Inoculum <- finalNMDSmovement$map_loaded$Inoculum
-data.time$TimePoint <- finalNMDSmovement$map_loaded$TimePoint
-data.time$PlantID <- finalNMDSmovement$map_loaded$PlantID
-#envfit
-finalNMDSmovement$map_loaded<-subset(finalNMDSmovement$map_loaded, select = -c(WeightGrams,SampleNotes, PlantNotes))
-finalNMDSmovement$map_loaded$Water<-as.factor(finalNMDSmovement$map_loaded$Water)
-finalNMDSmovement$map_loaded$Inoculum<-as.factor(finalNMDSmovement$map_loaded$Inoculum)
-finalNMDSmovement$map_loaded$TimeWater <- paste(finalNMDSmovement$map_loaded$TimePoint,finalNMDSmovement$map_loaded$Water)
-finalNMDSmovement$map_loaded$TimeInoculum <- paste(finalNMDSmovement$map_loaded$TimePoint,finalNMDSmovement$map_loaded$Inoculum)
+#View(shoot.T0T1$map_loaded)
+shoot.T0T1.mds<-metaMDS(t(shoot.T0T1$data_loaded))
+shoot.T0T1.NMDS.df <- as.data.frame(scores(shoot.T0T1.mds)$sites) 
+shoot.T0T1.NMDS.df$Water <- as.factor(shoot.T0T1$map_loaded$Water)
+shoot.T0T1.NMDS.df$Inoculum <- as.factor(shoot.T0T1$map_loaded$Inoculum)
+shoot.T0T1.NMDS.df$TimePoint <- as.factor(shoot.T0T1$map_loaded$TimePoint)
+shoot.T0T1.NMDS.df$PlantID <- shoot.T0T1$map_loaded$PlantID
 
-waterfinalvf <- envfit(time.mds~TimeWater, data=finalNMDSmovement$map_loaded, perm = 999)
+#envfit
+shoot.T0T1$map_loaded<-subset(shoot.T0T1$map_loaded, select = -c(WeightGrams,SampleNotes, PlantNotes))
+shoot.T0T1$map_loaded$Water<-as.factor(shoot.T0T1$map_loaded$Water)
+shoot.T0T1$map_loaded$Inoculum<-as.factor(shoot.T0T1$map_loaded$Inoculum)
+shoot.T0T1$map_loaded$TimeWater <- paste(shoot.T0T1$map_loaded$TimePoint,shoot.T0T1$map_loaded$Water)
+shoot.T0T1$map_loaded$TimeInoculum <- paste(shoot.T0T1$map_loaded$TimePoint,shoot.T0T1$map_loaded$Inoculum)
+
+waterfinalvf <- envfit(shoot.T0T1.mds~TimeWater, data=shoot.T0T1$map_loaded, perm = 999)
 water.scrs.final <- as.data.frame(scores(waterfinalvf, display = "factors"))
 
-inocfinalvf <- envfit(time.mds~TimeInoculum, data=finalNMDSmovement$map_loaded, perm = 999)
+inocfinalvf <- envfit(shoot.T0T1.mds~TimeInoculum, data=shoot.T0T1$map_loaded, perm = 999)
 inoc.scrs.final <- as.data.frame(scores(inocfinalvf, display = "factors"))
+
+
+# change levels...
+shoot.T0T1.NMDS.df$Inoculum <- as.factor(shoot.T0T1.NMDS.df$Inoculum)
+levels(shoot.T0T1.NMDS.df$Inoculum)<-list(Dry="1", Moderate="4", Wet="5", Control="6")
+
+# change levels...
+shoot.T0T1.NMDS.df$Water <- as.factor(shoot.T0T1.NMDS.df$Water)
+levels(shoot.T0T1.NMDS.df$Water) <- list(Low="1", Moderate="2", High="3")
+
 ```
 
 ```{r fig.height=5, fig.width=10}
-NMDS1.mean.data.time<-aggregate(NMDS1~ Water*TimePoint, data=data.time, FUN=mean)
-NMDS2.mean.data.time<-aggregate(NMDS2~ Water*TimePoint, data=data.time, FUN=mean)
-centroid.data.time<-as.data.frame(cbind(NMDS1.mean.data.time, NMDS2.mean.data.time[3]))
+NMDS1.mean.shoot.T0T1.df<-aggregate(NMDS1~ Water*TimePoint, data=shoot.T0T1.NMDS.df, FUN=mean)
+NMDS2.mean.shoot.T0T1.df<-aggregate(NMDS2~ Water*TimePoint, data=shoot.T0T1.NMDS.df, FUN=mean)
+centroid.shoot.T0T1.df<-as.data.frame(cbind(NMDS1.mean.shoot.T0T1.df, NMDS2.mean.shoot.T0T1.df[3]))
 
 
-timewater<-ggplot(data=data.time,
-                  aes(x=NMDS1,y=NMDS2,color=factor(Water),shape=factor(TimePoint)), alpha=0.8) + 
+timewater<-ggplot(data=shoot.T0T1.NMDS.df,
+                  aes(x=NMDS1,y=NMDS2,color=Water,shape=TimePoint), alpha=0.8) + 
   ggtitle("Water Treatment")+
   scale_color_manual(values=c("paleturquoise3", "steelblue2", "skyblue4"))+
-  geom_point(data=data.time,aes(x=NMDS1,y=NMDS2,color=factor(Water),shape=factor(TimePoint))) +
-  geom_segment(aes(x = centroid.data.time[1,3], xend = centroid.data.time[4,3], 
-                   y = centroid.data.time[1,4], yend = centroid.data.time[4,4]),
+  geom_point(data=shoot.T0T1.NMDS.df,aes(x=NMDS1,y=NMDS2,color=Water,
+                                         shape=TimePoint)) +
+  geom_segment(aes(x = centroid.shoot.T0T1.df[1,3], xend = centroid.shoot.T0T1.df[4,3], 
+                   y = centroid.shoot.T0T1.df[1,4], yend = centroid.shoot.T0T1.df[4,4]),
                arrow = arrow(length = unit(0.25, "cm")), colour = "paleturquoise3") +
-  geom_segment(aes(x = centroid.data.time[2,3], xend = centroid.data.time[5,3], 
-                   y = centroid.data.time[2,4], yend = centroid.data.time[5,4]),
+  geom_segment(aes(x = centroid.shoot.T0T1.df[2,3], xend = centroid.shoot.T0T1.df[5,3], 
+                   y = centroid.shoot.T0T1.df[2,4], yend = centroid.shoot.T0T1.df[5,4]),
                arrow = arrow(length = unit(0.25, "cm")), colour = "steelblue2") +
-  geom_segment(aes(x = centroid.data.time[3,3], xend = centroid.data.time[6,3], 
-                   y = centroid.data.time[3,4], yend = centroid.data.time[6,4]),
+  geom_segment(aes(x = centroid.shoot.T0T1.df[3,3], xend = centroid.shoot.T0T1.df[6,3], 
+                   y = centroid.shoot.T0T1.df[3,4], yend = centroid.shoot.T0T1.df[6,4]),
                arrow = arrow(length = unit(0.25, "cm")), colour = "skyblue4") +
  
   theme(
@@ -436,16 +572,16 @@ timewater<-ggplot(data=data.time,
     plot.title=element_text(size=20,face="bold",vjust=2))
 
 ####
-NMDS1.mean.data.inoc<-aggregate(NMDS1~ Inoculum*TimePoint, data=data.time, FUN=mean)
-NMDS2.mean.data.inoc<-aggregate(NMDS2~ Inoculum*TimePoint, data=data.time, FUN=mean)
+NMDS1.mean.data.inoc<-aggregate(NMDS1~ Inoculum*TimePoint, data=shoot.T0T1.NMDS.df, FUN=mean)
+NMDS2.mean.data.inoc<-aggregate(NMDS2~ Inoculum*TimePoint, data=shoot.T0T1.NMDS.df, FUN=mean)
 centroid.data.inoc<-as.data.frame(cbind(NMDS1.mean.data.inoc, NMDS2.mean.data.inoc[3]))
 
 
-timeinoculation<-ggplot(data=data.time,
-                        aes(x=NMDS1,y=NMDS2,color=factor(Inoculum),shape=factor(TimePoint))) + 
+timeinoculation<-ggplot(data=shoot.T0T1.NMDS.df,
+                        aes(x=NMDS1,y=NMDS2,color=Inoculum,shape=TimePoint)) + 
   scale_color_brewer(palette="Dark2")+ 
   ggtitle("Inoculum")+
-  geom_point(data=data.time,aes(x=NMDS1,y=NMDS2,color=factor(Inoculum),shape=factor(TimePoint)), alpha=0.8) + # add the point markers
+  geom_point(data=shoot.T0T1.NMDS.df,aes(x=NMDS1,y=NMDS2,color=Inoculum,shape=TimePoint), alpha=0.8) + # add the point markers
   geom_segment(aes(x = centroid.data.inoc[1,3], xend = centroid.data.inoc[5,3], 
                    y = centroid.data.inoc[1,4], yend = centroid.data.inoc[5,4])
                ,arrow = arrow(length = unit(0.25, "cm")), colour = "#1B9E77") +
@@ -489,56 +625,71 @@ Let's see if these are significant:
 ```{r}
 #shoots first
 #you need to first load the data and make it a data frame. Then transpose the data frame. Add the map loaded too
-otuTAB<-finalNMDSmovement$data_loaded
-otuTAB <- as.data.frame (otuTAB)
-otuTABtranspose<-t(otuTAB)
-mta<-finalNMDSmovement$map_loaded
+otuTAB.sh.T0T1 <- as.data.frame (shoot.T0T1$data_loaded)
+otuTAB.transp.sh.T0T1<-t(otuTAB.sh.T0T1)
+mta.sh.T0T1<-shoot.T0T1$map_loaded
+
 #do as factor
-mta$Water <- as.factor(mta$Water)
-mta$Inoculum <- as.factor(mta$Inoculum)
-mta$TimePoint <- as.factor(mta$TimePoint)
+mta.sh.T0T1$Water <- as.factor(mta.sh.T0T1$Water)
+mta.sh.T0T1$Inoculum <- as.factor(mta.sh.T0T1$Inoculum)
+mta.sh.T0T1$TimePoint <- as.factor(mta.sh.T0T1$TimePoint)
 
 #make the model
-model1<-adonis2(otuTABtranspose~Water*TimePoint,data=mta,permutations=999,method="bray")
-model1
-model3<-adonis2(otuTABtranspose~Water*TimePoint,data=mta,permutations=999,method="jaccard")
-model3
+model1.sh.T0T1<-adonis2(otuTAB.transp.sh.T0T1~Water*TimePoint,data=mta.sh.T0T1,
+                permutations=999,method="bray")
+model1.sh.T0T1
 
-model2<-adonis2(otuTABtranspose~Inoculum*TimePoint,data=mta,permutations=999,method="bray")
-model2
-model4<-adonis2(otuTABtranspose~Inoculum*TimePoint,data=mta,permutations=999,method="jaccard")
-model4
+model3.sh.T0T1<-adonis2(otuTAB.transp.sh.T0T1~Water*TimePoint,data=mta.sh.T0T1,
+                permutations=999,method="jaccard")
+model3.sh.T0T1
+
+model2.sh.T0T1<-adonis2(otuTAB.transp.sh.T0T1~Inoculum*TimePoint,data=mta.sh.T0T1,
+                permutations=999,method="bray")
+model2.sh.T0T1
+
+model4.sh.T0T1<-adonis2(otuTAB.transp.sh.T0T1~Inoculum*TimePoint,data=mta.sh.T0T1,
+                permutations=999,method="jaccard")
+model4.sh.T0T1
 ```
 
 Let's look at T0 only
 ```{r, results='hide',echo=FALSE}
 #Let's view the original input map first
 #View(input$map_loaded)
-#Start by removing all roots. We can only do a time one with shoots
-inputshootsonly = filter_data(input, 'Type', keep_vals = 'Shoot')
-inputshootsonlyminus2 =filter_data(inputshootsonly, 'Inoculum', filter_vals = '2')
-inputshootsonlyminus3 =filter_data(inputshootsonlyminus2, 'Inoculum', filter_vals = '3')
-finalNMDSmovement = filter_data(inputshootsonlyminus3, 'TimePoint', keep_vals = 'T0')
+
+# final data with treatments to be used in analyses 'ASV.data'
+
+#keep only time point0, 62 samples
+ASV.T0 = filter_data(ASV.data, 'TimePoint', keep_vals = 'T0')
+
+# all T0 data (post stress, roots and shoot)
+shoot.T0<-ASV.T0
+
+# make a rarefaction curve of all T1 data
+otuTAB.T0.shoot <- as.data.frame (T0.shoot$data_loaded)
+otuTAB.transp.T0.shoot<-t(otuTAB.T0.shoot)
+
 ```
 
-```{r,results='hide', message=FALSE, warning=FALSE, echo=FALSE}
-#use package labdsv
-otuTAB<-finalNMDSmovement$data_loaded
-otuTAB <- as.data.frame (otuTAB)
-otuTABtranspose<-t(otuTAB)
-hell<-hellinger(otuTABtranspose)
+```{r T0 rarefac, eval=FALSE}
+# make a rarefaction curve of all T0 leaf data
+rarecurve(otuTAB.transp.t0.shoot, xlab = "Sequencing Depth", col="mediumseagreen", ylab = "ASV count", label = FALSE, xlim=c(0,20000))
 
-#View(hell)
-finalNMDSmovement$data_loaded<-t(hell)
+dev.copy(pdf, "figures/T0.leaves.depth.pdf", height=5, width=6)
+dev.off() 
 ```
 
 ```{r, results='hide',echo=FALSE}
-time.mds<-metaMDS(t(finalNMDSmovement$data_loaded))
-data.time <- as.data.frame(scores(time.mds)$sites) 
-data.time$Water <- finalNMDSmovement$map_loaded$Water
-data.time$Inoculum <- finalNMDSmovement$map_loaded$Inoculum
-data.time$Water<-as.factor(data.time$Water)
-data.time$Inoculum<-as.factor(data.time$Inoculum)
+### transform
+hell.T0<-hellinger(otuTAB.transp.T0.shoot)
+
+#View(hell)
+shoot.T0$data_loaded<-t(hell.T0)
+
+shoot.T0.mds<-metaMDS(t(shoot.T0$data_loaded))
+shoot.T0.NMDS.df <- as.data.frame(scores(shoot.T0.mds)$sites) 
+shoot.T0.NMDS.df$Water <- as.factor(shoot.T0$map_loaded$Water)
+shoot.T0.NMDS.df$Inoculum <- as.factor(shoot.T0$map_loaded$Inoculum)
 ```
 
 #### T0 Graph Only
@@ -547,12 +698,21 @@ Shoot fungal microbiomes prior to the start of water stress
 *Figure S1: shoots T0 NMDS*
 ```{r, message=FALSE, warning=FALSE}
 
-Shoots.T0.NMDS<-ggplot(data=data.time,aes(x=NMDS1,y=NMDS2,color=factor(Inoculum))) + 
-  ggtitle("T0 Shoots")+
+# change levels...
+shoot.T0.NMDS.df$Inoculum <- as.factor(shoot.T0.NMDS.df$Inoculum)
+levels(shoot.T0.NMDS.df$Inoculum)<-list(Dry="1", Moderate="4", Wet="5", Control="6")
+
+# change levels...
+shoot.T0.NMDS.df$Water <- as.factor(shoot.T0.NMDS.df$Water)
+levels(shoot.T0.NMDS.df$Water) <- list(Low="1", Moderate="2", High="3")
+
+# make the NMDS plot
+
+Shoots.T0.NMDS<-ggplot(data=shoot.T0.NMDS.df,aes(x=NMDS1,y=NMDS2,color=Inoculum)) + 
   scale_color_brewer(palette="Dark2")+
-  geom_point(data=data.time,
-             aes(x=NMDS1,y=NMDS2,shape=factor(Water),color=factor(Inoculum)), alpha=0.8) + 
-  stat_ellipse(data=data.time,aes(x=NMDS1,y=NMDS2,color=factor(Inoculum)))+
+  geom_point(data=shoot.T0.NMDS.df,
+             aes(x=NMDS1,y=NMDS2,color=Inoculum), alpha=0.8) + 
+  stat_ellipse(data=shoot.T0.NMDS.df,aes(x=NMDS1,y=NMDS2,color=Inoculum))+
   theme(
     axis.text = element_text(color='black',size=10),
     axis.title = element_text(color='black',size=12),
@@ -560,12 +720,10 @@ Shoots.T0.NMDS<-ggplot(data=data.time,aes(x=NMDS1,y=NMDS2,color=factor(Inoculum)
     legend.title = element_text(size=8),
     panel.background = element_rect(fill=NA,color='black'),
     panel.grid = element_blank(),
-    
     plot.title=element_text(size=20,face="bold",vjust=2))
 
 Shoots.T0.NMDS
 ggsave("figures/FigS1.Shoots.T0.NMDS.pdf", height=6, width=8)
-
 
 ```
 
@@ -574,25 +732,23 @@ ggsave("figures/FigS1.Shoots.T0.NMDS.pdf", height=6, width=8)
 library(vegan)
 
 #make the model
-otuTAB<-finalNMDSmovement$data_loaded
-otuTAB <- as.data.frame (otuTAB)
+otuTAB <- as.data.frame (ASV.T0$data_loaded)
 otuTABtranspose<-t(otuTAB)
-mta<-finalNMDSmovement$map_loaded
-#do as factor
-mta$Water <- as.factor(mta$Water)
-mta$Inoculum <- as.factor(mta$Inoculum)
+mta.sh.T0<-ASV.T0$map_loaded
+
+#do as factor, no water treatment at T0
+mta.sh.T0$Inoculum <- as.factor(mta.sh.T0$Inoculum)
 
 set.seed(138)
-model1<-adonis2(otuTABtranspose~Water*Inoculum,data=mta,permutations=999,method="bray")
-model1
+model.sh.T0<-adonis2(otuTABtranspose~Inoculum,data=mta.sh.T0,permutations=999,method="bray")
+model.sh.T0
 ```
 
 re-filter
 ```{r, results='hide',echo=FALSE}
-inputshootsonly = filter_data(input, 'Type', keep_vals = 'Shoot')
-inputshootsonlyminus2 =filter_data(inputshootsonly, 'Inoculum', filter_vals = '2')
-inputshootsonlyminus3 =filter_data(inputshootsonlyminus2, 'Inoculum', filter_vals = '3')
-inocNMDSmovement = filter_data(inputshootsonlyminus3, 'TimePoint', filter_vals = 'Control')
+inputshootsonly = filter_data(ASV.data, 'Type', keep_vals = 'Shoot') 
+
+inocNMDSmovement = filter_data(inputshootsonly, 'TimePoint', filter_vals = 'Control')
 inoc1NMDSmovement =filter_data(inocNMDSmovement, 'Inoculum', keep_vals = '1')
 inoc4NMDSmovement =filter_data(inocNMDSmovement, 'Inoculum', keep_vals = '4')
 inoc5NMDSmovement =filter_data(inocNMDSmovement, 'Inoculum', keep_vals = '5')
@@ -682,15 +838,27 @@ make.fac<-c("Water", "Inoculum", "TimePoint")
 all.NMDS.inoc[make.fac] <- lapply(all.NMDS.inoc[make.fac], factor) # make all these factors
 all.NMDS.inoc$TimePoint<-factor(all.NMDS.inoc$TimePoint, levels=c("T0", "T1"))
 
+
+# change levels...
+all.NMDS.inoc$Inoculum <- as.factor(all.NMDS.inoc$Inoculum)
+levels(all.NMDS.inoc$Inoculum)<-list(Dry="1", Moderate="4", Wet="5", Control="6")
+
+# change levels...
+all.NMDS.inoc$Water <- as.factor(all.NMDS.inoc$Water)
+levels(all.NMDS.inoc$Water) <- list(Low="1", Moderate="2", High="3")
+
+
 # make new level
-all.NMDS.inoc$Water.TO.T1<-as.factor(ifelse(
-              all.NMDS.inoc$TimePoint=="T1" & all.NMDS.inoc$Water=="1", "1",
-                ifelse(all.NMDS.inoc$TimePoint=="T1" & all.NMDS.inoc$Water=="2", "2",
-                  ifelse(all.NMDS.inoc$TimePoint=="T1" & all.NMDS.inoc$Water=="3", "3",
-                    ifelse(all.NMDS.inoc$TimePoint=="T0" & all.NMDS.inoc$Water=="1", "0",
-                      ifelse(all.NMDS.inoc$TimePoint=="T0" & all.NMDS.inoc$Water=="2", "0", "0"))))))
+all.NMDS.inoc$Water.T0.T1<-as.factor(ifelse(
+              all.NMDS.inoc$TimePoint=="T1" & all.NMDS.inoc$Water=="Low", "Low",
+                ifelse(all.NMDS.inoc$TimePoint=="T1" & all.NMDS.inoc$Water=="Moderate", "Moderate",
+                  ifelse(all.NMDS.inoc$TimePoint=="T1" & all.NMDS.inoc$Water=="High", "High",
+                    ifelse(all.NMDS.inoc$TimePoint=="T0" & all.NMDS.inoc$Water=="Low", "T0",
+              ifelse(all.NMDS.inoc$TimePoint=="T0" & all.NMDS.inoc$Water=="Moderate", "T0", "T0"))))))
 
 
+all.NMDS.inoc$Water.T0.T1 <- factor(all.NMDS.inoc$Water.T0.T1, levels=c("T0", "Low", "Moderate", "High"))
+                                       
 ####### Inoculum 1 centroids
 NMDS1.mean.inoc1<-aggregate(NMDS1~ Water*TimePoint, data=data.scoresinoc1, FUN=mean)
 NMDS2.mean.inoc1<-aggregate(NMDS2~ Water*TimePoint, data=data.scoresinoc1, FUN=mean)
@@ -704,11 +872,11 @@ NMDS2.W0.inoc1<-aggregate(NMDS2~ TimePoint, data=data.scoresinoc1, FUN=mean)
 centroid.W0.inoc1<-as.data.frame(cbind(NMDS1.W0.inoc1, NMDS2.W0.inoc1[2]))
 
 # plot
-inoc1.trajectory<-ggplot(subset(all.NMDS.inoc, Inoculum %in% "1"),
-                         aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water))) + 
-  ggtitle("Inoculum 1")+
-  geom_point(aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water))) +
-  stat_ellipse(aes(x=NMDS1,y=NMDS2,color=factor(Water.TO.T1),linetype=factor(TimePoint)))+
+inoc1.trajectory<-ggplot(subset(all.NMDS.inoc, Inoculum %in% "Dry"),
+                         aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water.T0.T1))) + 
+  ggtitle("Dry Inoculum")+
+  geom_point(aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water.T0.T1))) +
+  stat_ellipse(aes(x=NMDS1,y=NMDS2,color=factor(Water.T0.T1),linetype=factor(TimePoint)))+
   scale_color_manual(values=c("black", "paleturquoise3", "steelblue2", "skyblue4"))+
   scale_linetype_manual(values=c(2,1))+
   geom_segment(aes(x = centroid.W0.inoc1[1,2], xend = centroid.inoc1[4,3], 
@@ -728,7 +896,7 @@ inoc1.trajectory<-ggplot(subset(all.NMDS.inoc, Inoculum %in% "1"),
     plot.title=element_text(size=20,face="bold",vjust=2))
 ###
 
-####### Inoculum 4
+####### Moderate 4
 NMDS1.mean.inoc4<-aggregate(NMDS1~ Water*TimePoint, data=data.scoresinoc4, FUN=mean)
 NMDS2.mean.inoc4<-aggregate(NMDS2~ Water*TimePoint, data=data.scoresinoc4, FUN=mean)
 centroid.inoc4<-as.data.frame(cbind(NMDS1.mean.inoc4, NMDS2.mean.inoc4[3]))
@@ -741,11 +909,11 @@ NMDS2.W0.inoc4<-aggregate(NMDS2~ TimePoint, data=data.scoresinoc4, FUN=mean)
 centroid.W0.inoc4<-as.data.frame(cbind(NMDS1.W0.inoc4, NMDS2.W0.inoc4[2]))
 
 #plot
-inoc4.trajectory<-ggplot(subset(all.NMDS.inoc, Inoculum %in% "4"),
-                         aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water))) + 
-  ggtitle("Inoculum 4")+
-  geom_point(aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water))) + 
-  stat_ellipse(aes(x=NMDS1,y=NMDS2,color=factor(Water.TO.T1),linetype=factor(TimePoint)))+
+inoc4.trajectory<-ggplot(subset(all.NMDS.inoc, Inoculum %in% "Moderate"),
+                         aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water.T0.T1))) + 
+  ggtitle("Moderate Inoculum")+
+  geom_point(aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water.T0.T1))) + 
+  stat_ellipse(aes(x=NMDS1,y=NMDS2,color=factor(Water.T0.T1),linetype=factor(TimePoint)))+
   scale_color_manual(values=c("black", "paleturquoise3", "steelblue2", "skyblue4"))+ 
   scale_linetype_manual(values=c(2,1))+
   geom_segment(aes(x = centroid.W0.inoc4[1,2], xend = centroid.inoc4[4,3], 
@@ -780,11 +948,11 @@ NMDS2.W0.inoc5<-aggregate(NMDS2~ TimePoint, data=data.scoresinoc5, FUN=mean)
 centroid.W0.inoc5<-as.data.frame(cbind(NMDS1.W0.inoc5, NMDS2.W0.inoc5[2]))
 
 # plot
-inoc5.trajectory<-ggplot(subset(all.NMDS.inoc, Inoculum %in% "5"),
-                         aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water))) + 
-  ggtitle("Inoculum 5")+
-  geom_point(aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water))) + 
-  stat_ellipse(aes(x=NMDS1,y=NMDS2,color=factor(Water.TO.T1),linetype=factor(TimePoint)))+
+inoc5.trajectory<-ggplot(subset(all.NMDS.inoc, Inoculum %in% "Wet"),
+                         aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water.T0.T1))) + 
+  ggtitle("Wet Inoculum")+
+  geom_point(aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water.T0.T1))) + 
+  stat_ellipse(aes(x=NMDS1,y=NMDS2,color=factor(Water.T0.T1),linetype=factor(TimePoint)))+
   scale_color_manual(values=c("black", "paleturquoise3", "steelblue2", "skyblue4"))+ 
   scale_linetype_manual(values=c(2,1))+
   geom_segment(aes(x = centroid.W0.inoc5[1,2], xend = centroid.inoc5[4,3], 
@@ -819,11 +987,11 @@ NMDS2.W0.inoc6<-aggregate(NMDS2~ TimePoint, data=data.scoresinoc6, FUN=mean)
 centroid.W0.inoc6<-as.data.frame(cbind(NMDS1.W0.inoc6, NMDS2.W0.inoc6[2]))
 
 # plot
-inoc6.trajectory<-ggplot(subset(all.NMDS.inoc, Inoculum %in% "6"),
-                         aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water))) + 
-  ggtitle("Inoculum 6")+
-  geom_point(aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water))) + 
-  stat_ellipse(aes(x=NMDS1,y=NMDS2,color=factor(Water.TO.T1),linetype=factor(TimePoint)))+
+inoc6.trajectory<-ggplot(subset(all.NMDS.inoc, Inoculum %in% "Control"),
+                         aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water.T0.T1))) + 
+  ggtitle("Control")+
+  geom_point(aes(x=NMDS1,y=NMDS2,shape=factor(TimePoint),color=factor(Water.T0.T1))) + 
+  stat_ellipse(aes(x=NMDS1,y=NMDS2,color=factor(Water.T0.T1),linetype=factor(TimePoint)))+
   scale_color_manual(values=c("black", "paleturquoise3", "steelblue2", "skyblue4"))+ 
   scale_linetype_manual(values=c(2,1))+
   geom_segment(aes(x = centroid.W0.inoc6[1,2], xend = centroid.inoc6[4,3], 
