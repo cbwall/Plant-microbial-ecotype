@@ -33,7 +33,7 @@ knitr::opts_chunk$set(echo = TRUE)
 if (!require("pacman")) install.packages("pacman") # for rapid install if not in library
 
 # use pacman to load all the packages you are missing!
-pacman::p_load("car", "lme4", "lmerTest", "pbkrtest", "emmeans", "ggplot2", "tidyverse", "dplyr", "labdsv", "grid", "gridExtra", "patchwork", "plyr", "mctoolsr", "vegan", "car", "metacoder", "multcompView", "patchwork", "pairwiseAdonis", "labdsv", "eulerr", "ggthemes", "remotes", "mctoolsr", "brglm2")
+pacman::p_load("car", "lme4", "lmerTest", "pbkrtest", "emmeans", "ggplot2", "tidyverse", "dplyr", "labdsv", "grid", "gridExtra", "patchwork", "plyr", "mctoolsr", "vegan", "car", "metacoder", "multcompView", "patchwork", "pairwiseAdonis", "labdsv", "eulerr", "ggthemes", "remotes", "mctoolsr", "brglm2", "cowplot", "microbiome", "mia")
 ```
 
 ### Plant Biomass
@@ -150,7 +150,7 @@ Anova(typeIIIModelshootprop,type=3)
 
 #  posthoc
 shoot.prop<-emmeans(typeIIIModelshootprop,pairwise~Inoculum|Water)
-multcomp::cld(shoot.prop.Wat, Letters=letters)
+multcomp::cld(shoot.prop, Letters=letters)
 ```
 
 
@@ -250,6 +250,86 @@ ASV.data = filter_data(ASV.data, 'TimePoint', filter_vals = 'Control') # remove 
 otuTAB.all<-ASV.data$data_loaded
 otuTAB.all <- as.data.frame(otuTAB.all)
 otuTAB.transp.all<-t(otuTAB.all)
+```
+
+```{r phyloseq comparison}
+# input.files, note that controls and slurry 2 and 3 would still be here
+ASV.table<-read.delim("data/ASV_table_postfiltering.txt")
+colnames(ASV.table)[colnames(ASV.table)=="X.OTU.ID"]<-"OTU.ID"
+
+# adjust for rownames = OTU/ASVs
+ASV.table <- ASV.table %>%
+    tibble::column_to_rownames("OTU.ID") 
+
+# remove taxonomy here for OTU table
+ASV.table.edit<-within(ASV.table, rm(taxonomy))
+OTU = otu_table(ASV.table.edit, taxa_are_rows = TRUE)
+
+#### buildtaxonomy...
+taxon<-as.data.frame(ASV.table$taxonomy)
+rownames(taxon)<-rownames(ASV.table)
+colnames(taxon)[colnames(taxon)=="ASV.table$taxonomy"]<-"taxonomy"
+
+taxon.df<-tidyr::separate(taxon, taxonomy, into = c("Domain", "Phylum", "Class", "Order", "Family", "Genus", "Species"), sep = ";", fill = "right", extra = "drop")
+
+# remove labels on names
+taxon.df$Domain <- gsub('[k__]','',taxon.df$Domain)
+taxon.df$Phylum <- gsub('[p__]','',taxon.df$Phylum)
+taxon.df$Class <- gsub('[c__]','',taxon.df$Class)
+taxon.df$Genus <- gsub('[g__]','',taxon.df$Genus)
+taxon.df$Species <- gsub('[s__]','',taxon.df$Species)
+
+taxon.mat<-as.matrix(taxon.df)
+TAX<-tax_table(taxon.mat)
+
+#### load in samples
+samples_df<-read.delim("data/map_loaded_strawberries.txt")
+colnames(samples_df)[colnames(samples_df)=="X.OTU.ID"]<-"OTU.ID"
+
+samples_df$Water<- dplyr::recode_factor(samples_df$Water,
+                "1" = "Low",
+                "2" = "Moderate",
+                "3" = "High",
+                "NA"= "NA")
+
+samples_df$Inoculum<- dplyr::recode_factor(samples_df$Inoculum,
+                "1" = "Dry",
+                "4" = "Moderate",
+                "5" = "Wet",
+                "6"= "Control")
+
+samples_df$Trt<-interaction(samples_df$Water, samples_df$Inoculum)
+
+# adjust for rownames = OTU/ASVs
+samples_df <- samples_df %>%
+    tibble::column_to_rownames("OTU.ID") 
+
+# make phyloseq data
+samples_data<-sample_data(samples_df)
+
+### final objects
+#TAX
+#OTU
+#samples_data
+
+# phloseq merged
+phy.straw<-phyloseq(OTU, TAX,samples_data)
+
+#drop control samples
+phy.straw.nocontrol = subset_samples(phy.straw, TimePoint != "Control") #534 samples
+
+#drop inoc 2 and 3
+phy.straw.drop.inoc = subset_samples(phy.straw.nocontrol, 
+                                     Inoculum != "2" & Inoculum != "3") # 346 samples
+
+#prune 0 counts
+phy.straw.drop.inoc<-prune_taxa(taxa_sums(phy.straw.drop.inoc)> 0, phy.straw.drop.inoc)
+# 346 samples, 1327 taxa/ASVs
+
+write_phyloseq(phy.straw.drop.inoc, "output/phyloseq/")
+
+#phy.straw.sh = subset_samples(phy.straw.drop.inoc, Type == "Shoot") #203 samples
+#phy.straw.rt = subset_samples(phy.straw.drop.inoc, Type == "Root") #143 samples
 ```
 
 ```{r all sample rarefac, eval=FALSE}
@@ -867,7 +947,7 @@ ASV.T0 = filter_data(ASV.data, 'TimePoint', keep_vals = 'T0')
 shoot.T0<-ASV.T0
 
 # make a rarefaction curve of all T1 data
-otuTAB.T0.shoot <- as.data.frame (T0.shoot$data_loaded)
+otuTAB.T0.shoot <- as.data.frame (shoot.T0$data_loaded)
 otuTAB.transp.T0.shoot<-t(otuTAB.T0.shoot)
 
 ```
@@ -1235,7 +1315,7 @@ ggsave("figures/Fig3.T0T1.vector.pdf", height=8, width=8)
 ```
 
 
-beta dispersion: Shoots T0 and T1 for 4 inoculums
+### Beta dispersion: Shoots T0 and T1 for 4 inoculums
 ```{r beta dispersion T0 to T1}
 #### T0 and T1 shoots
 
@@ -1331,6 +1411,7 @@ abund_water
 
 ```
 
+### Shannon's diversity
 Let's make the shannon's diversity plots next: 
 - for T1 roots
 - for T0 and T1 shoots
@@ -1886,7 +1967,7 @@ levels(full.shannon.df$water) <- list(
 
 ```
 
-### Pooled Shannon's
+#### Pooled Shannon's
 ```{r T0 and T1 all sample shannon}
 # 'full.shannon.df' full df
 
@@ -1983,7 +2064,7 @@ dev.off()
 
 ```
 
-### Stats for Shannon
+#### Stats for Shannon
 - this is table S5
 ```{r shannon stats}
 Shannon.T0.shoot<-full.shannon.df[(full.shannon.df$time.type=="T0.shoot"),]
@@ -2019,12 +2100,164 @@ multcomp::cld(posthoc.T1.root, Letters=letters)
 
 ```
 
-Let's make some stacked bar plots too:
 
-```{r,results='hide'}
+### Relative abundance  
+
+```{r relative abundance in phyloseq, eval=FALSE}
+# input.files, note that controls and slurry 2 and 3 would still be here
+ASV.table<-read.delim("data/ASV_table_postfiltering.txt")
+colnames(ASV.table)[colnames(ASV.table)=="X.OTU.ID"]<-"OTU.ID"
+
+# adjust for rownames = OTU/ASVs
+ASV.table <- ASV.table %>%
+    tibble::column_to_rownames("OTU.ID") 
+
+# remove taxonomy here for OTU table
+ASV.table.edit<-within(ASV.table, rm(taxonomy))
+OTU = otu_table(ASV.table.edit, taxa_are_rows = TRUE)
+
+#### buildtaxonomy...
+taxon<-as.data.frame(ASV.table$taxonomy)
+rownames(taxon)<-rownames(ASV.table)
+colnames(taxon)[colnames(taxon)=="ASV.table$taxonomy"]<-"taxonomy"
+
+taxon.df<-tidyr::separate(taxon, taxonomy, into = c("Domain", "Phylum", "Class", "Order", "Family", "Genus", "Species"), sep = ";", fill = "right", extra = "drop")
+
+# remove labels on names
+taxon.df$Domain <- gsub('[k__]','',taxon.df$Domain)
+taxon.df$Phylum <- gsub('[p__]','',taxon.df$Phylum)
+taxon.df$Class <- gsub('[c__]','',taxon.df$Class)
+taxon.df$Genus <- gsub('[g__]','',taxon.df$Genus)
+taxon.df$Species <- gsub('[s__]','',taxon.df$Species)
+
+taxon.mat<-as.matrix(taxon.df)
+TAX<-tax_table(taxon.mat)
+
+
+#### load in samples
+samples_df<-read.delim("data/map_loaded_strawberries.txt")
+colnames(samples_df)[colnames(samples_df)=="X.OTU.ID"]<-"OTU.ID"
+
+samples_df$Water<- dplyr::recode_factor(samples_df$Water,
+                "1" = "Low",
+                "2" = "Moderate",
+                "3" = "High",
+                "NA"= "NA")
+
+samples_df$Inoculum<- dplyr::recode_factor(samples_df$Inoculum,
+                "1" = "Dry",
+                "4" = "Moderate",
+                "5" = "Wet",
+                "6"= "Control")
+
+samples_df$Trt<-interaction(samples_df$Water, samples_df$Inoculum)
+
+# adjust for rownames = OTU/ASVs
+samples_df <- samples_df %>%
+    tibble::column_to_rownames("OTU.ID") 
+
+# make phyloseq data
+samples_data<-sample_data(samples_df)
+
+### final objects
+TAX
+OTU
+samples_data
+
+# phloseq merged
+phy.straw<-phyloseq(OTU, TAX,samples_data)
+
+# rank by Genus
+pseq_genus <- phyloseq::tax_glom(phy.straw, taxrank = "Family")
+
+####### look at DE2seq
+#install.packages("remotes")
+#remotes::install_github("FelixErnst/mia")
+
+################
+# try DESeq2
+#BiocManager::install("DESeq2")
+library("DESeq2")
+
+#drop control samples
+phy.straw.nocontrol = subset_samples(phy.straw, TimePoint != "Control") #534 samples
+
+#drop inoc 2 and 3
+phy.straw.drop.inoc = subset_samples(phy.straw.nocontrol, 
+                                     Inoculum != "2" & Inoculum != "3") # 346 samples
+
+unique(tax_table(phy.straw.drop.inoc)
+#prune 0 counts
+phy.straw.drop.inoc<-prune_taxa(taxa_sums(phy.straw.drop.inoc)> 0, phy.straw.drop.inoc)
+
+write_phyloseq(phy.straw.drop.inoc, "output/")
+
+phy.straw.sh = subset_samples(phy.straw.drop.inoc, Type == "Shoot") #203 samples
+phy.straw.rt = subset_samples(phy.straw.drop.inoc, Type == "Root") #143 samples
+
+# roots 
+phyDES.roots= phyloseq_to_deseq2(phy.straw.rt, ~Trt)
+dds <- phyDES.roots[ rowSums(counts(phyDES.roots)) > 5, ]
+counts(dds)
+geoMeans <- apply(cts, 1, function(row) if (all(row == 0)) 0 else exp(sum(log(row[row != 0]))/length(row)))
+dds <- estimateSizeFactors(dds, geoMeans=geoMeans)
+
+
+table(colSums(counts(dds) == 0))
+which.max(colSums(counts(dds) == 0))
+
+diagdds = DESeq(dds2, test="Wald", fitType="parametric")
+
+
+rs <- rowSums( counts(phyDES.roots) == 0 )
+table(rs)
+
+#1.Estimate Size Factors
+counts<-counts(phyDES.roots)
+geoMeans = apply(counts, 1, function(row) if (all(row == 0)) 0 else exp(mean(log(row[row != 0]))))
+ddsLove<-estimateSizeFactors(phyDES.roots, geoMeans=geoMeans)
+estimatesizefactors<-as.matrix(counts(ddsLove, normalized=TRUE)) 
+
+#2. Estimate Dispersions
+ddsLovedis<-estimateDispersions(ddsLove)
+estimatedispersions<-as.data.frame(counts(ddsLovedis, normalized=TRUE))
+
+
+install.packages("remotes")
+remotes::install_github("FrederickHuangLin/ANCOMBC")
+library(ANCOMBC)
+
+out = ancombc(
+  phyloseq = pseq_genus, 
+  formula = "patient_status", 
+  p_adj_method = "BH", 
+  zero_cut = 0.90, # by default prevalence filter of 10% is applied
+  lib_cut = 0, 
+  group = "patient_status", 
+  struc_zero = TRUE, 
+  neg_lb = TRUE, 
+  tol = 1e-5, 
+  max_iter = 100, 
+  conserve = TRUE, 
+  alpha = 0.05, 
+  global = TRUE
+)
+res <- out$res
+
+```
+
+Let's make some stacked bar plots too:
+```{r relative abundance, results='hide'}
 # let's refilter again to just root t1, shoot t1, and shoot t0
 # Pair down the other data. We will have to hellinger transform this data too
 # 'ASV.data' is the final df
+
+## data subset already above
+#ASV.T0.sh  # 62 samples, T0 shoots
+#ASV.T1  # 284 samples, T1 all data
+#ASV.T1.rt  # 143 samples, T1 root
+#ASV.T1.sh # 203 samples, T1 shoots
+
 
 #### Time 1
 # all T1
@@ -2390,7 +2623,7 @@ familyfinalbind<-do.call("rbind",list(water1inoc1_melt,water1inoc4_melt,water1in
 ```
 
 
-# Shoots family graph
+#### Shoots family graph
 ```{r}
 library(ggthemes)
 shootsfamily<-ggplot(familyfinalbind, aes(x = inoculum, y = value, fill = family)) + 
@@ -2421,6 +2654,7 @@ ggsave("figures/shootsfamily.pdf", height=8, width=17)
 #       width = 17, height = 8, units = "in",
 #       dpi = 600)
 ```
+
 Now we can make t1 roots by inoculation and water treatment
 ```{r,results='hide'}
 #let's refilter again just in case but include the control too
@@ -2625,8 +2859,8 @@ familyrootfinalbind<-do.call("rbind",list(water1inoc1_melt,water1inoc4_melt,wate
 ```
 
 
-# Roots family graph
-```{r}
+#### Roots family graph
+```{r dataframes}
 library(ggthemes)
 Rootsfamily<-ggplot(familyrootfinalbind, aes(x = inoculum, y = value, fill = family)) + 
   geom_bar(stat="identity",position = "fill") + 
@@ -2649,12 +2883,6 @@ Rootsfamily<-ggplot(familyrootfinalbind, aes(x = inoculum, y = value, fill = fam
 
 Rootsfamily
 ggsave("figures/Rootsfamily.pdf", height=8, width=17)
-
-#ggsave(filename = "Rootsfamily.pdf",
-#       plot = Rootsfamily,
-#       bg = "transparent",
-#       width = 17, height = 8, units = "in",
-#       dpi = 600)
 ```
 
 Now we can make t0 shoots by inoculation and water treatment
@@ -2735,9 +2963,10 @@ familyshoott0finalbind<-do.call("rbind",list(water1inoc1_melt,water1inoc4_melt,w
 ```
 
 
-# Shoots T0 family graph
+#### Shoots T0 family graph
 ```{r}
 library(ggthemes)
+
 Shootst0family<-ggplot(familyshoott0finalbind, aes(x = inoculum, y = value, fill = family)) + 
   geom_bar(stat="identity",position = "fill") + 
   scale_y_continuous(labels = scales::percent) +
@@ -2759,27 +2988,315 @@ Shootst0family<-ggplot(familyshoott0finalbind, aes(x = inoculum, y = value, fill
 
 Shootst0family
 ggsave("figures/Shootst0family.pdf", height=8, width=10)
-
-#ggsave(filename = "Shootst0family.pdf",
-#       plot = Shootst0family,
-#       bg = "transparent",
-#       width = 10, height = 8, units = "in",
-#       dpi = 600)
 ```
 
+#### Venn Diagram
 Let's start with the raw data. The venn diagram we want is split into
 the three water groups. Then we need original inoculum, leaves post-inoc
 post stress, leaves post-inoc pre stress, roots post inoc post stress
 
 Now we need to pair down the data. Then do nrows. Then merge by the rows
-and then do nrows. Then we can make the euler diagrams
+and then do nrows. Then we can make the euler diagrams.
 
-First let's split into inoculation 1, 2 and 3
+##### T1 Shoots Venn
+```{r Venn shoots T1}
 
-Inoculum 1
+##########
+##########
+### all data
+ASV.otu.tab<-as.data.frame(t(ASV.data$data_loaded))
+ASV.data.all<-as.data.frame(cbind(ASV.data$map_loaded,ASV.otu.tab))
 
-```{r,results='hide'}
+# shoots
+shoot.T1.otu<-as.data.frame(t(ASV.T1.sh$data_loaded))
+shoot.T1.otu.dat<-as.data.frame(cbind(ASV.T1.sh$map_loaded,shoot.T1.otu))
+
+# roots
+root.T1.otu<-as.data.frame(t(ASV.T1.rt$data_loaded))
+root.T1.otu.dat<-as.data.frame(cbind(ASV.T1.rt$map_loaded,root.T1.otu))
+
+
+### shoot.T1.otu.dat
+
+## #shoots by water
+shoot.T1.W1<-shoot.T1.otu.dat[(shoot.T1.otu.dat$Water=="1"),]
+shoot.T1.W2<-shoot.T1.otu.dat[(shoot.T1.otu.dat$Water=="2"),]
+shoot.T1.W3<-shoot.T1.otu.dat[(shoot.T1.otu.dat$Water=="3"),]
+
+
+# subset to get inoculum 
+# WATER 1
+# Inoc 1
+OTU.W1.inoc1.sh = colnames(shoot.T1.W1[shoot.T1.W1$Inoculum == "1",
+              apply(shoot.T1.W1[shoot.T1.W1$Inoculum == "1",], 
+              MARGIN=2, function(x) any(x >0))])
+OTU.W1.inoc1.sh.ASV<- OTU.W1.inoc1.sh[-1:-10] # remove factors info
+
+# Inoc 4
+OTU.W1.inoc4.sh = colnames(shoot.T1.W1[shoot.T1.W1$Inoculum == "4",
+              apply(shoot.T1.W1[shoot.T1.W1$Inoculum == "4",], 
+              MARGIN=2, function(x) any(x >0))])
+OTU.W1.inoc4.sh.ASV<- OTU.W1.inoc4.sh[-1:-10] # remove factors info
+
+# Inoc 5
+OTU.W1.inoc5.sh = colnames(shoot.T1.W1[shoot.T1.W1$Inoculum == "5",
+              apply(shoot.T1.W1[shoot.T1.W1$Inoculum == "5",], 
+              MARGIN=2, function(x) any(x >0))])
+OTU.W1.inoc5.sh.ASV<- OTU.W1.inoc5.sh[-1:-10] # remove factors info
+
+# Inoc 6
+OTU.W1.inoc6.sh = colnames(shoot.T1.W1[shoot.T1.W1$Inoculum == "6",
+              apply(shoot.T1.W1[shoot.T1.W1$Inoculum == "6",], 
+              MARGIN=2, function(x) any(x >0))])
+OTU.W1.inoc6.sh.ASV<- OTU.W1.inoc6.sh[-1:-10] # remove factors info
+
+ASV.list.W1<-list("inoc1"=OTU.W1.inoc1.sh.ASV, "inoc4"=OTU.W1.inoc4.sh.ASV, 
+          "inoc5"=OTU.W1.inoc5.sh.ASV, "inoc6"=OTU.W1.inoc6.sh.ASV)
+
+venn(list("inoc1"=OTU.W1.inoc1.sh.ASV, "inoc4"=OTU.W1.inoc4.sh.ASV, 
+          "inoc5"=OTU.W1.inoc5.sh.ASV, "inoc6"=OTU.W1.inoc6.sh.ASV))
+
+######### venn diagram for Water 1
+Venn.sh.T1.W1<-ggVennDiagram(ASV.list.W1) + 
+  scale_fill_distiller(palette = "YlOrRd", direction = 1)+
+  ggtitle("Shoots: T1, Water1")
+
+
+######### 
+
+# WATER 2
+# Inoc 1
+OTU.W2.inoc1.sh = colnames(shoot.T1.W2[shoot.T1.W2$Inoculum == "1",
+              apply(shoot.T1.W2[shoot.T1.W2$Inoculum == "1",], 
+              MARGIN=2, function(x) any(x >0))])
+OTU.W2.inoc1.sh.ASV<- OTU.W2.inoc1.sh[-1:-10] # remove factors info
+
+# Inoc 4
+OTU.W2.inoc4.sh = colnames(shoot.T1.W2[shoot.T1.W2$Inoculum == "4",
+              apply(shoot.T1.W2[shoot.T1.W2$Inoculum == "4",], 
+              MARGIN=2, function(x) any(x >0))])
+OTU.W2.inoc4.sh.ASV<- OTU.W2.inoc4.sh[-1:-10] # remove factors info
+
+# Inoc 5
+OTU.W2.inoc5.sh = colnames(shoot.T1.W2[shoot.T1.W2$Inoculum == "5",
+              apply(shoot.T1.W2[shoot.T1.W2$Inoculum == "5",], 
+              MARGIN=2, function(x) any(x >0))])
+OTU.W2.inoc5.sh.ASV<- OTU.W2.inoc5.sh[-1:-10] # remove factors info
+
+# Inoc 6
+OTU.W2.inoc6.sh = colnames(shoot.T1.W2[shoot.T1.W2$Inoculum == "6",
+              apply(shoot.T1.W2[shoot.T1.W2$Inoculum == "6",], 
+              MARGIN=2, function(x) any(x >0))])
+OTU.W2.inoc6.sh.ASV<- OTU.W2.inoc6.sh[-1:-10] # remove factors info
+
+ASV.list.W2<-list("inoc1"=OTU.W2.inoc1.sh.ASV, "inoc4"=OTU.W2.inoc4.sh.ASV, 
+          "inoc5"=OTU.W2.inoc5.sh.ASV, "inoc6"=OTU.W2.inoc6.sh.ASV)
+
+venn(list("inoc1"=OTU.W2.inoc1.sh.ASV, "inoc4"=OTU.W2.inoc4.sh.ASV, 
+          "inoc5"=OTU.W2.inoc5.sh.ASV, "inoc6"=OTU.W2.inoc6.sh.ASV))
+
+######### venn diagram for Water 2
+Venn.sh.T1.W2<-ggVennDiagram(ASV.list.W2) + 
+  scale_fill_distiller(palette = "YlOrRd", direction = 1)+
+  ggtitle("Shoots: T1, Water2")
+######### 
+
+
+# WATER 3
+# Inoc 1
+OTU.W3.inoc1.sh = colnames(shoot.T1.W3[shoot.T1.W3$Inoculum == "1",
+              apply(shoot.T1.W3[shoot.T1.W3$Inoculum == "1",], 
+              MARGIN=2, function(x) any(x >0))])
+OTU.W3.inoc1.sh.ASV<- OTU.W3.inoc1.sh[-1:-10] # remove factors info
+
+# Inoc 4
+OTU.W3.inoc4.sh = colnames(shoot.T1.W3[shoot.T1.W3$Inoculum == "4",
+              apply(shoot.T1.W3[shoot.T1.W3$Inoculum == "4",], 
+              MARGIN=2, function(x) any(x >0))])
+OTU.W3.inoc4.sh.ASV<- OTU.W3.inoc4.sh[-1:-10] # remove factors info
+
+# Inoc 5
+OTU.W3.inoc5.sh = colnames(shoot.T1.W3[shoot.T1.W3$Inoculum == "5",
+              apply(shoot.T1.W3[shoot.T1.W3$Inoculum == "5",], 
+              MARGIN=2, function(x) any(x >0))])
+OTU.W3.inoc5.sh.ASV<- OTU.W3.inoc5.sh[-1:-10] # remove factors info
+
+# Inoc 6
+OTU.W3.inoc6.sh = colnames(shoot.T1.W3[shoot.T1.W3$Inoculum == "6",
+              apply(shoot.T1.W3[shoot.T1.W3$Inoculum == "6",], 
+              MARGIN=2, function(x) any(x >0))])
+OTU.W3.inoc6.sh.ASV<- OTU.W3.inoc6.sh[-1:-10] # remove factors info
+
+ASV.list.W3<-list("inoc1"=OTU.W3.inoc1.sh.ASV, "inoc4"=OTU.W3.inoc4.sh.ASV, 
+          "inoc5"=OTU.W3.inoc5.sh.ASV, "inoc6"=OTU.W3.inoc6.sh.ASV)
+
+venn(list("inoc1"=OTU.W3.inoc1.sh.ASV, "inoc4"=OTU.W3.inoc4.sh.ASV, 
+          "inoc5"=OTU.W3.inoc5.sh.ASV, "inoc6"=OTU.W3.inoc6.sh.ASV))
+
+
+######### venn diagram for Water 3
+Venn.sh.T1.W3<-ggVennDiagram(ASV.list.W3) + 
+  scale_fill_distiller(palette = "YlOrRd", direction = 1)+
+  ggtitle("Shoots: T1, Water3")
+
+
+Venn.sh.T1<-plot_grid(Venn.sh.T1.W1, Venn.sh.T1.W2, Venn.sh.T1.W3, ncol=3)
+Venn.sh.T1
+dev.copy(pdf, "figures/Venn.sh.T1.pdf", width=20, height=8, encod="MacRoman")
+dev.off()
+
+
+```
+
+##### T1 Roots Venn
+```{r Venn roots T1}
+
+##########
+##########
+
+# roots
+root.T1.otu<-as.data.frame(t(ASV.T1.rt$data_loaded))
+root.T1.otu.dat<-as.data.frame(cbind(ASV.T1.rt$map_loaded,root.T1.otu))
+
+### root.T1.otu.dat
+
+## #roots by water
+root.T1.W1<-root.T1.otu.dat[(root.T1.otu.dat$Water=="1"),]
+root.T1.W2<-root.T1.otu.dat[(root.T1.otu.dat$Water=="2"),]
+root.T1.W3<-root.T1.otu.dat[(root.T1.otu.dat$Water=="3"),]
+
+#### ROOOTS!!
+# subset to get inoculum 
+# WATER 1
+# Inoc 1
+OTU.W1.inoc1.rt = colnames(root.T1.W1[root.T1.W1$Inoculum == "1",
+              apply(root.T1.W1[root.T1.W1$Inoculum == "1",], 
+              MARGIN=2, function(x) any(x >0))])
+OTU.W1.inoc1.rt.ASV<- OTU.W1.inoc1.rt[-1:-10] # remove factors info
+
+# Inoc 4
+OTU.W1.inoc4.rt = colnames(root.T1.W1[root.T1.W1$Inoculum == "4",
+              apply(root.T1.W1[root.T1.W1$Inoculum == "4",], 
+              MARGIN=2, function(x) any(x >0))])
+OTU.W1.inoc4.rt.ASV<- OTU.W1.inoc4.rt[-1:-10] # remove factors info
+
+# Inoc 5
+OTU.W1.inoc5.rt = colnames(root.T1.W1[root.T1.W1$Inoculum == "5",
+              apply(root.T1.W1[root.T1.W1$Inoculum == "5",], 
+              MARGIN=2, function(x) any(x >0))])
+OTU.W1.inoc5.rt.ASV<- OTU.W1.inoc5.rt[-1:-10] # remove factors info
+
+# Inoc 6
+OTU.W1.inoc6.rt = colnames(root.T1.W1[root.T1.W1$Inoculum == "6",
+              apply(root.T1.W1[root.T1.W1$Inoculum == "6",], 
+              MARGIN=2, function(x) any(x >0))])
+OTU.W1.inoc6.rt.ASV<- OTU.W1.inoc6.rt[-1:-10] # remove factors info
+
+ASV.list.W1<-list("inoc1"=OTU.W1.inoc1.rt.ASV, "inoc4"=OTU.W1.inoc4.rt.ASV, 
+          "inoc5"=OTU.W1.inoc5.rt.ASV, "inoc6"=OTU.W1.inoc6.rt.ASV)
+
+venn(list("inoc1"=OTU.W1.inoc1.rt.ASV, "inoc4"=OTU.W1.inoc4.rt.ASV, 
+          "inoc5"=OTU.W1.inoc5.rt.ASV, "inoc6"=OTU.W1.inoc6.rt.ASV))
+
+######### venn diagram for Water 1
+Venn.rt.T1.W1<-ggVennDiagram(ASV.list.W1) + 
+  scale_fill_distiller(palette = "YlGnBu", direction = 1)+
+  ggtitle("Roots: T1, Water1")
+
+
+######### 
+
+# WATER 2
+# Inoc 1
+OTU.W2.inoc1.rt = colnames(root.T1.W2[root.T1.W2$Inoculum == "1",
+              apply(root.T1.W2[root.T1.W2$Inoculum == "1",], 
+              MARGIN=2, function(x) any(x >0))])
+OTU.W2.inoc1.rt.ASV<- OTU.W2.inoc1.rt[-1:-10] # remove factors info
+
+# Inoc 4
+OTU.W2.inoc4.rt = colnames(root.T1.W2[root.T1.W2$Inoculum == "4",
+              apply(root.T1.W2[root.T1.W2$Inoculum == "4",], 
+              MARGIN=2, function(x) any(x >0))])
+OTU.W2.inoc4.rt.ASV<- OTU.W2.inoc4.rt[-1:-10] # remove factors info
+
+# Inoc 5
+OTU.W2.inoc5.rt = colnames(root.T1.W2[root.T1.W2$Inoculum == "5",
+              apply(root.T1.W2[root.T1.W2$Inoculum == "5",], 
+              MARGIN=2, function(x) any(x >0))])
+OTU.W2.inoc5.rt.ASV<- OTU.W2.inoc5.rt[-1:-10] # remove factors info
+
+# Inoc 6
+OTU.W2.inoc6.rt = colnames(root.T1.W2[root.T1.W2$Inoculum == "6",
+              apply(root.T1.W2[root.T1.W2$Inoculum == "6",], 
+              MARGIN=2, function(x) any(x >0))])
+OTU.W2.inoc6.rt.ASV<- OTU.W2.inoc6.rt[-1:-10] # remove factors info
+
+ASV.list.W2<-list("inoc1"=OTU.W2.inoc1.rt.ASV, "inoc4"=OTU.W2.inoc4.rt.ASV, 
+          "inoc5"=OTU.W2.inoc5.rt.ASV, "inoc6"=OTU.W2.inoc6.rt.ASV)
+
+venn(list("inoc1"=OTU.W2.inoc1.rt.ASV, "inoc4"=OTU.W2.inoc4.rt.ASV, 
+          "inoc5"=OTU.W2.inoc5.rt.ASV, "inoc6"=OTU.W2.inoc6.rt.ASV))
+
+######### venn diagram for Water 2
+Venn.rt.T1.W2<-ggVennDiagram(ASV.list.W2) + 
+  scale_fill_distiller(palette = "YlGnBu", direction = 1)+
+  ggtitle("Roots: T1, Water2")
+######### 
+
+
+# WATER 3
+# Inoc 1
+OTU.W3.inoc1.rt = colnames(root.T1.W3[root.T1.W3$Inoculum == "1",
+              apply(root.T1.W3[root.T1.W3$Inoculum == "1",], 
+              MARGIN=2, function(x) any(x >0))])
+OTU.W3.inoc1.rt.ASV<- OTU.W3.inoc1.rt[-1:-10] # remove factors info
+
+# Inoc 4
+OTU.W3.inoc4.rt = colnames(root.T1.W3[root.T1.W3$Inoculum == "4",
+              apply(root.T1.W3[root.T1.W3$Inoculum == "4",], 
+              MARGIN=2, function(x) any(x >0))])
+OTU.W3.inoc4.rt.ASV<- OTU.W3.inoc4.rt[-1:-10] # remove factors info
+
+# Inoc 5
+OTU.W3.inoc5.rt = colnames(root.T1.W3[root.T1.W3$Inoculum == "5",
+              apply(root.T1.W3[root.T1.W3$Inoculum == "5",], 
+              MARGIN=2, function(x) any(x >0))])
+OTU.W3.inoc5.rt.ASV<- OTU.W3.inoc5.rt[-1:-10] # remove factors info
+
+# Inoc 6
+OTU.W3.inoc6.rt = colnames(root.T1.W3[root.T1.W3$Inoculum == "6",
+              apply(root.T1.W3[root.T1.W3$Inoculum == "6",], 
+              MARGIN=2, function(x) any(x >0))])
+OTU.W3.inoc6.rt.ASV<- OTU.W3.inoc6.rt[-1:-10] # remove factors info
+
+ASV.list.W3<-list("inoc1"=OTU.W3.inoc1.rt.ASV, "inoc4"=OTU.W3.inoc4.rt.ASV, 
+          "inoc5"=OTU.W3.inoc5.rt.ASV, "inoc6"=OTU.W3.inoc6.rt.ASV)
+
+venn(list("inoc1"=OTU.W3.inoc1.rt.ASV, "inoc4"=OTU.W3.inoc4.rt.ASV, 
+          "inoc5"=OTU.W3.inoc5.rt.ASV, "inoc6"=OTU.W3.inoc6.rt.ASV))
+
+######### venn diagram for Water 3
+Venn.rt.T1.W3<-ggVennDiagram(ASV.list.W3) + 
+  scale_fill_distiller(palette = "YlGnBu", direction = 1)+
+  ggtitle("Roots: T1, Water3")
+
+
+Venn.rt.T1<-plot_grid(Venn.rt.T1.W1, Venn.rt.T1.W2, Venn.rt.T1.W3, ncol=3)
+Venn.rt.T1
+dev.copy(pdf, "figures/Venn.rt.T1.pdf", width=20, height=8, encod="MacRoman")
+dev.off()
+
+
+```
+
+
+
+First let's split into inoculation 1, 4 and 5
+
+##### Inoculum 1
+```{r inoculum 1 loaded,results='hide'}
 input <- load_taxa_table("data/ASV_table_postfiltering.txt", "data/map_loaded_strawberries.txt")
+
 #inoc1
 inputinoc1only = filter_data(input, 'Inoculum', keep_vals = '1')
 #leaves post-inoc post stress
@@ -2787,17 +3304,21 @@ inputinoc1onlyshoot = filter_data(inputinoc1only, 'Type', keep_vals = 'Shoot')
 inoc1shootpostinocpoststress = filter_data(inputinoc1onlyshoot, 'SampleType', keep_vals = 'post_inoc_post_stress')
 i1spips<-as.data.frame(inoc1shootpostinocpoststress$data_loaded)
 i1spips$ASV <-row.names(i1spips)
+
 #roots post-inoc post-stress
 inputinoc1onlyroot = filter_data(inputinoc1only, 'Type', keep_vals = 'Root')
 inoc1rootpostinocpoststress = filter_data(inputinoc1onlyroot, 'SampleType', keep_vals = 'post_inoc_post_stress')
 i1rpips<-as.data.frame(inoc1rootpostinocpoststress$data_loaded)
 i1rpips$ASV <-row.names(i1rpips)
+
 #leaves post-inoc pre-stress
 inoc1shootpostinocprestress = filter_data(inputinoc1onlyshoot, 'SampleType', keep_vals = 'post_inoc_pre_stress')
 i1spiprs<-as.data.frame(inoc1shootpostinocprestress$data_loaded)
 i1spiprs$ASV <-row.names(i1spiprs)
+
 #Then let's grab original inoculum. We will need to grab the original data frame again.
 inputraw <- load_taxa_table("data/ASV_table_raw.txt", "data/strawberries_raw_full_data.txt")
+
 slurryonly = filter_data(inputraw, 'SampleType', keep_vals = 'slurry')
 slurryonlyinoc1 = filter_data(slurryonly, 'Type', keep_vals = 'Inoculum 1')
 slurryinoc1<-as.data.frame(slurryonlyinoc1$data_loaded)
@@ -2805,18 +3326,15 @@ slurryinoc1$ASV <-row.names(slurryinoc1)
 
 ```
 
-Let's count the number of rows:
-
+Let's count the number of rows and assess overlap:
 ```{r}
 nrow(i1spips)
 nrow(i1rpips)
 nrow(i1spiprs)
 nrow(slurryinoc1)
-```
 
-Let's see how these all overlap:
+##### Let's see how these all overlap:
 
-```{r, results='hide'}
 i1spips_i1rpips <- inner_join(i1spips, i1rpips, 
                        c("ASV"))
 nrow(i1spips_i1rpips)
@@ -2857,9 +3375,8 @@ B&D i1spiprs & slurry = 11 = C&D i1spips & i1rpips & i1spiprs & slurry =
 10 = A&B&C&D i1spips & i1rpips & i1spiprs = = A&B&C = 58 i1spips &
 i1rpips & slurry = = A&B&D = 12 i1rpips & i1spiprs & slurry = 10 = B&C&D
 
-Inoculum 1 graph
-
-```{r}
+- Inoculum 1 graph
+```{r inoculum 1 graph}
 # use eulerr
 
 inoc1 <-c("Shoot Post-Inoc Post-Stress" = 308, "Root Post-Inoc Post-Stress" = 537, "Shoot Post-Inoc Pre-Stress" = 89, "Slurry" = 20, 
@@ -2867,31 +3384,36 @@ inoc1 <-c("Shoot Post-Inoc Post-Stress" = 308, "Root Post-Inoc Post-Stress" = 53
                     "Shoot Post-Inoc Pre-Stress&Slurry" = 11, "Shoot Post-Inoc Post-Stress&Root Post-Inoc Post-Stress&Shoot Post-Inoc Pre-Stress&Slurry" = 10, "Shoot Post-Inoc Post-Stress&Root Post-Inoc Post-Stress&Shoot Post-Inoc Pre-Stress" = 58, "Shoot Post-Inoc Post-Stress&Root Post-Inoc Post-Stress&Slurry" = 12,
                     "Root Post-Inoc Post-Stress&Shoot Post-Inoc Pre-Stress&Slurry" = 10)
 fitinoc1 <- euler(inoc1,shape="ellipse")
+plot(fitinoc1)
 
-fitinoc1
-ggsave("figures/inoc1venn.pdf", height=8, width=8)
+dev.copy(pdf, "figures/inoc1venn.pdf", height=8, width=8)
+dev.off() 
 ```
 
-Inoculum 4
-
-```{r,results='hide'}
+##### Inoculum 4
+```{r inoculum 4 loaded,results='hide'}
 input <- load_taxa_table("data/ASV_table_postfiltering.txt", "data/map_loaded_strawberries.txt")
+
 #inoc4
 inputinoc4only = filter_data(input, 'Inoculum', keep_vals = '4')
+
 #leaves post-inoc post stress
 inputinoc4onlyshoot = filter_data(inputinoc4only, 'Type', keep_vals = 'Shoot')
 inoc4shootpostinocpoststress = filter_data(inputinoc4onlyshoot, 'SampleType', keep_vals = 'post_inoc_post_stress')
 i4spips<-as.data.frame(inoc4shootpostinocpoststress$data_loaded)
 i4spips$ASV <-row.names(i4spips)
+
 #roots post-inoc post-stress
 inputinoc4onlyroot = filter_data(inputinoc4only, 'Type', keep_vals = 'Root')
 inoc4rootpostinocpoststress = filter_data(inputinoc4onlyroot, 'SampleType', keep_vals = 'post_inoc_post_stress')
 i4rpips<-as.data.frame(inoc4rootpostinocpoststress$data_loaded)
 i4rpips$ASV <-row.names(i4rpips)
+
 #leaves post-inoc pre-stress
 inoc4shootpostinocprestress = filter_data(inputinoc4onlyshoot, 'SampleType', keep_vals = 'post_inoc_pre_stress')
 i4spiprs<-as.data.frame(inoc4shootpostinocprestress$data_loaded)
 i4spiprs$ASV <-row.names(i4spiprs)
+
 #Then let's grab original inoculum. We will need to grab the original data frame again.
 inputraw <- load_taxa_table("data/ASV_table_raw.txt", "data/strawberries_raw_full_data.txt")
 slurryonly = filter_data(inputraw, 'SampleType', keep_vals = 'slurry')
@@ -2901,18 +3423,15 @@ slurryinoc4$ASV <-row.names(slurryinoc4)
 
 ```
 
-Let's count the number of rows:
-
+Let's count the number of rows and assess overlap:
 ```{r}
 nrow(i4spips)
 nrow(i4rpips)
 nrow(i4spiprs)
 nrow(slurryinoc4)
-```
 
-Let's see how these all overlap:
+#### Let's see how these all overlap:
 
-```{r,results='hide'}
 i4spips_i4rpips <- inner_join(i4spips, i4rpips, 
                        c("ASV"))
 nrow(i4spips_i4rpips)
@@ -2953,9 +3472,8 @@ B&D i4spiprs & slurry = 2 = C&D i4spips & i4rpips & i4spiprs & slurry =
 2 = A&B&C&D i4spips & i4rpips & i4spiprs = = A&B&C = 60 i4spips &
 i4rpips & slurry = = A&B&D = 4 i4rpips & i4spiprs & slurry = 2 = B&C&D
 
-Inoculum 4 graph
-
-```{r}
+- Inoculum 4 graph
+```{r inoculum 4 graph}
 
 inoc4 <-c("Shoot Post-Inoc Post-Stress" = 290, "Root Post-Inoc Post-Stress" = 519, "Shoot Post-Inoc Pre-Stress" = 108, "Slurry" = 9, 
                     "Shoot Post-Inoc Post-Stress&Root Post-Inoc Post-Stress" = 187, "Shoot Post-Inoc Post-Stress&Shoot Post-Inoc Pre-Stress" = 67, "Shoot Post-Inoc Post-Stress&Slurry" = 5, "Root Post-Inoc Post-Stress&Shoot Post-Inoc Pre-Stress" = 71,"Root Post-Inoc Post-Stress&Slurry" = 5,
@@ -2963,15 +3481,16 @@ inoc4 <-c("Shoot Post-Inoc Post-Stress" = 290, "Root Post-Inoc Post-Stress" = 51
                     "Root Post-Inoc Post-Stress&Shoot Post-Inoc Pre-Stress&Slurry" = 2)
 
 fitinoc4 <- euler(inoc4,shape="ellipse")
+plot(fitinoc4)
 
-fitinoc4
-ggsave("figures/inoc4venn.pdf", height=8, width=8)
+dev.copy(pdf, "figures/inoc4venn.pdf", height=8, width=8)
+dev.off() 
 ```
 
-Inoculum 5
-
-```{r,results='hide'}
+##### Inoculum 5
+```{r inoculum 5 loaded,results='hide'}
 input <- load_taxa_table("data/ASV_table_postfiltering.txt", "data/map_loaded_strawberries.txt")
+
 #inoc5
 inputinoc5only = filter_data(input, 'Inoculum', keep_vals = '5')
 #leaves post-inoc post stress
@@ -2979,15 +3498,20 @@ inputinoc5onlyshoot = filter_data(inputinoc5only, 'Type', keep_vals = 'Shoot')
 inoc5shootpostinocpoststress = filter_data(inputinoc5onlyshoot, 'SampleType', keep_vals = 'post_inoc_post_stress')
 i5spips<-as.data.frame(inoc5shootpostinocpoststress$data_loaded)
 i5spips$ASV <-row.names(i5spips)
+
 #roots post-inoc post-stress
 inputinoc5onlyroot = filter_data(inputinoc5only, 'Type', keep_vals = 'Root')
 inoc5rootpostinocpoststress = filter_data(inputinoc5onlyroot, 'SampleType', keep_vals = 'post_inoc_post_stress')
+
 i5rpips<-as.data.frame(inoc5rootpostinocpoststress$data_loaded)
 i5rpips$ASV <-row.names(i5rpips)
+
 #leaves post-inoc pre-stress
 inoc5shootpostinocprestress = filter_data(inputinoc5onlyshoot, 'SampleType', keep_vals = 'post_inoc_pre_stress')
+
 i5spiprs<-as.data.frame(inoc5shootpostinocprestress$data_loaded)
 i5spiprs$ASV <-row.names(i5spiprs)
+
 #Then let's grab original inoculum. We will need to grab the original data frame again.
 inputraw <- load_taxa_table("data/ASV_table_raw.txt", "data/strawberries_raw_full_data.txt")
 slurryonly = filter_data(inputraw, 'SampleType', keep_vals = 'slurry')
@@ -2997,18 +3521,15 @@ slurryinoc5$ASV <-row.names(slurryinoc5)
 
 ```
 
-Let's count the number of rows:
-
+Let's count the number of rows and assess overlap
 ```{r}
 nrow(i5spips)
 nrow(i5rpips)
 nrow(i5spiprs)
 nrow(slurryinoc5)
-```
 
-Let's see how these all overlap:
+##### Let's see how these all overlap:
 
-```{r,results='hide'}
 i5spips_i5rpips <- inner_join(i5spips, i5rpips, 
                        c("ASV"))
 nrow(i5spips_i5rpips)
@@ -3049,16 +3570,16 @@ B&D i5spiprs & slurry = 10 = C&D i5spips & i5rpips & i5spiprs & slurry =
 10 = A&B&C&D i5spips & i5rpips & i5spiprs = A&B&C = 39 i5spips & i5rpips
 & slurry = A&B&D = 12 i5rpips & i5spiprs & slurry = 10 = B&C&D
 
-Inoculum 5 graph
-
-```{r}
+- Inoculum 5 graph
+```{r inoculum 5 graph}
 
 inoc5 <-c("Shoot Post-Inoc Post-Stress" = 174, "Root Post-Inoc Post-Stress" = 263, "Shoot Post-Inoc Pre-Stress" = 64, "Slurry" = 50, 
                     "Shoot Post-Inoc Post-Stress&Root Post-Inoc Post-Stress" = 115, "Shoot Post-Inoc Post-Stress&Shoot Post-Inoc Pre-Stress" = 43, "Shoot Post-Inoc Post-Stress&Slurry" = 12, "Root Post-Inoc Post-Stress&Shoot Post-Inoc Pre-Stress" = 49,"Root Post-Inoc Post-Stress&Slurry" = 12,
                     "Shoot Post-Inoc Pre-Stress&Slurry" = 10, "Shoot Post-Inoc Post-Stress&Root Post-Inoc Post-Stress&Shoot Post-Inoc Pre-Stress&Slurry" = 10, "Shoot Post-Inoc Post-Stress&Root Post-Inoc Post-Stress&Shoot Post-Inoc Pre-Stress" = 39, "Shoot Post-Inoc Post-Stress&Root Post-Inoc Post-Stress&Slurry" = 12,
                     "Root Post-Inoc Post-Stress&Shoot Post-Inoc Pre-Stress&Slurry" = 10)
 fitinoc5 <- euler(inoc5,shape="ellipse")
+plot(fitinoc5)
 
-fitinoc5
-ggsave("figures/inoc5venn.pdf", height=8, width=8)
+dev.copy(pdf, "figures/inoc5venn.pdf", height=8, width=8)
+dev.off() 
 ```
