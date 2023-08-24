@@ -233,7 +233,7 @@ ggsave("figures/FigS2.Survivorship.pdf", height=6, width=6)
 
 ```
 
-### Fungal microbiome
+### Fungi sequences
 ```{r, message=FALSE, warning=FALSE, results='hide'}
 input <- load_taxa_table("data/ASV_table_postfiltering.txt", "data/map_loaded_strawberries.txt")
 # 538 samples
