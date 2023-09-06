@@ -33,7 +33,13 @@ knitr::opts_chunk$set(echo = TRUE)
 if (!require("pacman")) install.packages("pacman") # for rapid install if not in library
 
 # use pacman to load all the packages you are missing!
-pacman::p_load("car", "lme4", "lmerTest", "pbkrtest", "emmeans", "ggplot2", "tidyverse", "dplyr", "labdsv", "grid", "gridExtra", "patchwork", "plyr", "mctoolsr", "vegan", "car", "metacoder", "multcompView", "patchwork", "pairwiseAdonis", "labdsv", "eulerr", "ggthemes", "remotes", "mctoolsr", "brglm2", "cowplot", "microbiome", "mia")
+pacman::p_load("car", "lme4", "lmerTest", "pbkrtest", "emmeans", "ggplot2", "tidyverse", "dplyr", "labdsv", "grid", "gridExtra", "patchwork", "plyr", "mctoolsr", "vegan", "car", "metacoder", "multcompView", "patchwork", "pairwiseAdonis", "labdsv", "eulerr", "ggthemes", "remotes", "mctoolsr", "brglm2", "cowplot", "microbiome", "mia", "BiocManager", "phyloseq", "devtools", "tibble", "ggVennDiagram", "eulerr")
+
+BiocManager::install("phyloseq")
+
+install.packages("remotes")
+remotes::install_github("leffj/mctoolsr")
+
 ```
 
 ### Plant Biomass
@@ -236,16 +242,17 @@ ggsave("figures/FigS2.Survivorship.pdf", height=6, width=6)
 ### Fungi sequences
 ```{r, message=FALSE, warning=FALSE, results='hide'}
 input <- load_taxa_table("data/ASV_table_postfiltering.txt", "data/map_loaded_strawberries.txt")
-# 538 samples
+# 538 samples, 1894 ASVs
 
 #remove inoculum that we're not using, 350 samples remaining
-input2 =filter_data(input, 'Inoculum', filter_vals = '2')
-input3 =filter_data(input2, 'Inoculum', filter_vals = '3')
+input2 =filter_data(input, 'Inoculum', filter_vals = '2') #1619 ASVs
+input3 =filter_data(input2, 'Inoculum', filter_vals = '3') #1379 ASVs
 
 # final data with treatments to be used in analyses
 ASV.data<-input3
-ASV.data = filter_data(ASV.data, 'TimePoint', filter_vals = 'Control') # remove any controls
-#346 samples remaining
+ASV.data = filter_data(ASV.data, 'TimePoint', filter_vals = 'Control') 
+# remove any controls
+#346 samples remaining, 
 
 otuTAB.all<-ASV.data$data_loaded
 otuTAB.all <- as.data.frame(otuTAB.all)
@@ -313,18 +320,23 @@ samples_data<-sample_data(samples_df)
 #samples_data
 
 # phloseq merged
-phy.straw<-phyloseq(OTU, TAX,samples_data)
-
-#drop control samples
-phy.straw.nocontrol = subset_samples(phy.straw, TimePoint != "Control") #534 samples
-
-#drop inoc 2 and 3
-phy.straw.drop.inoc = subset_samples(phy.straw.nocontrol, 
-                                     Inoculum != "2" & Inoculum != "3") # 346 samples
+phy.straw<-phyloseq(OTU, TAX,samples_data) #538 samples, 1957 samples
 
 #prune 0 counts
-phy.straw.drop.inoc<-prune_taxa(taxa_sums(phy.straw.drop.inoc)> 0, phy.straw.drop.inoc)
+phy.straw.drop.0<-prune_taxa(taxa_sums(phy.straw)> 0, phy.straw)
+
+
+#drop inoc 2 and 3
+phy.straw.drop.inoc = subset_samples(phy.straw.drop.0, 
+                                     Inoculum != "2" & Inoculum != "3") # 346 samples
+phy.straw.dropinoc.0<-prune_taxa(taxa_sums(phy.straw.drop.inoc)> 0, phy.straw.drop.inoc)
+
+
+#drop control samples
+phy.straw.dropinoc.ctrl = subset_samples(phy.straw.dropinoc.0, TimePoint != "Control") #534 samples
+phy.straw.dropinoc.control.drop0<-prune_taxa(taxa_sums(phy.straw.dropinoc.ctrl)> 0, phy.straw.dropinoc.ctrl)
 # 346 samples, 1327 taxa/ASVs
+
 
 write_phyloseq(phy.straw.drop.inoc, "output/phyloseq/")
 
@@ -625,11 +637,10 @@ Shoots.T1.NMDS<-ggplot(data=shoot.T1.NMDS.df,
     axis.title = element_text(color='black',size=12),
     axis.ticks = element_line(color='black'),
     legend.title = element_text(size=8),
+    legend.key = element_rect(fill=NA),
     panel.background = element_rect(fill=NA,color='black'),
     panel.grid = element_blank(),
-    legend.position = "none",
     plot.title=element_text(size=20,face="bold",vjust=2))
-
 
 ### root T1 NMDS
 Roots.T1.NMDS<-ggplot(data=root.T1.NMDS.df,
@@ -651,10 +662,11 @@ Roots.T1.NMDS<-ggplot(data=root.T1.NMDS.df,
     panel.grid = element_blank(),
     plot.title=element_text(size=20,face="bold",vjust=2))
 
-both_plots<-Shoots.T1.NMDS+Roots.T1.NMDS
-both_plots
+Shoots.T1.NMDS
+ggsave("figures/FigS4.Shoot.T1.NMDS.pdf", height=6, width=6)
 
-ggsave("figures/Fig2.Shoot.Root.T1.NMDS.pdf", height=6, width=12)
+Roots.T1.NMDS
+ggsave("figures/Fig2.Root.T1.NMDS.pdf", height=6, width=6)
 
 #ggsave(filename = "both_plots.pdf",
       #plot = both_plots,
@@ -2079,10 +2091,6 @@ Anova(T0.shoot.shan.mod) # no effects
 T1.shoot.shan.mod<-lm(shannon~water*inoculum, Shannon.T1.shoot)
 Anova(T1.shoot.shan.mod) # water and inoc effects
 
-# interaction
-posthoc.T1.shoot.a<-emmeans(T1.shoot.shan.mod,pairwise~inoculum|water)
-multcomp::cld(posthoc.T1.shoot.a, Letters=letters)
-
 #water
 posthoc.T1.shoot.b<-emmeans(T1.shoot.shan.mod,pairwise~water)
 multcomp::cld(posthoc.T1.shoot.b, Letters=letters)
@@ -3057,7 +3065,7 @@ venn(list("inoc1"=OTU.W1.inoc1.sh.ASV, "inoc4"=OTU.W1.inoc4.sh.ASV,
           "inoc5"=OTU.W1.inoc5.sh.ASV, "inoc6"=OTU.W1.inoc6.sh.ASV))
 
 ######### venn diagram for Water 1
-Venn.sh.T1.W1<-ggVennDiagram(ASV.list.W1) + 
+Venn.sh.T1.W1<-ggVennDiagram(ASV.list.W1, label_alpha=0) + 
   scale_fill_distiller(palette = "YlOrRd", direction = 1)+
   ggtitle("Shoots: T1, Water1")
 
@@ -3096,7 +3104,7 @@ venn(list("inoc1"=OTU.W2.inoc1.sh.ASV, "inoc4"=OTU.W2.inoc4.sh.ASV,
           "inoc5"=OTU.W2.inoc5.sh.ASV, "inoc6"=OTU.W2.inoc6.sh.ASV))
 
 ######### venn diagram for Water 2
-Venn.sh.T1.W2<-ggVennDiagram(ASV.list.W2) + 
+Venn.sh.T1.W2<-ggVennDiagram(ASV.list.W2, label_alpha=0) + 
   scale_fill_distiller(palette = "YlOrRd", direction = 1)+
   ggtitle("Shoots: T1, Water2")
 ######### 
@@ -3135,7 +3143,7 @@ venn(list("inoc1"=OTU.W3.inoc1.sh.ASV, "inoc4"=OTU.W3.inoc4.sh.ASV,
 
 
 ######### venn diagram for Water 3
-Venn.sh.T1.W3<-ggVennDiagram(ASV.list.W3) + 
+Venn.sh.T1.W3<-ggVennDiagram(ASV.list.W3, label_alpha=0) + 
   scale_fill_distiller(palette = "YlOrRd", direction = 1)+
   ggtitle("Shoots: T1, Water3")
 
@@ -3199,7 +3207,7 @@ venn(list("inoc1"=OTU.W1.inoc1.rt.ASV, "inoc4"=OTU.W1.inoc4.rt.ASV,
           "inoc5"=OTU.W1.inoc5.rt.ASV, "inoc6"=OTU.W1.inoc6.rt.ASV))
 
 ######### venn diagram for Water 1
-Venn.rt.T1.W1<-ggVennDiagram(ASV.list.W1) + 
+Venn.rt.T1.W1<-ggVennDiagram(ASV.list.W1, label_alpha=0) + 
   scale_fill_distiller(palette = "YlGnBu", direction = 1)+
   ggtitle("Roots: T1, Water1")
 
@@ -3238,7 +3246,7 @@ venn(list("inoc1"=OTU.W2.inoc1.rt.ASV, "inoc4"=OTU.W2.inoc4.rt.ASV,
           "inoc5"=OTU.W2.inoc5.rt.ASV, "inoc6"=OTU.W2.inoc6.rt.ASV))
 
 ######### venn diagram for Water 2
-Venn.rt.T1.W2<-ggVennDiagram(ASV.list.W2) + 
+Venn.rt.T1.W2<-ggVennDiagram(ASV.list.W2, label_alpha=0) + 
   scale_fill_distiller(palette = "YlGnBu", direction = 1)+
   ggtitle("Roots: T1, Water2")
 ######### 
@@ -3276,7 +3284,7 @@ venn(list("inoc1"=OTU.W3.inoc1.rt.ASV, "inoc4"=OTU.W3.inoc4.rt.ASV,
           "inoc5"=OTU.W3.inoc5.rt.ASV, "inoc6"=OTU.W3.inoc6.rt.ASV))
 
 ######### venn diagram for Water 3
-Venn.rt.T1.W3<-ggVennDiagram(ASV.list.W3) + 
+Venn.rt.T1.W3<-ggVennDiagram(ASV.list.W3, label_alpha=0) + 
   scale_fill_distiller(palette = "YlGnBu", direction = 1)+
   ggtitle("Roots: T1, Water3")
 
