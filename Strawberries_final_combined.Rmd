@@ -40,7 +40,6 @@ pacman::p_load("car", "lme4", "lmerTest", "pbkrtest", "emmeans", "ggplot2", "tid
 install.packages("remotes")
 remotes::install_github("leffj/mctoolsr")
 remotes::install_github("pmartinezarbizu/pairwiseAdonis/pairwiseAdonis")
-
 ```
 
 ### Plant Biomass
@@ -237,7 +236,7 @@ input <- load_taxa_table("data/ASV_table_postfiltering.txt", "data/map_loaded_st
 
 #remove inoculum that we're not using, 350 samples remaining
 input2 =filter_data(input, 'Inoculum', filter_vals = '2') #1619 ASVs
-input3 =filter_data(input2, 'Inoculum', filter_vals = '3') #1379 ASVs
+input3 =filter_data(input2, 'Inoculum', filter_vals = '3') #1379 ASVs, 350 samples
 
 # final data with treatments to be used in analyses
 ASV.data<-input3
@@ -370,7 +369,6 @@ otuTAB.transp.t1.root.shoot<-t(otuTAB.T1.root.shoot)
 
 ```
 
-
 Hellinger Transformation only works after you've filtered the samples you
 want (not sure why!). But be sure to filter first and then do the
 transformation
@@ -402,7 +400,88 @@ shoots_post_stress$data_loaded<-t(hell.shoot.T1)
 
 ```
 
-Permanova and NMDS
+
+#### T0 NMDS Shoots
+
+Let's look at T0 only
+```{r, results='hide',echo=FALSE}
+#Let's view the original input map first
+#View(input$map_loaded)
+
+# final data with treatments to be used in analyses 'ASV.data'
+
+#keep only time point0, 62 samples
+ASV.T0 = filter_data(ASV.data, 'TimePoint', keep_vals = 'T0')
+
+# all T0 data (pre stress shoots)
+shoot.T0<-ASV.T0
+otuTAB.T0.shoot <- as.data.frame (shoot.T0$data_loaded)
+otuTAB.transp.T0.shoot<-t(otuTAB.T0.shoot)
+
+### transform
+hell.T0<-hellinger(otuTAB.transp.T0.shoot)
+
+#View(hell)
+shoot.T0$data_loaded<-t(hell.T0)
+
+shoot.T0.mds<-metaMDS(t(shoot.T0$data_loaded))
+shoot.T0.NMDS.df <- as.data.frame(scores(shoot.T0.mds)$sites) 
+shoot.T0.NMDS.df$Water <- as.factor(shoot.T0$map_loaded$Water)
+shoot.T0.NMDS.df$Inoculum <- as.factor(shoot.T0$map_loaded$Inoculum)
+```
+
+Shoot fungal microbiomes prior to the start of water stress
+*Figure S3: shoots T0 NMDS*
+```{r, message=FALSE, warning=FALSE}
+
+# change levels...
+shoot.T0.NMDS.df$Inoculum <- as.factor(shoot.T0.NMDS.df$Inoculum)
+levels(shoot.T0.NMDS.df$Inoculum)<-list(Dry="1", Moderate="4", Wet="5", Control="6")
+
+# change levels...
+shoot.T0.NMDS.df$Water <- as.factor(shoot.T0.NMDS.df$Water)
+levels(shoot.T0.NMDS.df$Water) <- list(Low="1", Moderate="2", High="3")
+
+# make the NMDS plot
+
+Shoots.T0.NMDS<-ggplot(data=shoot.T0.NMDS.df,aes(x=NMDS1,y=NMDS2,color=Inoculum)) + 
+  scale_color_brewer(palette="Dark2")+
+  geom_point(data=shoot.T0.NMDS.df,
+             aes(x=NMDS1,y=NMDS2,color=Inoculum), alpha=0.8) + 
+  stat_ellipse(data=shoot.T0.NMDS.df,aes(x=NMDS1,y=NMDS2,color=Inoculum))+
+  theme(
+    axis.text = element_text(color='black',size=10),
+    axis.title = element_text(color='black',size=12),
+    axis.ticks = element_line(color='black'),
+    legend.title = element_text(size=8),
+    panel.background = element_rect(fill=NA,color='black'),
+    panel.grid = element_blank(),
+    legend.key = element_rect(fill=NA),
+    plot.title=element_text(size=20,face="bold",vjust=2))
+
+Shoots.T0.NMDS
+ggsave("figures/FigS3.Shoots.T0.NMDS.pdf", height=6, width=5.5)
+
+```
+
+*Table S3. T0 shoot fungal microbiome*
+```{r shoot T0 microbiome}
+library(vegan)
+
+#make the model
+otuTAB <- as.data.frame (ASV.T0$data_loaded)
+otuTABtranspose<-t(otuTAB)
+mta.sh.T0<-ASV.T0$map_loaded
+
+#do as factor, no water treatment at T0
+mta.sh.T0$Inoculum <- as.factor(mta.sh.T0$Inoculum)
+
+set.seed(138)
+model.sh.T0<-adonis2(otuTABtranspose~Inoculum,data=mta.sh.T0,permutations=999,method="bray")
+model.sh.T0 # no effects
+```
+
+#### T1 Root and shoot
 
 *Table 2* PERMANOVA testing water treatment and inoculum source effects on plant-associated fungal microbiomes in root and shoot biomass.
 ```{r shoot root NMDS}
@@ -586,17 +665,9 @@ root.T1.NMDS.df$Inoculum <- as.factor(roots_post_stress$map_loaded$Inoculum)
 
 ```
 
-*Figure 2. Shoot and Root NMDS at T1*
+*Figure 2. Root NMDS at T1*
+
 ```{r, fig.height=5, fig.width=10, message=FALSE, warning=FALSE}
-# change levels...
-shoot.T1.NMDS.df$Inoculum <- as.factor(shoot.T1.NMDS.df$Inoculum)
-levels(shoot.T1.NMDS.df$Inoculum)<-list(Dry="1", Moderate="4", Wet="5", Control="6")
-
-# change levels...
-shoot.T1.NMDS.df$Water <- as.factor(shoot.T1.NMDS.df$Water)
-levels(shoot.T1.NMDS.df$Water) <- list(Low="1", Moderate="2", High="3")
-
-
 # change levels...
 root.T1.NMDS.df$Inoculum <- as.factor(root.T1.NMDS.df$Inoculum)
 levels(root.T1.NMDS.df$Inoculum)<-list(Dry="1", Moderate="4", Wet="5", Control="6")
@@ -605,25 +676,6 @@ levels(root.T1.NMDS.df$Inoculum)<-list(Dry="1", Moderate="4", Wet="5", Control="
 root.T1.NMDS.df$Water <- as.factor(root.T1.NMDS.df$Water)
 levels(root.T1.NMDS.df$Water) <- list(Low="1", Moderate="2", High="3")
 
-# Shoot T1 NMDS plot
-Shoots.T1.NMDS<-ggplot(data=shoot.T1.NMDS.df,
-                  aes(x=NMDS1,y=NMDS2,shape=Water,color=Inoculum)) + 
-  scale_color_brewer(palette="Dark2")+
-  ggtitle("Shoots T1")+
-  geom_point(data=shoot.T1.NMDS.df,
-             aes(x=NMDS1,y=NMDS2,shape=Water,color=Inoculum), alpha=0.8) + 
-  # add the point markers
-  stat_ellipse(data=shoot.T1.NMDS.df,aes(x=NMDS1,y=NMDS2,lty=Water,color=Inoculum))+
-  scale_linetype_manual(values=c(1,2,3)) +
-   theme(
-    axis.text = element_text(color='black',size=10),
-    axis.title = element_text(color='black',size=12),
-    axis.ticks = element_line(color='black'),
-    legend.title = element_text(size=8),
-    legend.key = element_rect(fill=NA),
-    panel.background = element_rect(fill=NA,color='black'),
-    panel.grid = element_blank(),
-    plot.title=element_text(size=20,face="bold",vjust=2))
 
 ### root T1 NMDS
 Roots.T1.NMDS<-ggplot(data=root.T1.NMDS.df,
@@ -645,18 +697,45 @@ Roots.T1.NMDS<-ggplot(data=root.T1.NMDS.df,
     panel.grid = element_blank(),
     plot.title=element_text(size=20,face="bold",vjust=2))
 
-Shoots.T1.NMDS
-ggsave("figures/FigS4.Shoot.T1.NMDS.pdf", height=6, width=6)
-
 Roots.T1.NMDS
 ggsave("figures/Fig2.Root.T1.NMDS.pdf", height=6, width=6)
 
-#ggsave(filename = "both_plots.pdf",
-      #plot = both_plots,
-      #bg = "transparent",
-      #width = 12, height = 6, units = "in",
-      #dpi = 600)
 
+```
+
+*Figure S4. Shoot NMDS at T1*
+```{r, fig.height=5, fig.width=10, message=FALSE, warning=FALSE}
+# Shoot T1 NMDS plot
+# change levels...
+shoot.T1.NMDS.df$Inoculum <- as.factor(shoot.T1.NMDS.df$Inoculum)
+levels(shoot.T1.NMDS.df$Inoculum)<-list(Dry="1", Moderate="4", Wet="5", Control="6")
+
+# change levels...
+shoot.T1.NMDS.df$Water <- as.factor(shoot.T1.NMDS.df$Water)
+levels(shoot.T1.NMDS.df$Water) <- list(Low="1", Moderate="2", High="3")
+
+### plot
+Shoots.T1.NMDS<-ggplot(data=shoot.T1.NMDS.df,
+                  aes(x=NMDS1,y=NMDS2,shape=Water,color=Inoculum)) + 
+  scale_color_brewer(palette="Dark2")+
+  ggtitle("Shoots T1")+
+  geom_point(data=shoot.T1.NMDS.df,
+             aes(x=NMDS1,y=NMDS2,shape=Water,color=Inoculum), alpha=0.8) + 
+  # add the point markers
+  stat_ellipse(data=shoot.T1.NMDS.df,aes(x=NMDS1,y=NMDS2,lty=Water,color=Inoculum))+
+  scale_linetype_manual(values=c(1,2,3)) +
+   theme(
+    axis.text = element_text(color='black',size=10),
+    axis.title = element_text(color='black',size=12),
+    axis.ticks = element_line(color='black'),
+    legend.title = element_text(size=8),
+    legend.key = element_rect(fill=NA),
+    panel.background = element_rect(fill=NA,color='black'),
+    panel.grid = element_blank(),
+    plot.title=element_text(size=20,face="bold",vjust=2))
+
+Shoots.T1.NMDS
+ggsave("figures/FigS4.Shoot.T1.NMDS.pdf", height=6, width=6)
 ```
 
 ### Shoots T0-T1
@@ -842,91 +921,6 @@ pair.mod.sh.T6
 
 
 
-```
-
-Let's look at T0 only
-```{r, results='hide',echo=FALSE}
-#Let's view the original input map first
-#View(input$map_loaded)
-
-# final data with treatments to be used in analyses 'ASV.data'
-
-#keep only time point0, 62 samples
-ASV.T0 = filter_data(ASV.data, 'TimePoint', keep_vals = 'T0')
-
-# all T0 data (post stress, roots and shoot)
-shoot.T0<-ASV.T0
-
-# make a rarefaction curve of all T1 data
-otuTAB.T0.shoot <- as.data.frame (shoot.T0$data_loaded)
-otuTAB.transp.T0.shoot<-t(otuTAB.T0.shoot)
-
-```
-
-```{r, results='hide',echo=FALSE}
-### transform
-hell.T0<-hellinger(otuTAB.transp.T0.shoot)
-
-#View(hell)
-shoot.T0$data_loaded<-t(hell.T0)
-
-shoot.T0.mds<-metaMDS(t(shoot.T0$data_loaded))
-shoot.T0.NMDS.df <- as.data.frame(scores(shoot.T0.mds)$sites) 
-shoot.T0.NMDS.df$Water <- as.factor(shoot.T0$map_loaded$Water)
-shoot.T0.NMDS.df$Inoculum <- as.factor(shoot.T0$map_loaded$Inoculum)
-```
-
-#### T0 Graph Only
-
-Shoot fungal microbiomes prior to the start of water stress
-*Figure S2: shoots T0 NMDS*
-```{r, message=FALSE, warning=FALSE}
-
-# change levels...
-shoot.T0.NMDS.df$Inoculum <- as.factor(shoot.T0.NMDS.df$Inoculum)
-levels(shoot.T0.NMDS.df$Inoculum)<-list(Dry="1", Moderate="4", Wet="5", Control="6")
-
-# change levels...
-shoot.T0.NMDS.df$Water <- as.factor(shoot.T0.NMDS.df$Water)
-levels(shoot.T0.NMDS.df$Water) <- list(Low="1", Moderate="2", High="3")
-
-# make the NMDS plot
-
-Shoots.T0.NMDS<-ggplot(data=shoot.T0.NMDS.df,aes(x=NMDS1,y=NMDS2,color=Inoculum)) + 
-  scale_color_brewer(palette="Dark2")+
-  geom_point(data=shoot.T0.NMDS.df,
-             aes(x=NMDS1,y=NMDS2,color=Inoculum), alpha=0.8) + 
-  stat_ellipse(data=shoot.T0.NMDS.df,aes(x=NMDS1,y=NMDS2,color=Inoculum))+
-  theme(
-    axis.text = element_text(color='black',size=10),
-    axis.title = element_text(color='black',size=12),
-    axis.ticks = element_line(color='black'),
-    legend.title = element_text(size=8),
-    panel.background = element_rect(fill=NA,color='black'),
-    panel.grid = element_blank(),
-    legend.key = element_rect(fill=NA),
-    plot.title=element_text(size=20,face="bold",vjust=2))
-
-Shoots.T0.NMDS
-ggsave("figures/FigS3.Shoots.T0.NMDS.pdf", height=6, width=5.5)
-
-```
-
-*Table S3. T0 shoot fungal microbiome*
-```{r shoot T0 microbiome}
-library(vegan)
-
-#make the model
-otuTAB <- as.data.frame (ASV.T0$data_loaded)
-otuTABtranspose<-t(otuTAB)
-mta.sh.T0<-ASV.T0$map_loaded
-
-#do as factor, no water treatment at T0
-mta.sh.T0$Inoculum <- as.factor(mta.sh.T0$Inoculum)
-
-set.seed(138)
-model.sh.T0<-adonis2(otuTABtranspose~Inoculum,data=mta.sh.T0,permutations=999,method="bray")
-model.sh.T0 # no effects
 ```
 
 re-filter, shoots only, T0 and T1
@@ -2774,7 +2768,7 @@ Rootsfamily<-ggplot(familyrootfinalbind, aes(x = inoculum, y = value, fill = fam
     plot.title=element_text(size=20,face="bold",vjust=2))
 
 Rootsfamily
-ggsave("figures/FigS9.Rootsfamily.pdf", height=8, width=14)
+ggsave("figures/FigS9.Rootsfamily.jpg", height=8, width=14)
 
 leg.rt<-get_legend(
   Rootsfamily + 
