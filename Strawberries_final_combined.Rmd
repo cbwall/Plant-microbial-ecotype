@@ -33,11 +33,13 @@ knitr::opts_chunk$set(echo = TRUE)
 if (!require("pacman")) install.packages("pacman") # for rapid install if not in library
 
 # use pacman to load all the packages you are missing!
-pacman::p_load("car", "lme4", "lmerTest", "pbkrtest", "emmeans", "ggplot2", "tidyverse", "dplyr", "labdsv", "grid", "gridExtra", "patchwork", "plyr", "mctoolsr", "vegan", "car", "metacoder", "multcompView", "patchwork", "pairwiseAdonis", "labdsv", "eulerr", "ggthemes", "remotes", "mctoolsr", "brglm2", "cowplot", "microbiome", "mia", "BiocManager", "phyloseq", "devtools", "tibble", "ggVennDiagram", "eulerr", "brglm2")
+pacman::p_load("car", "lme4", "lmerTest", "pbkrtest", "emmeans", "ggplot2", "tidyverse", "dplyr", "labdsv", "grid", "gridExtra", "patchwork", "plyr", "mctoolsr", "vegan", "car", "metacoder", "multcompView", "patchwork", "pairwiseAdonis", "labdsv", "eulerr", "ggthemes", "remotes", "mctoolsr", "brglm2", "cowplot", "microbiome", "mia", "BiocManager", "phyloseq", "devtools", "tibble", "ggVennDiagram", "eulerr", "brglm2", "remotes")
 
 #BiocManager::install("phyloseq")
+#if (!requireNamespace("BiocManager", quietly = TRUE))
+#    install.packages("BiocManager")
 
-install.packages("remotes")
+BiocManager::install("microbiome")
 remotes::install_github("leffj/mctoolsr")
 remotes::install_github("pmartinezarbizu/pairwiseAdonis/pairwiseAdonis")
 ```
@@ -234,21 +236,33 @@ ggsave("figures/FigS2.Survivorship.pdf", height=6, width=6)
 input <- load_taxa_table("data/ASV_table_postfiltering.txt", "data/map_loaded_strawberries.txt")
 # 538 samples, 1894 ASVs
 
+### all samples
+otuTAB.all<-input$data_loaded
+otuTAB.all <- as.data.frame(otuTAB.all)
+otuTAB.transp.all<-t(otuTAB.all)
+write.csv(otuTAB.all, "output/OTU.tab/otuTAB.all.csv")
+
 #remove inoculum that we're not using, 350 samples remaining
 input2 =filter_data(input, 'Inoculum', filter_vals = '2') #1619 ASVs
 input3 =filter_data(input2, 'Inoculum', filter_vals = '3') #1379 ASVs, 350 samples
 
-# final data with treatments to be used in analyses
-ASV.data<-input3
+########### final data with treatments + controls to be used in analyses
+ASV.data.contr<-input3
+
+### no inoc 2 and 3 but controls remain -- this is for SRA archive
+otuTAB.winnowed<-ASV.data.contr$data_loaded
+otuTAB.winnowed <- as.data.frame(otuTAB.winnowed)
+otuTAB.transp.winn<-t(otuTAB.winnowed)
+write.csv(otuTAB.transp.winn, "output/OTU.tab/otuTAB.winnow.csv")
+
+########## remove any controls
 ASV.data = filter_data(ASV.data, 'TimePoint', filter_vals = 'Control') 
-# remove any controls
-#346 samples remaining, 
+#346 samples remaining
 
-otuTAB.all<-input$data_loaded
-otuTAB.all <- as.data.frame(otuTAB.all)
-otuTAB.transp.all<-t(otuTAB.all)
-
-#write.csv(otuTAB.all, "output/otuTAB.all.csv")
+otuTAB.final<-ASV.data$data_loaded
+otuTAB.final <- as.data.frame(otuTAB.final)
+otuTAB.tranp.final<-t(otuTAB.final)
+write.csv(otuTAB.tranp.final, "output/OTU.tab/otuTAB.final.csv")
 ```
 
 ```{r phyloseq comparison, eval=FALSE}
@@ -321,7 +335,6 @@ phy.straw.drop.1<-prune_taxa(taxa_sums(phy.straw)> 1, phy.straw)
 phy.straw.drop.inoc = subset_samples(phy.straw.drop.0, 
                                      Inoculum != "2" & Inoculum != "3") # 346 samples
 phy.straw.dropinoc.0<-prune_taxa(taxa_sums(phy.straw.drop.inoc)> 0, phy.straw.drop.inoc)
-
 
 #drop control samples
 phy.straw.dropinoc.ctrl = subset_samples(phy.straw.dropinoc.0, TimePoint != "Control") #534 samples
@@ -2506,7 +2519,9 @@ familyshootfinalbind$family <- gsub('f__','',familyshootfinalbind$family) # remo
 plot it: shoots T1 family relative abundance
 ```{r}
 library(ggthemes)
-shootsfamily<-ggplot(familyshootfinalbind, aes(x = inoculum, y = value, fill = family)) + 
+familyshootfinalbind.agg<-aggregate(value~inoculum*water*family, data=familyshootfinalbind, "sum")
+
+shootsfamily<-ggplot(familyshootfinalbind.agg, aes(x = inoculum, y = value, fill = family)) + 
   geom_bar(stat="identity",position = "fill") + 
   scale_y_continuous(labels = scales::percent) +
   scale_fill_manual(values = colorRampPalette(solarized_pal()(8))(90)) + 
@@ -2748,8 +2763,12 @@ familyrootfinalbind$family <- gsub('f__','',familyrootfinalbind$family) # remove
 ```{r dataframes}
 library(ggthemes)
 
-Rootsfamily<-ggplot(familyrootfinalbind, aes(x = inoculum, y = value, fill = family)) + 
-  geom_bar(stat="identity",position = "fill") + 
+# aggregate to fix formatting and avoid weird white lines
+
+familyrootfinalbind.agg<-aggregate(value~inoculum*water*family, data=familyrootfinalbind, "sum")
+
+Rootsfamily<-ggplot(familyrootfinalbind.agg, aes(x = inoculum, y = value, fill = family)) + 
+  geom_bar(stat="identity",position = "fill") +
   scale_y_continuous(labels = scales::percent) +
   scale_fill_manual(values = colorRampPalette(solarized_pal()(8))(90)) + 
   ggtitle("Roots Family Graphs")+
@@ -2768,7 +2787,7 @@ Rootsfamily<-ggplot(familyrootfinalbind, aes(x = inoculum, y = value, fill = fam
     plot.title=element_text(size=20,face="bold",vjust=2))
 
 Rootsfamily
-ggsave("figures/FigS9.Rootsfamily.jpg", height=8, width=14)
+ggsave("figures/FigS9.Rootsfamily.pdf", height=8, width=14)
 
 leg.rt<-get_legend(
   Rootsfamily + 
