@@ -19,7 +19,7 @@ The file directory contains folders and scripts (Rmd) to be run in RStudio. The 
  
    - Folders  
      - *data* = contains raw and processed data files  
-     - *figures* = contains raw exported figures from code and processed/cleaned figures in the *final.published* folder  
+     - *figures* = contains raw exported figures from code (main text and Appendix 1  
      - *output* = contains the *scape.data.csv* file, used in generating isoscopes on x-y point system  
 
 ## Metadata
