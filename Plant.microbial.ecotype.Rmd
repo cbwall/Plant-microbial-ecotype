@@ -2642,7 +2642,7 @@ shootsfamily<-ggplot(familyshootfinalbind.agg, aes(x = inoculum, y = value, fill
     legend.text = element_text(color='black',size=4))
 
 shootsfamily
-ggsave("figures/FigS9.Shootssfamily.pdf", height=5, width=6)
+ggsave("figures/FigS9.Shootssfamily.pdf", height=7, width=14)
 
 leg.st<-get_legend(
   shootsfamily + 
@@ -2891,7 +2891,7 @@ rootsfamily<-ggplot(familyrootfinalbind.agg, aes(x = inoculum, y = value, fill =
     legend.text = element_text(color='black',size=4))
 
 rootsfamily
-ggsave("figures/FigS10.Rootsfamily.pdf", height=5, width=6)
+ggsave("figures/FigS10.Rootsfamily.pdf", height=7, width=14)
 
 leg.rt<-get_legend(
   rootsfamily + 
