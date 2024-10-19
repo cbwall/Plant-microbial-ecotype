@@ -25,7 +25,7 @@ To accompish this, we used axenically cloned model plant system (strawberry, *Fr
 
 <center>  
   
-![**Markdown Figure 1**. Inoculated strawberries in incubators.](figures/Keck_strawberry_plants.jpg){width=50%}
+![**Markdown Figure 1**. Inoculated strawberries in incubators.](output/pictures/Keck_strawberry_plants.jpg){width=50%}
 
 </center>. 
   
