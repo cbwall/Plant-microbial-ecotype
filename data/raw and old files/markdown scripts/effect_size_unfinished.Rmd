@@ -1,0 +1,81 @@
+---
+title: "effect size"
+author: "Francisca Rodriguez"
+date: "11/4/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#############################################################################
+################  POST-DECONTAM #############################################
+#############################################################################
+
+#load libraries / data 
+library(rstatix)
+library(dplyr)
+
+ps.noncontam <- readRDS("./intermediate_data/ps.noncontam.rds")
+
+```
+
+```{r}
+#create data frame with post-inoc post-stress samples and i6 (water treatment "control" samples)
+pips_i6_combined_ps <- subset_samples(ps.noncontam, sample_data(ps.noncontam)$SampleType=="i6" | sample_data(ps.noncontam)$SampleType=="post_inoc_post_stress")
+pips_i6_combined_asv <- as.data.frame(otu_table(pips_i6_combined_ps))
+
+#pull out metadata from pips_i6_combined_ps 
+pips_i6_metadata <- as(sample_data(pips_i6_combined_ps), 'matrix')
+pips_i6_metadata <- as.data.frame(pips_i6_metadata)
+
+#Sum ASVs across samples to add to metadata
+richness_sums <- rowSums(pips_i6_combined_asv)
+
+#add column to new df with corresponding richness values
+pips_i6_combined <- dplyr::bind_cols(pips_i6_metadata, richness_sums)
+
+#rename column
+names(pips_i6_combined)[14] <- 'SpeciesRichness'
+str(pips_i6_combined)
+
+#remove T0 pooled i6 plants
+pips_i6_clean <- subset(pips_i6_combined, TimePoint == "T1")
+
+#write this to .csv
+write.csv(pips_i6_clean, "./intermediate_data/pips_i6_clean.csv")
+
+```
+
+```{r}
+#load data with KSTRAW1099 fixed 
+dat = read.csv("./intermediate_data/pips_i6_clean.csv")
+
+#remove columns we don't need 
+dat <- select(dat, 
+              SampleID, 
+              TimePoint, 
+              Type, 
+              PlantID, 
+              WeightGrams, 
+              Water, 
+              Inoculation, 
+              Replicate, 
+              SampleType,
+              Sample_or_Control,
+              SpeciesRichness)
+
+## subset data into above/below ground biomass
+root = subset(dat, Type == "Root")
+shoot = subset(dat, Type =="Shoot")
+
+## Determine effect size of above ground biomass / below ground biomass / total biomass
+totalBiomass = dat %>% cohens_d(WeightGrams ~ Sample_or_Control, var.equal = TRUE)
+above = shoot %>% cohens_d(WeightGrams ~ Sample_or_Control, var.equal = TRUE)
+below = root %>% cohens_d(WeightGrams ~ Sample_or_Control, var.equal = TRUE)
+
+
+```
+

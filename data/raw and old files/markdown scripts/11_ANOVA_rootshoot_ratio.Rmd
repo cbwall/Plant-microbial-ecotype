@@ -1,0 +1,106 @@
+---
+title: "11_ANOVA_rootshoot_ratio"
+author: "Francisca Rodriguez"
+date: "12/3/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+**Post-decontamination**
+```{r}
+#load libraries
+library(tidyverse)
+library(car)
+library(ggpubr)
+library(effects)
+library(readxl)
+library(emmeans)
+
+dat = read_excel("./pips_data/pips_complete.xlsx") |>
+  mutate(
+    Inoculation = as.character(Inoculation),
+    Water = as.character(Water)
+  )
+
+```
+
+**Outlier analysis**
+```{r}
+#load data with root:shoot ratio and total biomass (values calculated in excel)
+rs_dat = read_xlsx("./pips_data/pips_rootshoot_ratios.xlsx") |>
+  mutate(
+    Inoculation = as.character(Inoculation),
+    Water = as.character(Water),
+  )
+
+#interaction model
+rs_fit1 = aov(RootShootRatio ~ Inoculation * Water, data = rs_dat)
+Anova(rs_fit1, type = "3") # if you have interactions, type-3 sums-of-squares is appropriate
+plot(rs_fit1)
+
+#additive model 
+rs_fit2 = aov(RootShootRatio ~ Inoculation + Water, data = rs_dat)
+Anova(rs_fit2, type = "2")
+plot(rs_fit2)
+
+# Studentized residuals
+MASS::studres(rs_fit2) |>
+  abs() |>
+  sort()
+
+#remove the outliers, re-run the analysis
+filtered_rs = rs_dat[-c(49, 75), ]
+
+#plot the filtered data to check the spread
+ggplot(filtered_rs, aes(RootShootRatio)) +
+  facet_grid(Water ~ Inoculation) +
+  geom_histogram()
+
+```
+
+**ANOVA**
+```{r}
+#interaction model
+rs_fit1 = aov(log(RootShootRatio) ~ InoculationLabeled * WaterLabeled, data = filtered_rs)
+Anova(rs_fit1, type = "3") # if you have interactions, type-3 sums-of-squares is appropriate
+plot(rs_fit1)
+plot(allEffects(rs_fit1))
+
+#additive model 
+rs_fit2 = aov(log(RootShootRatio) ~ InoculationLabeled + WaterLabeled, data = filtered_rs)
+Anova(rs_fit2, type = "2")
+plot(rs_fit2)
+plot(allEffects(rs_fit2))
+
+#check the residuals
+shapiro.test(rs_fit1$residuals)
+shapiro.test(rs_fit2$residuals)
+
+#Plot grouped boxplot by inoculation and plant part without the outliers
+ggplot(filtered_rs, aes(x=Inoculation, y=log(RootShootRatio), fill=Water)) + 
+    geom_boxplot() + theme_light() + facet_wrap(~ Type)
+
+```
+
+**Post-hoc tests**
+```{r}
+#kruskal-wallis test for non-parametric data
+kruskal.test(log(RootShootRatio) ~ Inoculation, data = filtered_rs)
+kruskal.test(log(RootShootRatio) ~ Water, data = filtered_rs)
+
+#planned comparison test 
+#apply the emmeans() command to the ANOVA object.
+RootShootPairs <- emmeans(rs_fit1, ~ InoculationLabeled + WaterLabeled)
+
+#obtain the planned 95% confidence intervals for a pairwise comparison
+RootShootsPlanned <- contrast(RootShootPairs, adjust = "none")
+RootShootsPlanned
+
+#Plot grouped boxplot by inoculation and plant part without the outliers
+ggplot(filtered_dat3, aes(x=Inoculation, y=WeightGrams, fill=Water)) + 
+    geom_boxplot() + theme_light() + facet_wrap(~ Type)
+
+```
