@@ -79,12 +79,15 @@ shootroot_inoc23removed$Water<-factor(shootroot_inoc23removed$Water,levels=c("Lo
 # rename one level
 levels(shootroot_inoc23removed$Water)[levels(shootroot_inoc23removed$Water)=="Medium"] <- "Moderate"
 
+# final data for biomass 
+write.csv(shootroot_inoc23removed, "data//final data_published/strawberries_final_data.csv")
+
 shootsonlywithcontrol<-subset(shootroot_inoc23removed,Type!="Root")
 rootsonlywithcontrol<-subset(shootroot_inoc23removed,Type!="Shoot")
 
 # export the final subset data
-write.csv(shootsonlywithcontrol, "output/shootsonlywithcontrol.csv")
-write.csv(rootsonlywithcontrol, "output/rootsonlywithcontrol.csv")
+write.csv(shootsonlywithcontrol, "output/shootsonlywithcontrol_final.csv")
+write.csv(rootsonlywithcontrol, "output/rootsonlywithcontrol_final.csv")
 ```
 
 We take the root biomass (g) and the shoot biomass (g) to = total biomass, then express the proportion of the biomass for the roots and the shoots relative to total biomass of the plant.  
@@ -267,12 +270,15 @@ library(dplyr) # may need to unload-reload if get an error here, plyr and dplyr 
 library(brglm2) # use this (bias-reduced logistic regression) due to complete separation
 # Complete separation occurs in logistic (and binomial, and Poisson) regression when some categories contain 100% failures (or zero counts) or (in the logistic/binomial cases) 100% successes.
 
-mortality.df<-read.csv("data/mortality_data.csv",header=TRUE)
+mortality.df<-read.csv("data/mortality_data_raw.csv",header=TRUE)
 mortality.df$mort.binary<- ifelse(mortality.df$mortality=="alive", 1, 0) # make binary
 mortality.df<-subset(mortality.df,Inoculum!="2"&Inoculum!="3") # remove other inoculations
 mortality.df$Inoculum=as.factor(mortality.df$Inoculum)
 mortality.df$Water=as.factor(mortality.df$Water)
 mortality.df$Inoc.pres.abs<-ifelse(mortality.df$Inoculum=="Control", "Non.inoc", "Inoc")
+
+# export
+write.csv(mortality.df, "data/final data_published/mortality.final.csv")
 
 # full model
 set.seed(138)
@@ -347,7 +353,7 @@ write.csv(otuTAB.all, "output/OTU.tab/otuTAB.all.csv")
 input2 =filter_data(input, 'Inoculum', filter_vals = '2') #1619 ASVs
 input3 =filter_data(input2, 'Inoculum', filter_vals = '3') #1379 ASVs, 350 samples
 
-########### final data with treatments + controls to be used in analyses
+########### final data with treatments + controls to be used in analyses (= Inoculum 1, 4, 5, 6)
 ASV.data.contr<-input3
 
 ### no inoc 2 and 3 but controls remain -- this is for SRA archive
@@ -355,98 +361,6 @@ otuTAB.winnowed<-ASV.data.contr$data_loaded
 otuTAB.winnowed <- as.data.frame(otuTAB.winnowed)
 otuTAB.transp.winn<-t(otuTAB.winnowed)
 write.csv(otuTAB.transp.winn, "output/OTU.tab/otuTAB.winnow.csv")
-
-########## remove any controls
-ASV.data = filter_data(ASV.data.contr, 'TimePoint', filter_vals = 'Control') 
-#346 samples remaining
-
-otuTAB.final<-ASV.data$data_loaded
-otuTAB.final <- as.data.frame(otuTAB.final)
-otuTAB.tranp.final<-t(otuTAB.final)
-write.csv(otuTAB.tranp.final, "output/OTU.tab/otuTAB.final.csv")
-```
-
-```{r phyloseq comparison, eval=FALSE}
-# input.files, note that controls and slurry 2 and 3 would still be here
-ASV.table<-read.delim("data/ASV_table_postfiltering.txt")
-colnames(ASV.table)[colnames(ASV.table)=="X.OTU.ID"]<-"OTU.ID"
-
-# adjust for rownames = OTU/ASVs
-ASV.table <- ASV.table %>%
-    tibble::column_to_rownames("OTU.ID") 
-
-# remove taxonomy here for OTU table
-ASV.table.edit<-within(ASV.table, rm(taxonomy))
-OTU = otu_table(ASV.table.edit, taxa_are_rows = TRUE)
-
-#### buildtaxonomy...
-taxon<-as.data.frame(ASV.table$taxonomy)
-rownames(taxon)<-rownames(ASV.table)
-colnames(taxon)[colnames(taxon)=="ASV.table$taxonomy"]<-"taxonomy"
-
-taxon.df<-tidyr::separate(taxon, taxonomy, into = c("Domain", "Phylum", "Class", "Order", "Family", "Genus", "Species"), sep = ";", fill = "right", extra = "drop")
-
-# remove labels on names
-taxon.df$Domain <- gsub('[k__]','',taxon.df$Domain)
-taxon.df$Phylum <- gsub('[p__]','',taxon.df$Phylum)
-taxon.df$Class <- gsub('[c__]','',taxon.df$Class)
-taxon.df$Genus <- gsub('[g__]','',taxon.df$Genus)
-taxon.df$Species <- gsub('[s__]','',taxon.df$Species)
-
-taxon.mat<-as.matrix(taxon.df)
-TAX<-tax_table(taxon.mat)
-
-#### load in samples
-samples_df<-read.delim("data/map_loaded_strawberries.txt")
-colnames(samples_df)[colnames(samples_df)=="X.OTU.ID"]<-"OTU.ID"
-
-samples_df$Water<- dplyr::recode_factor(samples_df$Water,
-                "1" = "Low",
-                "2" = "Moderate",
-                "3" = "High",
-                "NA"= "NA")
-
-samples_df$Inoculum<- dplyr::recode_factor(samples_df$Inoculum,
-                "1" = "Dry",
-                "4" = "Moderate",
-                "5" = "Wet",
-                "6"= "Control")
-
-samples_df$Trt<-interaction(samples_df$Water, samples_df$Inoculum)
-
-# adjust for rownames = OTU/ASVs
-samples_df <- samples_df %>%
-    tibble::column_to_rownames("OTU.ID") 
-
-# make phyloseq data
-samples_data<-sample_data(samples_df)
-
-### final objects
-#TAX
-#OTU
-#samples_data
-
-# phloseq merged
-phy.straw<-phyloseq(OTU, TAX,samples_data) #538 samples, 1957 samples
-
-#prune 0 counts
-phy.straw.drop.1<-prune_taxa(taxa_sums(phy.straw)> 1, phy.straw)
-
-#drop inoc 2 and 3
-phy.straw.drop.inoc = subset_samples(phy.straw.drop.0, 
-                                     Inoculum != "2" & Inoculum != "3") # 346 samples
-phy.straw.dropinoc.0<-prune_taxa(taxa_sums(phy.straw.drop.inoc)> 0, phy.straw.drop.inoc)
-
-#drop control samples
-phy.straw.dropinoc.ctrl = subset_samples(phy.straw.dropinoc.0, TimePoint != "Control") #534 samples
-phy.straw.dropinoc.control.drop0<-prune_taxa(taxa_sums(phy.straw.dropinoc.ctrl)> 0, phy.straw.dropinoc.ctrl)
-# 346 samples, 1327 taxa/ASVs
-
-
-write_phyloseq(phy.straw.drop.inoc, "output/phyloseq/")
-
-#phy.straw.sh = subset_samples(phy.straw.drop.inoc, Type == "Shoot") #203 samples
-#phy.straw.rt = subset_samples(phy.straw.drop.inoc, Type == "Root") #143 samples
 ```
 
 Produce a rarefaction curve for fungi sequences, this is for T0 and T1, roots and shoots.  
@@ -454,25 +368,38 @@ Produce a rarefaction curve for fungi sequences, this is for T0 and T1, roots an
 - this takes some time, so for ease it is not run here in the markdown knitr
 - refer to jpeg of output here. 
 
+```{r all sample rarefac, fig.cap="**Figure S1.** ASV (amplicon sequence variant) accumulation curves showing the number of ASVs and sequencing depth across all plant samples (shoot, root) and time points (pre- and post-water manipulation treatments (T0 and T1).", collapse=TRUE, eval=FALSE}
+# can be memory intensive, set to eval false for now
+# make a rarefaction curve of winnowed data: excluding treatment 2 and 3 not used in the study, retaining the "controls"
+
+# set to eval =FALSE since can take some time to run
+rarecurve(otuTAB.transp.winn, xlab = "Sequencing Depth", col="mediumseagreen", ylab = "ASV count", label = FALSE, xlim=c(0,60000))
+
+dev.copy(pdf, "figures/FigS1.T1T0.all.depth.pdf", height=5, width=8)
+dev.off() 
+```
+
 <center>  
   
 ![**Figure S1**. All sample rarefaction curve ](figures/FigS1.T1T0.all.depth.jpg){width=80%}
 
 </center>
 
+```{r final OTU tab, message=FALSE, warning=FALSE, results='hide', collapse=TRUE}
+########## remove any controls (treatments only 1,4,5,6)
+ASV.data = filter_data(ASV.data.contr, 'TimePoint', filter_vals = 'Control') 
+#346 samples remaining
 
-```{r all sample rarefac, fig.cap="**Figure S1.** ASV (amplicon sequence variant) accumulation curves showing the number of ASVs and sequencing depth across all plant samples (shoot, root) and time points (pre- and post-water manipulation treatments (T0 and T1).", collapse=TRUE, eval=FALSE}
-# can be memory intensive, set to eval false for now
-# make a rarefaction curve of all data
+otuTAB.final<-ASV.data$data_loaded
+otuTAB.final <- as.data.frame(otuTAB.final)
+otuTAB.tranp.final<-t(otuTAB.final)
+write.csv(otuTAB.tranp.final, "data/final data_published/otuTAB.final.csv")
 
-# set to eval =FALSE since can take some time to run
-rarecurve(otuTAB.transp.all, xlab = "Sequencing Depth", col="mediumseagreen", ylab = "ASV count", label = FALSE, xlim=c(0,60000))
+# individual files
+write.csv(ASV.data$data_loaded, "data/final data_published/ASV.data_loaded_final.csv")
+write.csv(ASV.data$map_loaded, "data/final data_published/ASV.map_loaded_final.csv")
+write.csv(ASV.data$taxonomy_loaded, "data/final data_published/ASV.tax_loaded_final.csv")
 
-dev.copy(pdf, "figures/FigS1.T1T0.all.depth.pdf", height=5, width=8)
-dev.off() 
-```
-
-```{r, message=FALSE, warning=FALSE, results='hide', collapse=TRUE}
 # final data with treatments to be used in analyses 'ASV.data'
 
 #keep only time point1, 284 samples
