@@ -375,15 +375,16 @@ Produce a rarefaction curve for fungi sequences, this is for T0 and T1, roots an
 # set to eval =FALSE since can take some time to run
 rarecurve(otuTAB.transp.winn, xlab = "Sequencing Depth", col="mediumseagreen", ylab = "ASV count", label = FALSE, xlim=c(0,60000))
 
-dev.copy(pdf, "figures/FigS1.T1T0.all.depth.pdf", height=5, width=8)
+dev.copy(pdf, "figures/FigS1.T1T0.depth.pdf", height=5, width=8)
 dev.off() 
 ```
 
 <center>  
   
-![**Figure S1**. All sample rarefaction curve ](figures/FigS1.T1T0.all.depth.jpg){width=80%}
+![**Figure S1**. All sample rarefaction curve ](figures/FigS1.T1T0.depth.jpg){width=80%}
 
 </center>
+
 
 ```{r final OTU tab, message=FALSE, warning=FALSE, results='hide', collapse=TRUE}
 ########## remove any controls (treatments only 1,4,5,6)
