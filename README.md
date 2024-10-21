@@ -55,7 +55,7 @@ Important data files to generate figures and run models can be found in the *dat
     - **data/final published_data/**  
         - *ASV.data_loaded_final.csv* = final OTU table data  
         - *ASV.map_loaded_final.csv* = final OTU mapping file ... representative of *output/OTU.tab/otuTAB.final.csv*   
-        - *ASV.tax_loaded_final.csv* = = final OTU table taxonomy   
+        - *ASV.tax_loaded_final.csv* = final OTU table taxonomy   
         - *mortality.final.csv* = final dataframe for mortality  
         - *strawberries_final_data.csv* = final dataframe for biomass  
      
