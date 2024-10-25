@@ -265,7 +265,7 @@ At the end of the experiment (following inoculation and a period of water treatm
 - Then test for effect of inoculation vs. uninoculated controls
 
 ```{r survival import and subset, results='hide',echo=FALSE}
-library(dplyr) # may need to unload-reload if get an error here, plyr and dplyr don't play well
+library(dplyr) # may need to unload-reload if get an error here, plyr and dplyr don't play well 
 
 library(brglm2) # use this (bias-reduced logistic regression) due to complete separation
 # Complete separation occurs in logistic (and binomial, and Poisson) regression when some categories contain 100% failures (or zero counts) or (in the logistic/binomial cases) 100% successes.
