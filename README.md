@@ -1,10 +1,10 @@
 ## Symbiotic fungi alter plant resource allocation independent of water availability
-
+[![DOI](https://zenodo.org/badge/304448150.svg)](https://doi.org/10.5281/zenodo.13952874)  
 CB Wall<sup>1,2</sup>, K Kajihara<sup>1</sup>, FE Rodriguez<sup>1</sup>, L Vilonen<sup>1</sup>, D Yogi<sup>1</sup>, SOI Swift<sup>1</sup>, NA Hynson<sup>1</sup>  
 (2024) _American Journal of Botany_.  
 
 <sup>1</sup>University of Hawai'i at Mānoa  
-<sup>2</sup>University of California, San Diego     
+<sup>2</sup>University of California, San Diego 
 
 <p align="center">
   <img align="center" src="https://github.com/cbwall/Plant-microbial-ecotype/blob/main/output/pictures/git_Rmd_pic.jpg" width="65%" height="60%">
