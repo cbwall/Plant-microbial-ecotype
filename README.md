@@ -1,6 +1,6 @@
 ## Symbiotic fungi alter plant resource allocation independent of water availability
 
-CB Wall<sup>1,2</sup>, K Kajihara<sup>1</sup>, FE Rodriguez<sup>1</sup>, L Vilonen<sup>1</sup>, D Yogi<sup>1</sup>, SIO Swift<sup>1</sup>, NA Hynson<sup>1</sup>  
+CB Wall<sup>1,2</sup>, K Kajihara<sup>1</sup>, FE Rodriguez<sup>1</sup>, L Vilonen<sup>1</sup>, D Yogi<sup>1</sup>, SOI Swift<sup>1</sup>, NA Hynson<sup>1</sup>  
 (2024) _American Journal of Botany_.  
 
 <sup>1</sup>University of Hawai'i at Mānoa  
